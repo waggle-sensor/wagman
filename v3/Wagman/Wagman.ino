@@ -8,6 +8,7 @@
 // TODO Add self test / calibration mechanism. (Though we're not really using it right now.)
 // TODO add communication layer!
 // TODO look at Serial write buffer overflow lock up.
+// TODO rearrange to better reflect state diagram.
 
 #define SECONDS(x) ((unsigned long)(1000 * (x)))
 #define MINUTES(x) ((unsigned long)(60000 * (x)))
@@ -104,7 +105,21 @@ int getNextBootDevice()
 }
 
 void startDevice(int device)
-{            
+{
+    if (devices[device].started) {
+        Serial.print('?');
+        Serial.print(device);
+        Serial.println(" already started");
+        return;
+    }
+    
+    if (devices[device].stopping) {
+        Serial.print('?');
+        Serial.print(device);
+        Serial.println(" busy stopping");
+        return;
+    }
+    
     // keep correct boot media stored somewhere as it may vary by device!
     if (Record::getBootFailures(device) % 4 == 3) {
         Serial.print('?');
@@ -134,10 +149,24 @@ void startDevice(int device)
 
 void stopDevice(int device, bool failure)
 {
+    if (!devices[device].started) {
+        Serial.print('?');
+        Serial.print(device);
+        Serial.println(" not started");
+        return;
+    }
+    
+    if (devices[device].stopping) {
+        Serial.print('?');
+        Serial.print(device);
+        Serial.println(" already stopping");
+        return;
+    }
+
     if (failure) {
         Serial.print('?');
         Serial.print(device);
-        Serial.println(" stopping due to failure");
+        Serial.println(" stopping (failure)");
         Record::incrementBootFailures(device);
     } else {
         Serial.print('?');
@@ -161,6 +190,7 @@ void killDevice(int device)
     Record::setRelayEnd(device);
     
     devices[device].started = false;
+    devices[device].stopping = false;
 }
 
 void bootNextReadyDevice()
@@ -188,8 +218,8 @@ void updateHeartbeat(int device)
         Serial.print('?');
         Serial.print(device);
         Serial.print(" no heartbeat (");
-        Serial.print(HEARTBEAT_TIMEOUT - (millis() - devices[device].heartbeatTime));
-        Serial.println(" left)");
+        Serial.print((HEARTBEAT_TIMEOUT - (millis() - devices[device].heartbeatTime)) / 1000);
+        Serial.println(" seconds left)");
     }
 }
 
@@ -214,8 +244,6 @@ void checkStopConditions(int device)
     }
 }
 
-// rearrange into better state diagram.
-
 void updateDevice(int device)
 {
     wdt_reset();
@@ -226,8 +254,9 @@ void updateDevice(int device)
         if (devices[device].stopping) {
             Serial.print('?');
             Serial.print(device);
-            Serial.print(" stop time remaining ");
-            Serial.println(STOPPING_TIMEOUT - (millis() - devices[device].stopTime));
+            Serial.print(" stopping (");
+            Serial.print((STOPPING_TIMEOUT - (millis() - devices[device].stopTime)) / 1000);
+            Serial.println(" seconds left)");
     
             if (device == DEVICE_NC) {
                 Serial.println("!stop nc");
@@ -254,12 +283,18 @@ void commandStop(const char *msg)
     stopDevice(msg[0] - '0', false);
 }
 
+void commandKill(const char *msg)
+{
+    killDevice(msg[0] - '0');
+}
+
 struct {
     byte command;
     void (*handler)(const char *msg);
 } commandTable[] = {
     {'s', commandStart},
     {'x', commandStop},
+    {'k', commandKill},
     {0, NULL},
 };
 
@@ -314,7 +349,7 @@ void loop()
 //        bootNextReadyDevice();
 //        lastDeviceStartTime = millis();
 //    }
-
+    
     for (int i = 0; i < 5; i++) {
         updateDevice(i);
     }

@@ -14,15 +14,31 @@
 #define MINUTES(x) ((unsigned long)(60000 * (x)))
 #define HOURS(x) ((unsigned long)(3600000 * (x)))
 
-struct Device
+class Device
 {
-    bool started;
-    bool stopping;
-    bool managed;
-    unsigned long startTime;
-    unsigned long stopTime;
-    unsigned long heartbeatTime;
-    int heartbeatMode;
+    public:
+
+        void start();
+        void stop(bool failure=false);
+        void kill();
+        void update();
+
+        const char *name;
+        byte port;
+        byte bootSelector;
+        bool started;
+
+    private:
+
+        void updateHeartbeat();
+        void checkStopConditions();
+
+        bool stopping;
+        bool managed;
+        unsigned long startTime;
+        unsigned long stopTime;
+        unsigned long heartbeatTime;
+        int heartbeatMode;
 };
 
 static const unsigned long HEARTBEAT_TIMEOUT = MINUTES(2);
@@ -59,6 +75,16 @@ void setup()
     wdt_reset();
     Record::init();
     delay(1000);
+
+    // node controller
+    devices[0].name = "nc";
+    devices[0].port = 0;
+    devices[0].bootSelector = 0;
+
+    // guest node
+    devices[1].name = "gn";
+    devices[1].port = 1;
+    devices[1].bootSelector = 1;
     
     Record::incrementBootCount();
     Record::setLastBootTime(Wagman::getTime());
@@ -104,101 +130,12 @@ int getNextBootDevice()
     return -1;
 }
 
-void startDevice(int device)
-{
-    if (devices[device].started) {
-        Serial.print('?');
-        Serial.print(device);
-        Serial.println(" already started");
-        return;
-    }
-    
-    if (devices[device].stopping) {
-        Serial.print('?');
-        Serial.print(device);
-        Serial.println(" busy stopping");
-        return;
-    }
-    
-    // keep correct boot media stored somewhere as it may vary by device!
-    if (Record::getBootFailures(device) % 4 == 3) {
-        Serial.print('?');
-        Serial.print(device);
-        Serial.println(" booting secondary");
-        Wagman::setBootMedia(device, MEDIA_EMMC);
-    } else {
-        Serial.print('?');
-        Serial.print(device);
-        Serial.println(" booting secondary");
-        Wagman::setBootMedia(device, MEDIA_SD);
-    }
-
-    // ensure relay set to on (notice that we leave it as-is if already on.)
-    Record::setRelayBegin(device);
-    Wagman::setRelay(device, true);
-    Record::setRelayEnd(device);
-
-    // initialize started device parameters.
-    devices[device].started = true;
-    devices[device].stopping = false;
-    devices[device].managed = Record::getBootFailures(device) < 25; // this can be changed.
-    devices[device].startTime = millis();
-    devices[device].stopTime = 0;
-    devices[device].heartbeatTime = millis();
-}
-
-void stopDevice(int device, bool failure)
-{
-    if (!devices[device].started) {
-        Serial.print('?');
-        Serial.print(device);
-        Serial.println(" not started");
-        return;
-    }
-    
-    if (devices[device].stopping) {
-        Serial.print('?');
-        Serial.print(device);
-        Serial.println(" already stopping");
-        return;
-    }
-
-    if (failure) {
-        Serial.print('?');
-        Serial.print(device);
-        Serial.println(" stopping (failure)");
-        Record::incrementBootFailures(device);
-    } else {
-        Serial.print('?');
-        Serial.print(device);
-        Serial.println(" stopping");
-    }
-
-    devices[device].stopping = true;
-    devices[device].stopTime = millis();
-}
-
-void killDevice(int device)
-{
-    Serial.print('?');
-    Serial.print(device);
-    Serial.println(" killing power!");
-
-    Record::setRelayBegin(device);
-    Wagman::setRelay(device, true);
-    Wagman::setRelay(device, false);
-    Record::setRelayEnd(device);
-    
-    devices[device].started = false;
-    devices[device].stopping = false;
-}
-
 void bootNextReadyDevice()
 {
-    int device = getNextBootDevice();
+    int index = getNextBootDevice();
 
-    if (device != -1) {
-        startDevice(device);
+    if (index != -1) {
+        devices[index].start();
     }
 }
 
@@ -206,86 +143,177 @@ void bootNextReadyDevice()
 // at some point should realize there's a problem and switch over to long
 // delay booting.
 
-void updateHeartbeat(int device)
+void Device::start()
 {
-    // update most recent heartbeat time
-    if (hasHeartbeat(device)) {
-        devices[device].heartbeatTime = millis();
+    if (started) {
         Serial.print('?');
-        Serial.print(device);
-        Serial.println(" has heartbeat");
+        Serial.print(name);
+        Serial.println(" already started");
+        return; // consider having useful return info.
+    }
+    
+    if (stopping) {
+        Serial.print('?');
+        Serial.print(name);
+        Serial.println(" busy stopping");
+        return;
+    }
+    
+    // keep correct boot media stored somewhere as it may vary by device!
+    if (Record::getBootFailures(port) % 4 == 3) {
+        Serial.print('?');
+        Serial.print(name);
+        Serial.println(" booting secondary");
+        Wagman::setBootMedia(bootSelector, MEDIA_EMMC);
     } else {
         Serial.print('?');
-        Serial.print(device);
-        Serial.print(" no heartbeat (");
-        Serial.print((HEARTBEAT_TIMEOUT - (millis() - devices[device].heartbeatTime)) / 1000);
-        Serial.println(" seconds left)");
+        Serial.print(name);
+        Serial.println(" booting secondary");
+        Wagman::setBootMedia(bootSelector, MEDIA_SD);
     }
+
+    // ensure relay set to on (notice that we leave it as-is if already on.)
+    Record::setRelayBegin(port);
+    Wagman::setRelay(port, true);
+    Record::setRelayEnd(port);
+
+    // initialize started device parameters.
+    started = true;
+    stopping = false;
+    managed = Record::getBootFailures(port) < 25; // this can be changed.
+    startTime = millis();
+    stopTime = 0;
+    heartbeatTime = millis();
 }
 
-void checkStopConditions(int device)
+void Device::stop(bool failure)
 {
-    if (devices[device].managed) {
-        if (millis() - devices[device].heartbeatTime > HEARTBEAT_TIMEOUT) {
-            Serial.print('?');
-            Serial.print(device);
-            Serial.println(" heartbeat timeout!");
-            stopDevice(device, true);
-        } else if (Wagman::getCurrent(device) < 100) {
-            Serial.print('?');
-            Serial.print(device);
-            Serial.println(" current lost! stopping!");
-            stopDevice(device, true);
-        }
-    } else {
-        if (millis() - devices[device].heartbeatTime > HOURS(8)) {
-            stopDevice(device, false);
-        }
+    if (!started) {
+        Serial.print('?');
+        Serial.print(name);
+        Serial.println(" not started");
+        return;
     }
+    
+    if (stopping) {
+        Serial.print('?');
+        Serial.print(name);
+        Serial.println(" already stopping");
+        return;
+    }
+
+    if (failure) {
+        Serial.print('?');
+        Serial.print(name);
+        Serial.println(" stopping (failure)");
+        Record::incrementBootFailures(port); // using device <-> mapping...
+    } else {
+        Serial.print('?');
+        Serial.print(name);
+        Serial.println(" stopping");
+    }
+
+    stopping = true;
+    stopTime = millis();
 }
 
-void updateDevice(int device)
+void Device::kill()
+{
+    Serial.print('?');
+    Serial.print(name);
+    Serial.println(" killing power!");
+
+    Record::setRelayBegin(port);
+    Wagman::setRelay(port, true);
+    Wagman::setRelay(port, false);
+    Record::setRelayEnd(port);
+    
+    started = false;
+    stopping = false;
+}
+
+void Device::update()
 {
     wdt_reset();
     
-    if (devices[device].started) {
-        updateHeartbeat(device);
+    if (started) {
+        updateHeartbeat();
         
-        if (devices[device].stopping) {
+        if (stopping) {
             Serial.print('?');
-            Serial.print(device);
+            Serial.print(name);
             Serial.print(" stopping (");
-            Serial.print((STOPPING_TIMEOUT - (millis() - devices[device].stopTime)) / 1000);
+            Serial.print((STOPPING_TIMEOUT - (millis() - stopTime)) / 1000);
             Serial.println(" seconds left)");
     
-            if (device == DEVICE_NC) {
+            if (port == 0) {
                 Serial.println("!stop nc");
             } else { // for now, assume other nodes are guest nodes.
                 Serial.println("!stop gn");
             }
     
-            if (millis() - devices[device].stopTime > STOPPING_TIMEOUT) {
-                killDevice(device);
+            if (millis() - stopTime > STOPPING_TIMEOUT) {
+                kill();
             }
         } else {
-            checkStopConditions(device);
+            checkStopConditions();
+        }
+    }
+}
+
+void Device::updateHeartbeat()
+{
+    if (hasHeartbeat(port)) {
+        heartbeatTime = millis();
+        Serial.print('?');
+        Serial.print(name);
+        Serial.println(" has heartbeat");
+    } else {
+        Serial.print('?');
+        Serial.print(name);
+        Serial.print(" no heartbeat (");
+        Serial.print((HEARTBEAT_TIMEOUT - (millis() - heartbeatTime)) / 1000);
+        Serial.println(" seconds left)");
+    }
+}
+
+void Device::checkStopConditions()
+{
+    if (managed) {
+        if (millis() - heartbeatTime > HEARTBEAT_TIMEOUT) {
+            Serial.print('?');
+            Serial.print(name);
+            Serial.println(" heartbeat timeout!");
+            stop(true);
+        } else if (Wagman::getCurrent(port) < 100) {
+            Serial.print('?');
+            Serial.print(name);
+            Serial.println(" current lost! stopping!");
+            stop(true);
+        }
+    } else {
+        if (millis() - heartbeatTime > HOURS(8)) {
+            stop(false);
         }
     }
 }
 
 void commandStart(const char *msg)
 {
-    startDevice(msg[0] - '0');
+    int index = msg[0] - '0';
+    devices[index].start();
 }
 
 void commandStop(const char *msg)
 {
-    stopDevice(msg[0] - '0', false);
+    int index = msg[0] - '0';
+    devices[index].stop();
 }
 
 void commandKill(const char *msg)
 {
-    killDevice(msg[0] - '0');
+    int index = msg[0] - '0';
+    devices[index].kill();
 }
 
 struct {
@@ -351,7 +379,7 @@ void loop()
 //    }
     
     for (int i = 0; i < 5; i++) {
-        updateDevice(i);
+        devices[i].update();
     }
 }
 

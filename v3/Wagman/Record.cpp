@@ -12,11 +12,15 @@ static const unsigned int
     EEPROM_BOOT_COUNT = 8,
     EEPROM_LAST_BOOT_TIME = 12;
 
-static const unsigned int EEPROM_DEVICE_ENABLED[DEVICE_COUNT] = {520, 584, 808, 808, 808};
-static const unsigned int EEPROM_BOOT_ATTEMPTS[DEVICE_COUNT] = {521, 585, 808, 808, 808};
-static const unsigned int EEPROM_BOOT_FAILURES[DEVICE_COUNT] = {523, 587, 808, 808, 808};
+// sync up with memory layout.
+// some of these can be replace by a simple fixed size offset
+// for now...using this.
 
-static const unsigned int EEPROM_RELAY_JOURNALS[DEVICE_COUNT] = {800, 801, 802, 803, 804};
+static const unsigned int EEPROM_DEVICE_ENABLED[DEVICE_COUNT] = {520, 584, 1000, 808, 1000};
+static const unsigned int EEPROM_BOOT_ATTEMPTS[DEVICE_COUNT] = {521, 585, 1000, 808, 1000};
+static const unsigned int EEPROM_BOOT_FAILURES[DEVICE_COUNT] = {523, 587, 1000, 808, 1000};
+
+static const unsigned int EEPROM_RELAY_JOURNALS[DEVICE_COUNT] = {800, 801, 1000, 1000, 1000};
 
 namespace Record
 {

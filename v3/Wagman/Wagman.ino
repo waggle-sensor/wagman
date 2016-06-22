@@ -1,6 +1,9 @@
 #include <avr/wdt.h>
+#include <EEPROM.h>
 #include "Wagman.h"
 #include "Record.h"
+#include "Device.h"
+#include "MCP79412RTC.h"
 
 // TODO Add persistant event logging on using system hardware so we can trace what happened
 //      during a device failure.
@@ -14,35 +17,7 @@
 #define MINUTES(x) ((unsigned long)(60000 * (x)))
 #define HOURS(x) ((unsigned long)(3600000 * (x)))
 
-class Device
-{
-    public:
-
-        void start();
-        void stop(bool failure=false);
-        void kill();
-        void update();
-
-        const char *name;
-        byte port;
-        byte bootSelector;
-        bool started;
-
-    private:
-
-        void updateHeartbeat();
-        void checkStopConditions();
-
-        bool stopping;
-        bool managed;
-        unsigned long startTime;
-        unsigned long stopTime;
-        unsigned long heartbeatTime;
-        int heartbeatMode;
-};
-
-static const unsigned long HEARTBEAT_TIMEOUT = MINUTES(2);
-static const unsigned long STOPPING_TIMEOUT = MINUTES(2);
+bool logging = false;
 
 static const byte DEVICE_NC = 0;
 static const byte DEVICE_GN = 1;
@@ -50,14 +25,263 @@ static const byte DEVICE_GN = 1;
 Device devices[5];
 unsigned long lastDeviceStartTime = 0;
 
-void healthCheck()
+typedef struct {
+    const char *name;
+    void (*func)(int, const char **);
+} Command;
+
+// NOTE Each time a command is caught, we can reset the node controller heartbeat as an addition "alive" indicator!
+
+void commandOn(int argc, const char **args)
 {
-    // we can certainly use the eeprom to input what we believe is the right range
-    // of sensor values. (this can also be in program space...)
+    for (int i = 1; i < argc; i++) {
+        Wagman::setRelay(atoi(args[i]), true);
+    }
+}
+
+void commandOff(int argc, const char **args)
+{
+    for (int i = 1; i < argc; i++) {
+        Wagman::setRelay(atoi(args[i]), false);
+    }
+}
+
+void commandStart(int argc, const char **args)
+{
+    for (int i = 1; i < argc; i++) {
+        int index = atoi(args[i]);
+        devices[index].start();
+    }
+}
+
+void commandStop(int argc, const char **args)
+{
+    for (int i = 1; i < argc; i++) {
+        int index = atoi(args[i]);
+        devices[index].stop(false);
+    }
+}
+
+void commandReset(int argc, const char **args)
+{
+}
+
+// ...can do a full system status dump here too...
+// include current, heartbeats, thermistor, etc...
+// instead of separate commands...maybe?
+
+void commandInfo(int argc, const char **args)
+{
+    byte id[8];
+
+    RTC.idRead(id);
     
-    // we can detect if a device is within that operating range...but what will we
-    // do if it's not? ignore the value as untrustworthy? i don't believe we can
-    // do much correction with this information.
+    Serial.print("id: ");
+
+    for (int i = 0; i < 8; i++) {
+        Serial.print(id[i] & 0x0F, HEX);
+        Serial.print(id[i] >> 8, HEX);
+    }
+
+    Serial.println();
+    
+    Serial.print("temperature: ");
+    Serial.println(Wagman::getTemperature());
+    
+    Serial.print("humidity: ");
+    Serial.println(Wagman::getHumidity());
+}
+
+void commandDump(int argc, const char **args)
+{
+    for (int i = 0; i < 1024; i++) {
+        byte value = EEPROM.read(i);
+        
+        Serial.print(value & 0x0F, HEX);
+        Serial.print(value >> 8, HEX);
+        Serial.print(' ');
+
+        if (i % 4 == 3)
+            Serial.print(' ');
+        
+        if (i % 32 == 31)
+            Serial.println();
+    }
+}
+
+void commandDate(int argc, const char **args)
+{
+    tmElements_t tm;
+
+    if (argc == 1) {
+        RTC.read(tm);
+
+        Serial.print(args[0]);
+        Serial.print(": ");
+        Serial.print(tm.Year + 1970);
+        Serial.print('-');
+        Serial.print(tm.Month);
+        Serial.print('-');
+        Serial.print(tm.Day);
+        Serial.print(' ');
+        Serial.print(tm.Hour);
+        Serial.print(':');
+        Serial.print(tm.Minute);
+        Serial.print(':');
+        Serial.print(tm.Second);
+        Serial.println();
+    } else {
+        tmElements_t tm;
+
+        tm.Year = atoi(args[1]) - 1970;
+        tm.Month = (argc >= 3) ? atoi(args[2]) : 0;
+        tm.Day = (argc >= 4) ? atoi(args[3]) : 0;
+        tm.Hour = (argc >= 5) ? atoi(args[4]) : 0;
+        tm.Minute = (argc >= 6) ? atoi(args[5]) : 0;
+        tm.Second = (argc >= 7) ? atoi(args[6]) : 0;
+    
+        RTC.set(makeTime(tm));
+    }
+}
+
+void commandCurrent(int argc, const char **args)
+{
+    Serial.print(args[0]);
+    Serial.print(": ");
+
+    Serial.print(Wagman::getCurrent());
+    Serial.print(" ");
+    
+    for (int i = 0; i < 5; i++) {
+        Serial.print(Wagman::getCurrent(i));
+        Serial.print(" ");
+    }
+    
+    Serial.println();
+}
+
+void commandHeartbeat(int argc, const char **args)
+{
+    unsigned long currtime = millis();
+
+    Serial.print(args[0]);
+    Serial.print(": ");
+    
+    for (int i = 0; i < 5; i++) {
+        Serial.print((currtime - devices[i].heartbeatTime) / 1000);
+        Serial.print(" ");
+    }
+    
+    Serial.println();
+}
+
+void commandThermistor(int argc, const char **args)
+{
+    Serial.print(args[0]);
+    Serial.print(": ");
+    
+    for (int i = 0; i < 5; i++) {
+        Serial.print(Wagman::getThermistor(i));
+        Serial.print(" ");
+    }
+    
+    Serial.println();
+}
+
+void commandBootMedia(int argc, const char **args)
+{
+    if (argc == 2) {
+        Serial.print("bm: ");
+        Serial.println(Wagman::getBootMedia(atoi(args[1])));
+    } else if (argc == 3) {
+        Wagman::setBootMedia(atoi(args[1]), atoi(args[2]));
+        Serial.print("bm: ");
+        Serial.println(Wagman::getBootMedia(atoi(args[1])));
+    }
+}
+
+void commandLog(int argc, const char **args)
+{
+    logging = !logging;
+
+    if (logging) {
+        Serial.println("logging: on");
+    } else {
+        Serial.println("logging: off");
+    }
+}
+
+Command commands[] = {
+    { "on", commandOn },
+    { "off", commandOff },
+    { "start", commandStart },
+    { "stop", commandStop },
+    { "reset", commandReset },
+    { "info", commandInfo },
+    { "eedump", commandDump },
+    { "date", commandDate },
+    { "log", commandLog },
+    { "cu", commandCurrent },
+    { "hb", commandHeartbeat },
+    { "bm", commandBootMedia },
+    { "therm", commandThermistor },
+    { NULL, NULL },
+};
+
+// notice...don't really need a ping / pong message on either side. can just check if communication times out.
+
+const int BUFFER_SIZE = 120;
+const int MAX_FIELDS = 12;
+char buffer[BUFFER_SIZE];
+
+void processCommand()
+{
+    const char *fields[MAX_FIELDS];
+    int numfields = 0;
+    char *s = buffer;
+
+    // set all fields to empty string
+    for (int i = 0; i < MAX_FIELDS; i++)
+        fields[i] = NULL;
+
+    while (numfields < MAX_FIELDS) {
+
+        // skip whitespace
+        while (isspace(*s))
+            s++;
+
+        // mark an argument
+        if (isalnum(*s)) {
+            fields[numfields++] = s;
+            while (isalnum(*s))
+                s++;
+        }
+
+        // end of buffer?
+        if (*s == '\0')
+            break;
+
+        // split buffer at argument
+        *s++ = '\0';
+    }
+
+    // device is talking to us coherently, so it's alive
+//    devices[0].heartbeatTime = millis();
+
+    // empty command
+    if (numfields == 0)
+        return;
+
+    // look up command in table
+    for (Command *c = commands; c->name; c++) {
+        if (strcmp(c->name, fields[0]) == 0) {
+            c->func(numfields, fields);
+            return;
+        }
+    }
+
+    Serial.print(fields[0]);
+    Serial.println(": command not found");
 }
 
 void setup()
@@ -80,306 +304,80 @@ void setup()
     devices[0].name = "nc";
     devices[0].port = 0;
     devices[0].bootSelector = 0;
+    devices[0].primaryMedia = MEDIA_SD;
+    devices[0].secondaryMedia = MEDIA_EMMC;
 
     // guest node
     devices[1].name = "gn";
     devices[1].port = 1;
     devices[1].bootSelector = 1;
+    devices[1].primaryMedia = MEDIA_EMMC;
+    devices[1].secondaryMedia = MEDIA_SD;
     
     Record::incrementBootCount();
     Record::setLastBootTime(Wagman::getTime());
-
-    Serial.print('?');
-    Serial.println("system starting");
-}
-
-bool hasHeartbeat(int device)
-{
-    unsigned long startTime = millis();
-    int startHeartbeat = Wagman::getHeartbeat(device);
-
-    wdt_reset();
-
-    while (true) {
-        if (millis() - startTime > 2000) {
-            wdt_reset();
-            return false;
-        }
-        if (startHeartbeat != Wagman::getHeartbeat(device)) {
-            wdt_reset();
-            return true;
-        }
-    }
-}
-
-int getNextBootDevice()
-{
-    for (int i = 0; i < 5; i++) {
-        // disabled
-        if (!Record::getDeviceEnabled(i))
-            continue;
-
-        // already started
-        if (devices[i].started)
-            continue;
-
-        if (i == DEVICE_NC || !Record::setRelayFailed(i))
-            return i;
-    }
-
-    return -1;
-}
-
-void bootNextReadyDevice()
-{
-    int index = getNextBootDevice();
-
-    if (index != -1) {
-        devices[index].start();
-    }
-}
-
-// fix case where no device is connected, but we keep trying to boot it.
-// at some point should realize there's a problem and switch over to long
-// delay booting.
-
-void Device::start()
-{
-    if (started) {
-        Serial.print('?');
-        Serial.print(name);
-        Serial.println(" already started");
-        return; // consider having useful return info.
-    }
-    
-    if (stopping) {
-        Serial.print('?');
-        Serial.print(name);
-        Serial.println(" busy stopping");
-        return;
-    }
-    
-    // keep correct boot media stored somewhere as it may vary by device!
-    if (Record::getBootFailures(port) % 4 == 3) {
-        Serial.print('?');
-        Serial.print(name);
-        Serial.println(" booting secondary");
-        Wagman::setBootMedia(bootSelector, MEDIA_EMMC);
-    } else {
-        Serial.print('?');
-        Serial.print(name);
-        Serial.println(" booting secondary");
-        Wagman::setBootMedia(bootSelector, MEDIA_SD);
-    }
-
-    // ensure relay set to on (notice that we leave it as-is if already on.)
-    Record::setRelayBegin(port);
-    Wagman::setRelay(port, true);
-    Record::setRelayEnd(port);
-
-    // initialize started device parameters.
-    started = true;
-    stopping = false;
-    managed = Record::getBootFailures(port) < 25; // this can be changed.
-    startTime = millis();
-    stopTime = 0;
-    heartbeatTime = millis();
-}
-
-void Device::stop(bool failure)
-{
-    if (!started) {
-        Serial.print('?');
-        Serial.print(name);
-        Serial.println(" not started");
-        return;
-    }
-    
-    if (stopping) {
-        Serial.print('?');
-        Serial.print(name);
-        Serial.println(" already stopping");
-        return;
-    }
-
-    if (failure) {
-        Serial.print('?');
-        Serial.print(name);
-        Serial.println(" stopping (failure)");
-        Record::incrementBootFailures(port); // using device <-> mapping...
-    } else {
-        Serial.print('?');
-        Serial.print(name);
-        Serial.println(" stopping");
-    }
-
-    stopping = true;
-    stopTime = millis();
-}
-
-void Device::kill()
-{
-    Serial.print('?');
-    Serial.print(name);
-    Serial.println(" killing power!");
-
-    Record::setRelayBegin(port);
-    Wagman::setRelay(port, true);
-    Wagman::setRelay(port, false);
-    Record::setRelayEnd(port);
-    
-    started = false;
-    stopping = false;
-}
-
-void Device::update()
-{
-    wdt_reset();
-    
-    if (started) {
-        updateHeartbeat();
-        
-        if (stopping) {
-            Serial.print('?');
-            Serial.print(name);
-            Serial.print(" stopping (");
-            Serial.print((STOPPING_TIMEOUT - (millis() - stopTime)) / 1000);
-            Serial.println(" seconds left)");
-    
-            if (port == 0) {
-                Serial.println("!stop nc");
-            } else { // for now, assume other nodes are guest nodes.
-                Serial.println("!stop gn");
-            }
-    
-            if (millis() - stopTime > STOPPING_TIMEOUT) {
-                kill();
-            }
-        } else {
-            checkStopConditions();
-        }
-    }
-}
-
-void Device::updateHeartbeat()
-{
-    if (hasHeartbeat(port)) {
-        heartbeatTime = millis();
-        Serial.print('?');
-        Serial.print(name);
-        Serial.println(" has heartbeat");
-    } else {
-        Serial.print('?');
-        Serial.print(name);
-        Serial.print(" no heartbeat (");
-        Serial.print((HEARTBEAT_TIMEOUT - (millis() - heartbeatTime)) / 1000);
-        Serial.println(" seconds left)");
-    }
-}
-
-void Device::checkStopConditions()
-{
-    if (managed) {
-        if (millis() - heartbeatTime > HEARTBEAT_TIMEOUT) {
-            Serial.print('?');
-            Serial.print(name);
-            Serial.println(" heartbeat timeout!");
-            stop(true);
-        } else if (Wagman::getCurrent(port) < 100) {
-            Serial.print('?');
-            Serial.print(name);
-            Serial.println(" current lost! stopping!");
-            stop(true);
-        }
-    } else {
-        if (millis() - heartbeatTime > HOURS(8)) {
-            stop(false);
-        }
-    }
-}
-
-void commandStart(const char *msg)
-{
-    int index = msg[0] - '0';
-    devices[index].start();
-}
-
-void commandStop(const char *msg)
-{
-    int index = msg[0] - '0';
-    devices[index].stop();
-}
-
-void commandKill(const char *msg)
-{
-    int index = msg[0] - '0';
-    devices[index].kill();
-}
-
-struct {
-    byte command;
-    void (*handler)(const char *msg);
-} commandTable[] = {
-    {'s', commandStart},
-    {'x', commandStop},
-    {'k', commandKill},
-    {0, NULL},
-};
-
-static char inputBuffer[20];
-static byte inputLength = 0;
-static bool inputStarted = false;
-
-void dispatchCommand()
-{
-    for (int i = 0; commandTable[i].command != 0; i++) {
-        if (commandTable[i].command == inputBuffer[0]) {
-            commandTable[i].handler(inputBuffer + 1);
-            break;
-        }
-    }
 }
 
 void processCommands()
 {
-    wdt_reset();
-    
+    static int bufferSize = 0;
+
     while (Serial.available() > 0) {
-        int inChar = Serial.read();
+        int c = Serial.read();
 
-        if (inputStarted) {
-            inputBuffer[inputLength++] = inChar;
+        buffer[bufferSize++] = c;
 
-            if (inChar == '\n' || inChar == '\r') {
-                inputBuffer[inputLength] = '\0';
-                inputStarted = false;
-                inputLength = 0;
-                dispatchCommand();
-            } else if (inputLength == 20) {
-                // not a valid command string! reset buffer!
-                inputStarted = false;
-                inputLength = 0;
-            }
-        } else if (inChar == '!') {
-            inputStarted = true;
-            inputLength = 0;
+        if (c == '\n') {
+            buffer[bufferSize] = '\0';
+            processCommand();
+            bufferSize = 0;
         }
     }
 }
 
+//int getNextBootDevice()
+//{
+//    for (int i = 0; i < 5; i++) {
+//        // disabled
+//        if (!Record::getDeviceEnabled(i))
+//            continue;
+//
+//        // already started
+//        if (devices[i].started)
+//            continue;
+//
+//        if (i == DEVICE_NC || !Record::setRelayFailed(i))
+//            return i;
+//    }
+//
+//    return -1;
+//}
+//
+//void bootNextReadyDevice()
+//{
+//    int index = getNextBootDevice();
+//
+//    if (index != -1) {
+//        devices[index].start();
+//    }
+//}
+
 void loop()
 {
+    wdt_reset();
     processCommands();
 
-    wdt_reset();
-
-//    if (millis() - lastDeviceStartTime > SECONDS(15)) {
-//        bootNextReadyDevice();
-//        lastDeviceStartTime = millis();
-//    }
-    
     for (int i = 0; i < 5; i++) {
+        wdt_reset();
         devices[i].update();
     }
+
+    if (!devices[0].started) {
+        wdt_reset();
+        devices[0].start(); // ok..now work more precisely on refining these conditions.
+    }
 }
+
+// may even want a traceback from watchdog???
+// can try keeping some information in memory which can be used to debug lockup.
 

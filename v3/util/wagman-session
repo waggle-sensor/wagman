@@ -1,0 +1,7 @@
+#!/bin/sh
+
+tmux new-session -d 'python3 wagman-recv.py'
+tmux split-window -d 'python3 wagman-send.py'
+tmux select-pane -D
+tmux resize-pane -y 4
+tmux attach

@@ -5,7 +5,7 @@ from serial import Serial
 
 serial = Serial('/dev/waggle_sysmon', 115200)
 
-command = ' '.join(sys.argv)
+command = ' '.join(sys.argv[1:])
 serial.write(command.encode('ascii'))
 serial.write(b'\n')
 

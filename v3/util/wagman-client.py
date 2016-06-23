@@ -62,13 +62,13 @@ if __name__ == "__main__":
     data=[]
         
     if sys.argv[1] == 'help' or sys.argv[1] == '?':
-        for line in wagman_client(['help']):
-            if line in usage_dict:
-                for variant in usage_dict[line]:
+        for cmd in wagman_client(['help']):
+            if cmd in usage_dict:
+                for syntax in usage_dict[cmd]:
                     #print "\n".join(variant)
-                    data.append(variant)
+                    data.append(syntax)
             else:
-                data.append([line, ''])
+                data.append([cmd, ''])
         
         
         print tabulate(data, theader, tablefmt="psql")        

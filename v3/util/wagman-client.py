@@ -17,8 +17,8 @@ usage_dict={
     'stop!'     : [['stop! <portnum>', 'immediately kills power to device on portnum']],
     'info'      : [['info', 'prints some system info']],
     'eedump'    : [['edump', 'prints a hex dump of all EEPROM']],
-    'date'      : [['date', 'shows rtc date and time', 
-                    'date <year> <month> <day> <hour> <minute> <second>', 'sets rtc date and time']],
+    'date'      : [['date', 'shows rtc date and time'], 
+                    ['date <year> <month> <day> <hour> <minute> <second>', 'sets rtc date and time']],
     'cu'        : [['cu', 'current usage']],
     'hb'        : [['hb', 'last heartbeat times']],
     'therm'     : [['therm', 'thermistor values (though none are connected right now)']]

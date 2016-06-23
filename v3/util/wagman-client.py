@@ -2,6 +2,8 @@
 
 import sys
 from serial import Serial
+from tabulate import tabulate
+
 
 
 header_prefix = '<<<-'
@@ -56,14 +58,20 @@ def wagman_client(args):
 
 if __name__ == "__main__":
 
+    header = 'syntax'
+    data=[]
+        
     if sys.argv[1] == 'help' or sys.argv[1] == '?':
         for line in wagman_client(['help']):
             if line in usage_dict:
                 for variant in usage_dict[line]:
-                    print "\n".join(variant)
+                    #print "\n".join(variant)
+                    data.append(variant)
             else:
                 print line
-                
+        
+        
+        print tabulate(data, header, tablefmt="psql")        
         sys.exit(0)
 
     for line in wagman_client(sys.argv[1:]):

@@ -6,35 +6,42 @@ from serial import Serial
 
 header_prefix = '<<<-'
 footer_prefix = '->>>'
+wagman_device = '/dev/waggle_sysmon'
 
-serial = Serial('/dev/waggle_sysmon', 115200)
+def wagman_client(args):
+    serial = Serial(wagman_device, 115200)
 
-command = ' '.join(sys.argv[1:])
-serial.write(command.encode('ascii'))
-serial.write(b'\n')
+    command = ' '.join(args)
+    serial.write(command.encode('ascii'))
+    serial.write(b'\n')
 
-# header
-header = serial.readline().decode().strip()
+    # header
+    header = serial.readline().decode().strip()
 
-if header.startswith(header_prefix):
-    print "header found"
-else:
-    print "header not found"
-    serial.close()
-    sys.exit(1)
+    if header.startswith(header_prefix):
+        # TODO parse header line
+        pass
+    else:
+        serial.close()
+        raise Exception('header not found')
 
 
-while (1):
-    line = serial.readline().decode().strip()
+    while (1):
+        line = serial.readline().decode().strip()
     
-    if line.startswith(footer_prefix):
-        break
+        if line.startswith(footer_prefix):
+            break
         
-    print line
+        yield line
     
-serial.close()   
+    serial.close()   
     
 
+
+if __name__ == "__main__":
+
+    for line in wagman_client(sys.argv[1:]):
+        print line
 
 
 

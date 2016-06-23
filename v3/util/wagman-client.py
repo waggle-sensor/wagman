@@ -8,6 +8,22 @@ header_prefix = '<<<-'
 footer_prefix = '->>>'
 wagman_device = '/dev/waggle_sysmon'
 
+
+usage_dict={
+    'start'     : ['start <portnum> - starts device on portnum'],
+    'stop'      : ['stop <portnum> - stops device on portnum'],
+    'stop!'     : ['stop! <portnum> - immediately kills power to device on portnum'],
+    'info'      : ['info - prints some system info'],
+    'eedump'    : ['edump - prints a hex dump of all EEPROM'],
+    'date'      : ['date - shows rtc date and time', 
+                    'date <year> <month> <day> <hour> <minute> <second> - sets rtc date and time'],
+    'cu'        : ['cu - current usage'],
+    'hb'        : ['hb - last heartbeat times'],
+    'therm'     : ['therm - thermistor values (though none are connected right now)']
+    }
+
+
+
 def wagman_client(args):
     serial = Serial(wagman_device, 115200)
 
@@ -39,6 +55,13 @@ def wagman_client(args):
 
 
 if __name__ == "__main__":
+
+    if sys.argv[1] == 'help' or sys.argv[1] == '?':
+        for line in wagman_client('help'):
+            if line in usage_dict:
+                print "\n".join(usage_dict[line])
+                
+        sys.exit(0)
 
     for line in wagman_client(sys.argv[1:]):
         print line

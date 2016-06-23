@@ -57,7 +57,7 @@ def wagman_client(args):
 if __name__ == "__main__":
 
     if sys.argv[1] == 'help' or sys.argv[1] == '?':
-        for line in wagman_client('help'):
+        for line in wagman_client(['help']):
             if line in usage_dict:
                 print "\n".join(usage_dict[line])
                 

@@ -58,7 +58,7 @@ def wagman_client(args):
 
 if __name__ == "__main__":
 
-    header = 'syntax'
+    header = ['syntax', 'description']
     data=[]
         
     if sys.argv[1] == 'help' or sys.argv[1] == '?':
@@ -68,7 +68,7 @@ if __name__ == "__main__":
                     #print "\n".join(variant)
                     data.append(variant)
             else:
-                print line
+                data.append([line])
         
         
         print tabulate(data, header, tablefmt="psql")        

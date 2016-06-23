@@ -66,9 +66,9 @@ if __name__ == "__main__":
             if line in usage_dict:
                 for variant in usage_dict[line]:
                     #print "\n".join(variant)
-                    data.append(variant[0], variant[1])
+                    data.append(variant)
             else:
-                data.append([line])
+                data.append([line, ''])
         
         
         print tabulate(data, theader, tablefmt="psql")        

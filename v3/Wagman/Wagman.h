@@ -1,8 +1,8 @@
 #include "Time.h"
 
-const int MEDIA_INVALID = 0;
-const int MEDIA_SD = 1;
-const int MEDIA_EMMC = 2;
+const int MEDIA_SD = 0;
+const int MEDIA_EMMC = 1;
+const int MEDIA_INVALID = -1;
 
 namespace Wagman
 {

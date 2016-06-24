@@ -182,19 +182,29 @@ int getBootMedia(int selector)
 {
     if (!validBootSelector(selector))
         return MEDIA_INVALID;
-    
-    return (digitalRead(BOOT_SELECTOR_PINS[selector]) == LOW) ? MEDIA_SD : MEDIA_EMMC;
+
+    switch (digitalRead(BOOT_SELECTOR_PINS[selector])) {
+        case LOW:
+            return MEDIA_SD;
+        case HIGH:
+            return MEDIA_EMMC;
+        default:
+            return MEDIA_INVALID;
+    }
 }
 
 void setBootMedia(int selector, int media)
 {
     if (!validBootSelector(selector))
         return;
-        
-    if (media == MEDIA_SD) {
-        digitalWrite(BOOT_SELECTOR_PINS[selector], LOW);
-    } else if (media == MEDIA_EMMC) {
-        digitalWrite(BOOT_SELECTOR_PINS[selector], HIGH);
+
+    switch (digitalRead(BOOT_SELECTOR_PINS[selector])) {
+        case MEDIA_SD:
+            digitalWrite(BOOT_SELECTOR_PINS[selector], LOW);
+            break;
+        case MEDIA_EMMC:
+            digitalWrite(BOOT_SELECTOR_PINS[selector], HIGH);
+            break;
     }
 }
 
@@ -239,7 +249,6 @@ int getAddressCurrent(int addr)
     Wire.requestFrom(addr, 3);
 
     while (Wire.available() < 3) {
-        // ...polling...ok...think about watchdog consequences! don't want to just add wdt_reset though as may lead to lock up here.
     }
 
     Wire.read(); // ignore first byte

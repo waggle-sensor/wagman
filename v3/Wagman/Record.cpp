@@ -169,5 +169,20 @@ bool setRelayFailed(int port)
     return EEPROM.read(EEPROM_RELAY_JOURNALS[port]) == JOURNAL_ATTEMPT;
 }
 
+int getBrownoutCurrent(int port)
+{
+    if (port == 0)
+        return 120; // we also need a strategy for autodetecting reasonable ranges over time and then sticking to those.
+
+    if (port == 1)
+        return 140;
+
+    return 1000;
+}
+
+void setBrownoutCurrent(int port, int current)
+{
+}
+
 };
 

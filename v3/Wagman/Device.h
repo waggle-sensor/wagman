@@ -4,6 +4,7 @@ class Device
 {
     public:
 
+        Device();
         void start();
         void stop(bool failure=false);
         void kill();
@@ -20,13 +21,19 @@ class Device
 
     private:
 
-        void updateHeartbeat();
+        void checkHeartbeat();
+        void checkCurrent();
         void checkStopConditions();
 
         bool stopping;
         bool managed;
         unsigned long startTime;
         unsigned long stopTime;
+
+        byte repeatedResetCount;
+        
+        unsigned long brownoutTime; // how do we infer a reset from this?
+        unsigned long brownoutWarnTime;
         
         int lastHeartbeat;
 };

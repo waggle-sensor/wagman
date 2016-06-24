@@ -67,5 +67,8 @@ namespace Record
     unsigned int getBootFailures(int device);
     void setBootFailures(int device, unsigned int failures);
     void incrementBootFailures(int device);
+
+    int getBrownoutCurrent(int device);
+    void setBrownoutCurrent(int device, int current);
 };
 

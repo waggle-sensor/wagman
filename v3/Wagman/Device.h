@@ -41,6 +41,7 @@ class Device
 
         void updateHeartbeat();
         void updateFault();
+        void updateState();
 
         bool heartbeatTimeout();
         bool aboveFaultTimeout();

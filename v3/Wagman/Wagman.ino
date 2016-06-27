@@ -3,6 +3,7 @@
 #include "Wagman.h"
 #include "Record.h"
 #include "Device.h"
+#include "Logger.h"
 #include "MCP79412RTC.h"
 
 // TODO Speedup communications. Not bad now, but could be faster?

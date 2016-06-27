@@ -1,26 +1,11 @@
 #include "Device.h"
 #include "Wagman.h"
 #include "Record.h"
+#include "Logger.h"
 
 #define SECONDS(x) ((unsigned long)(1000 * (x)))
 #define MINUTES(x) ((unsigned long)(60000 * (x)))
 #define HOURS(x) ((unsigned long)(3600000 * (x)))
-
-enum {
-    FAULT_ABOVE = 0,
-    FAULT_BELOW,
-};
-
-static const unsigned long HEARTBEAT_TIMEOUT = MINUTES(2);
-static const unsigned long STOPPING_TIMEOUT = MINUTES(2);
-
-// fix case where no device is connected, but we keep trying to boot it.
-// at some point should realize there's a problem and switch over to long
-// delay booting.
-
-extern bool logging;
-
-const char *logPrefix = "log: ";
 
 void Device::init()
 {
@@ -39,7 +24,15 @@ bool Device::canStart() const
     return Record::deviceEnabled(port) && !Record::relayFailed(port);
 }
 
-// canStop?
+bool Device::started() const
+{
+    return state == STATE_STARTED;
+}
+
+bool Device::stopped() const
+{
+    return state == STATE_STOPPED;
+}
 
 unsigned long Device::timeSinceHeartbeat() const
 {
@@ -68,33 +61,19 @@ int Device::getBootMedia() const
     }
 }
 
-bool Device::started() const
-{
-    return state == STATE_STARTED;
-}
-
-bool Device::stopped() const
-{
-    return state == STATE_STOPPED;
-}
-
 void Device::start()
 {
     switch (state)
     {
         case STATE_STARTED:
-            if (logging) {
-                Serial.print(logPrefix);
-                Serial.print(name);
-                Serial.println(" already started");
-            }
+            Logger::begin(name);
+            Logger::log("already started");
+            Logger::end();
             break;
         case STATE_STOPPING:
-            if (logging) {
-                Serial.print(logPrefix);
-                Serial.print(name);
-                Serial.println(" busy stopping");
-            }
+            Logger::begin(name);
+            Logger::log("busy stopping");
+            Logger::end();
             break;
         case STATE_STOPPED:
             managed = Record::getBootFailures(port) < 30;
@@ -102,18 +81,11 @@ void Device::start()
             int bootMedia = getBootMedia();
             
             Wagman::setBootMedia(bootSelector, bootMedia);
-        
-            if (logging) {
-                if (bootMedia == primaryMedia) {
-                    Serial.print(logPrefix);
-                    Serial.print(name);
-                    Serial.println(" booting primary");
-                } else {
-                    Serial.print(logPrefix);
-                    Serial.print(name);
-                    Serial.println(" booting secondary");
-                }
-            }
+
+            Logger::begin(name);
+            Logger::log("starting ");
+            Logger::log((bootMedia == primaryMedia) ? "primary" : "secondary");
+            Logger::end();
         
             Record::incrementBootAttempts(port);
 
@@ -135,25 +107,19 @@ void Device::stop()
     switch (state)
     {
         case STATE_STOPPED:
-            if (logging) {
-                Serial.print(logPrefix);
-                Serial.print(name);
-                Serial.println(" already stopped");
-            }
+            Logger::begin(name);
+            Logger::log("already stopped");
+            Logger::end();
             break;
         case STATE_STOPPING:
-            if (logging) {
-                Serial.print(logPrefix);
-                Serial.print(name);
-                Serial.println(" already stopping");
-            }
+            Logger::begin(name);
+            Logger::log("already stopping");
+            Logger::end();
             break;
         case STATE_STARTED:
-            if (logging) {
-                Serial.print(logPrefix);
-                Serial.print(name);
-                Serial.println(" stopping");
-            }
+            Logger::begin(name);
+            Logger::log("stopping");
+            Logger::end();
 
             changeState(STATE_STOPPING);
             break;
@@ -162,11 +128,9 @@ void Device::stop()
 
 void Device::kill()
 {
-    if (logging) {
-        Serial.print(logPrefix);
-        Serial.print(name);
-        Serial.println(" killing!");
-    }
+    Logger::begin(name);
+    Logger::log("killing");
+    Logger::end();
 
     Record::setRelayBegin(port);
     delay(100);
@@ -184,53 +148,7 @@ void Device::update()
 {
     updateHeartbeat();
     updateFault();
-
-    switch (state)
-    {
-        case STATE_STOPPED:
-            if (aboveFault && faultModeTime() > SECONDS(15)) {
-                if (logging) {
-                    Serial.print(logPrefix);
-                    Serial.print(name);
-                    Serial.println(" current detected");
-                }
-                
-                start();
-            }
-            break;
-        case STATE_STARTED:
-            if (heartbeatTimeout()) {
-                if (logging) {
-                    Serial.print(logPrefix);
-                    Serial.print(name);
-                    Serial.println(" heartbeat timeout");
-                }
-                
-                stop();
-            }
-    
-            if (!aboveFault && faultModeTime() > SECONDS(15)) {
-                if (logging) {
-                    Serial.print(logPrefix);
-                    Serial.print(name);
-                    Serial.println(" fault timeout");
-                }
-                
-                stop();
-            }
-            break;
-        case STATE_STOPPING:
-            if (stopTimeout()) {
-                if (logging) {
-                    Serial.print(logPrefix);
-                    Serial.print(name);
-                    Serial.println(" stop timeout");
-                }
-                
-                kill();
-            }
-            break;
-    }
+    updateState();
 }
 
 void Device::updateHeartbeat()
@@ -241,11 +159,9 @@ void Device::updateHeartbeat()
         lastHeartbeat = heartbeat;
         heartbeatTime = millis();
 
-        if (logging) {
-            Serial.print(logPrefix);
-            Serial.print(name);
-            Serial.println(" heartbeat");
-        }
+        Logger::begin(name);
+        Logger::log("heartbeat");
+        Logger::end();
     }
 }
 
@@ -257,17 +173,53 @@ void Device::updateFault()
         faultModeStartTime = millis();
         aboveFault = newAboveFault;
 
-        if (logging) {
-            if (aboveFault) {
-                Serial.print(logPrefix);
-                Serial.print(name);
-                Serial.println(" fault ok");
-            } else {
-                Serial.print(logPrefix);
-                Serial.print(name);
-                Serial.println(" fault warn");
+        Logger::begin(name);
+        Logger::log("fault");
+        Logger::log(aboveFault ? "ok" : "warn");
+        Logger::end();
+    }
+}
+
+void Device::updateState()
+{
+    switch (state)
+    {
+        case STATE_STOPPED:
+            if (aboveFault && faultModeTime() > SECONDS(15)) {
+                Logger::begin(name);
+                Logger::log("current detected");
+                Logger::end();
+                
+                start();
             }
-        }
+            break;
+        case STATE_STARTED:
+            if (heartbeatTimeout()) {
+                Logger::begin(name);
+                Logger::log("heartbeat timeout");
+                Logger::end();
+                
+                stop();
+            }
+    
+            if (!aboveFault && faultModeTime() > SECONDS(15)) {
+                Logger::begin(name);
+                Logger::log("fault timeout");
+                Logger::end();
+                
+                stop();
+            }
+            break;
+        case STATE_STOPPING:
+            
+            if (stopTimeout()) {
+                Logger::begin(name);
+                Logger::log("stop timeout");
+                Logger::end();
+                
+                kill();
+            }
+            break;
     }
 }
 

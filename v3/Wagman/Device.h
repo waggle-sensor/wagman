@@ -1,5 +1,11 @@
 #include <Arduino.h>
 
+enum {
+    STATE_STOPPED,
+    STATE_STARTED,
+    STATE_STOPPING,
+};
+
 class Device
 {
     public:
@@ -11,36 +17,45 @@ class Device
         void update();
 
         bool canStart() const;
+        
+        bool started() const;
+        bool stopped() const;
 
         int getBootMedia() const;
 
         unsigned long timeSinceHeartbeat() const;
-        unsigned long timeSinceFault() const;
+        unsigned long faultModeTime() const;
 
         const char *name;
         byte port;
         byte bootSelector;
-        bool started;
         byte primaryMedia;
         byte secondaryMedia;
 
     private:
 
-        void checkHeartbeat();
-        void checkCurrent();
-        void checkStopConditions();
+        byte state;
+        unsigned long stateStartTime;
+
+        void changeState(byte newState);
+
+        void updateHeartbeat();
+        void updateFault();
+
+        bool heartbeatTimeout();
+        bool aboveFaultTimeout();
+        bool stopTimeout();
 
         unsigned long heartbeatTime;
 
-        bool stopping;
         bool managed;
-        unsigned long startTime;
-        unsigned long stopTime;
 
         byte repeatedResetCount;
-        
+
+        bool aboveFault;
+        unsigned long faultModeStartTime;
         unsigned long faultTime;
-        bool faultDetected;
+        
         
         int lastHeartbeat;
 

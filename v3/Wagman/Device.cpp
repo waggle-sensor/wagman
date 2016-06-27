@@ -6,6 +6,11 @@
 #define MINUTES(x) ((unsigned long)(60000 * (x)))
 #define HOURS(x) ((unsigned long)(3600000 * (x)))
 
+enum {
+    FAULT_ABOVE = 0,
+    FAULT_BELOW,
+};
+
 static const unsigned long HEARTBEAT_TIMEOUT = MINUTES(2);
 static const unsigned long STOPPING_TIMEOUT = MINUTES(2);
 
@@ -19,13 +24,12 @@ const char *logPrefix = "log: ";
 
 void Device::init()
 {
-    started = false;
-    stopping = false;
+    changeState(STATE_STOPPED);
 }
 
 bool Device::canStart() const
 {
-    if (started)
+    if (state != STATE_STOPPED)
         return false;
 
     // node controller always allowed to start
@@ -35,9 +39,16 @@ bool Device::canStart() const
     return Record::deviceEnabled(port) && !Record::relayFailed(port);
 }
 
+// canStop?
+
 unsigned long Device::timeSinceHeartbeat() const
 {
     return millis() - heartbeatTime;
+}
+
+unsigned long Device::faultModeTime() const
+{
+    return millis() - faultModeStartTime;
 }
 
 int Device::getBootMedia() const
@@ -57,89 +68,96 @@ int Device::getBootMedia() const
     }
 }
 
+bool Device::started() const
+{
+    return state == STATE_STARTED;
+}
+
+bool Device::stopped() const
+{
+    return state == STATE_STOPPED;
+}
+
 void Device::start()
 {
-    if (started) {
-        if (logging) {
-            Serial.print(logPrefix);
-            Serial.print(name);
-            Serial.println(" already started");
-        }
-        return;
+    switch (state)
+    {
+        case STATE_STARTED:
+            if (logging) {
+                Serial.print(logPrefix);
+                Serial.print(name);
+                Serial.println(" already started");
+            }
+            break;
+        case STATE_STOPPING:
+            if (logging) {
+                Serial.print(logPrefix);
+                Serial.print(name);
+                Serial.println(" busy stopping");
+            }
+            break;
+        case STATE_STOPPED:
+            managed = Record::getBootFailures(port) < 30;
+        
+            int bootMedia = getBootMedia();
+            
+            Wagman::setBootMedia(bootSelector, bootMedia);
+        
+            if (logging) {
+                if (bootMedia == primaryMedia) {
+                    Serial.print(logPrefix);
+                    Serial.print(name);
+                    Serial.println(" booting primary");
+                } else {
+                    Serial.print(logPrefix);
+                    Serial.print(name);
+                    Serial.println(" booting secondary");
+                }
+            }
+        
+            Record::incrementBootAttempts(port);
+
+            Record::setRelayBegin(port);
+            Wagman::setRelay(port, true);
+            Record::setRelayEnd(port);
+
+            heartbeatTime = millis();
+            faultTime = millis();
+
+            changeState(STATE_STARTED);
+
+            break;
     }
-    
-    if (stopping) {
-        if (logging) {
-            Serial.print(logPrefix);
-            Serial.print(name);
-            Serial.println(" busy stopping");
-        }
-        return;
-    }
-
-    managed = Record::getBootFailures(port) < 30;
-
-    int bootMedia = getBootMedia();
-    
-    Wagman::setBootMedia(bootSelector, bootMedia);
-
-    if (logging) {
-        if (bootMedia == primaryMedia) {
-            Serial.print(logPrefix);
-            Serial.print(name);
-            Serial.println(" booting primary");
-        } else {
-            Serial.print(logPrefix);
-            Serial.print(name);
-            Serial.println(" booting secondary");
-        }
-    }
-
-    Record::incrementBootAttempts(port);
-
-    // ensure relay set to on (notice that we leave it as-is if already on.)
-    Record::setRelayBegin(port);
-    Wagman::setRelay(port, true);
-    Record::setRelayEnd(port);
-
-    // initialize started device parameters.
-    started = true;
-    stopping = false;
-    
-    startTime = millis();
-    stopTime = 0;
-    heartbeatTime = millis();
-    faultTime = millis();
 }
 
 void Device::stop()
 {
-    if (!started) {
-        if (logging) {
-            Serial.print(logPrefix);
-            Serial.print(name);
-            Serial.println(" not started");
-        }
-        return;
-    }
-    
-    if (stopping) {
-        if (logging) {
-            Serial.print(logPrefix);
-            Serial.print(name);
-            Serial.println(" already stopping");
-        }
-        return;
-    }
+    switch (state)
+    {
+        case STATE_STOPPED:
+            if (logging) {
+                Serial.print(logPrefix);
+                Serial.print(name);
+                Serial.println(" already stopped");
+            }
+            break;
+        case STATE_STOPPING:
+            if (logging) {
+                Serial.print(logPrefix);
+                Serial.print(name);
+                Serial.println(" already stopping");
+            }
+            break;
+        case STATE_STARTED:
+            if (logging) {
+                Serial.print(logPrefix);
+                Serial.print(name);
+                Serial.println(" stopping");
+            }
 
-    if (logging) {
-        Serial.print(logPrefix);
-        Serial.print(name);
-        Serial.println(" stopping");
+            changeState(STATE_STOPPING);
+            break;
     }
-
-    stopping = true;
-    stopTime = millis();
 }
 
 void Device::kill()
@@ -158,35 +176,64 @@ void Device::kill()
     delay(100);
     Record::setRelayEnd(port);
     delay(100);
-    
-    started = false;
-    stopping = false;
+
+    changeState(STATE_STOPPED);
 }
 
 void Device::update()
 {
-    if (started) {
-        checkHeartbeat();
-        checkCurrent();
-    
-        if (!stopping) {
-            checkStopConditions();
-        }
-    
-        if (stopping && (millis() - stopTime > Record::getStopTimeout(port))) {
-            kill();
-        }
-    } else {
-        // looks like device is already started.
-        if (Wagman::getCurrent(port) > Record::getFaultCurrent(port)) {
-            start();
-        }
+    updateHeartbeat();
+    updateFault();
 
-        // do a similar check for heartbeat?
+    switch (state)
+    {
+        case STATE_STOPPED:
+            if (aboveFault && faultModeTime() > SECONDS(15)) {
+                if (logging) {
+                    Serial.print(logPrefix);
+                    Serial.print(name);
+                    Serial.println(" current detected");
+                }
+                
+                start();
+            }
+            break;
+        case STATE_STARTED:
+            if (heartbeatTimeout()) {
+                if (logging) {
+                    Serial.print(logPrefix);
+                    Serial.print(name);
+                    Serial.println(" heartbeat timeout");
+                }
+                
+                stop();
+            }
+    
+            if (!aboveFault && faultModeTime() > SECONDS(15)) {
+                if (logging) {
+                    Serial.print(logPrefix);
+                    Serial.print(name);
+                    Serial.println(" fault timeout");
+                }
+                
+                stop();
+            }
+            break;
+        case STATE_STOPPING:
+            if (stopTimeout()) {
+                if (logging) {
+                    Serial.print(logPrefix);
+                    Serial.print(name);
+                    Serial.println(" stop timeout");
+                }
+                
+                kill();
+            }
+            break;
     }
 }
 
-void Device::checkHeartbeat()
+void Device::updateHeartbeat()
 {
     int heartbeat = Wagman::getHeartbeat(port);
 
@@ -202,45 +249,41 @@ void Device::checkHeartbeat()
     }
 }
 
-void Device::checkCurrent()
+void Device::updateFault()
 {
-    if (Wagman::getCurrent(port) > Record::getFaultCurrent(port)) {
-        faultDetected = false;
-        faultTime = millis();
-    } else if (!faultDetected) {
-        faultDetected = true;
-        Serial.print(logPrefix);
-        Serial.print(name);
-        Serial.println(" fault warning");
+    bool newAboveFault = Wagman::getCurrent(port) > Record::getFaultCurrent(port);
+
+    if (aboveFault != newAboveFault) {
+        faultModeStartTime = millis();
+        aboveFault = newAboveFault;
+
+        if (logging) {
+            if (aboveFault) {
+                Serial.print(logPrefix);
+                Serial.print(name);
+                Serial.println(" fault ok");
+            } else {
+                Serial.print(logPrefix);
+                Serial.print(name);
+                Serial.println(" fault warn");
+            }
+        }
     }
 }
 
-void Device::checkStopConditions()
+bool Device::heartbeatTimeout()
 {
-    if (managed) {
-        if (millis() - heartbeatTime > Record::getHeartbeatTimeout(port)) {
-            if (logging) {
-                Serial.print(logPrefix);
-                Serial.print(name);
-                Serial.println(" heartbeat timeout!");
-            }
+    return (millis() - heartbeatTime) > Record::getHeartbeatTimeout(port);
+}
 
-            Record::incrementBootFailures(port);
-            stop();
-        } else if (millis() - faultTime > Record::getFaultTimeout(port)) {
-            if (logging) {
-                Serial.print(logPrefix);
-                Serial.print(name);
-                Serial.println(" fault timeout!");
-            }
-            
-            Record::incrementBootFailures(port);
-            kill();
-        }
-    } else {
-        if (millis() - startTime > Record::getUnmanagedChangeTime(port)) {
-            stop();
-        }
-    }
+bool Device::stopTimeout()
+{
+    return (millis() - stateStartTime) > Record::getStopTimeout(port);
+}
+
+void Device::changeState(byte newState)
+{
+    state = newState;
+    stateStartTime = millis();
 }
 

@@ -460,17 +460,13 @@ static int bufferSize = 0;
 void processCommands()
 {
     while (Serial.available() > 0) {
-        // too much data, reset buffer
-        if (bufferSize == BUFFER_SIZE) {
-            buffer[0] = '\0';
-            bufferSize = 0;
-        }
-
         int c = Serial.read();
 
         buffer[bufferSize++] = c;
 
-        if (c == '\n') {
+        if (bufferSize == BUFFER_SIZE) { // exceeds buffer! dangerous!
+            bufferSize = 0;
+        } else if (c == '\n') {
             buffer[bufferSize] = '\0';
             bufferSize = 0;
             processCommand();

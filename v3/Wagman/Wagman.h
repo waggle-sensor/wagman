@@ -4,11 +4,18 @@ const int MEDIA_SD = 0;
 const int MEDIA_EMMC = 1;
 const int MEDIA_INVALID = -1;
 
+const int RELAY_UNKNOWN = 0;
+const int RELAY_OFF = 1;
+const int RELAY_ON = 2;
+
 namespace Wagman
 {
     void init();
+//    void initPowerOn(); // to distinguish different state conditions
+//    void initReset();
     
     void setRelay(int port, bool on);
+    int getRelay(int port);
 
     int getHeartbeat(int port);
 

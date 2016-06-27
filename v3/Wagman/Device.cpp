@@ -17,10 +17,44 @@ extern bool logging;
 
 const char *logPrefix = "log: ";
 
-Device::Device()
+void Device::init()
 {
     started = false;
     stopping = false;
+}
+
+bool Device::canStart() const
+{
+    if (started)
+        return false;
+
+    // node controller always allowed to start
+    if (port == 0)
+        return true;
+
+    return Record::deviceEnabled(port) && !Record::relayFailed(port);
+}
+
+unsigned long Device::timeSinceHeartbeat() const
+{
+    return millis() - heartbeatTime;
+}
+
+int Device::getBootMedia() const
+{
+    if (managed) {
+        if (Record::getBootFailures(port) % 4 == 3) {
+            return secondaryMedia;
+        } else {
+            return primaryMedia;
+        }
+    } else {
+        if (Record::getBootAttempts(port) % 2 == 1) {
+            return secondaryMedia;
+        } else {
+            return primaryMedia;
+        }
+    }
 }
 
 void Device::start()
@@ -43,33 +77,25 @@ void Device::start()
         return;
     }
 
-    // prevent guest nodes from booting on a relay fault
-    if (Record::setRelayFailed(port) && port != 0) {
-        if (logging) {
+    managed = Record::getBootFailures(port) < 30;
+
+    int bootMedia = getBootMedia();
+    
+    Wagman::setBootMedia(bootSelector, bootMedia);
+
+    if (logging) {
+        if (bootMedia == primaryMedia) {
             Serial.print(logPrefix);
             Serial.print(name);
-            Serial.println(" relay tripped");
-        }
-    }
-
-    Record::incrementBootAttempts(port);
-
-    // can alter this strategy with something better if we need.
-    if (Record::getBootFailures(port) % 2 == 1) {
-        if (logging) {
+            Serial.println(" booting primary");
+        } else {
             Serial.print(logPrefix);
             Serial.print(name);
             Serial.println(" booting secondary");
         }
-        Wagman::setBootMedia(bootSelector, secondaryMedia);
-    } else {
-        if (logging) {
-            Serial.print(logPrefix);
-            Serial.print(name);
-            Serial.println(" booting primary");
-        }
-        Wagman::setBootMedia(bootSelector, primaryMedia);
     }
+
+    Record::incrementBootAttempts(port);
 
     // ensure relay set to on (notice that we leave it as-is if already on.)
     Record::setRelayBegin(port);
@@ -79,17 +105,14 @@ void Device::start()
     // initialize started device parameters.
     started = true;
     stopping = false;
-
-    // unmanaged mode is where we're supposing 
-    managed = Record::getBootFailures(port) < 25;
     
     startTime = millis();
     stopTime = 0;
     heartbeatTime = millis();
-    brownoutTime = millis();
+    faultTime = millis();
 }
 
-void Device::stop(bool failure)
+void Device::stop()
 {
     if (!started) {
         if (logging) {
@@ -109,19 +132,10 @@ void Device::stop(bool failure)
         return;
     }
 
-    if (failure) {
-        if (logging) {
-            Serial.print(logPrefix);
-            Serial.print(name);
-            Serial.println(" stopping (failure)");
-        }
-        Record::incrementBootFailures(port); // using device <-> mapping...
-    } else {
-        if (logging) {
-            Serial.print(logPrefix);
-            Serial.print(name);
-            Serial.println(" stopping");
-        }
+    if (logging) {
+        Serial.print(logPrefix);
+        Serial.print(name);
+        Serial.println(" stopping");
     }
 
     stopping = true;
@@ -137,9 +151,13 @@ void Device::kill()
     }
 
     Record::setRelayBegin(port);
-    Wagman::setRelay(port, true); // had this in case pin was low, but relay was closed...
+    delay(100);
+    Wagman::setRelay(port, true); // set this in case the pin level is back to low?
+    delay(100);
     Wagman::setRelay(port, false);
+    delay(100);
     Record::setRelayEnd(port);
+    delay(100);
     
     started = false;
     stopping = false;
@@ -155,14 +173,16 @@ void Device::update()
             checkStopConditions();
         }
     
-        if (stopping && (millis() - stopTime > MINUTES(3))) {
+        if (stopping && (millis() - stopTime > Record::getStopTimeout(port))) {
             kill();
         }
     } else {
-        // need to also detect if we think a device is not connected.
-//        if (Wagman::getCurrent(port) > 110) { // store minimal autostart current in EEPROM
-//            start();
-//        }
+        // looks like device is already started.
+        if (Wagman::getCurrent(port) > Record::getFaultCurrent(port)) {
+            start();
+        }
+
+        // do a similar check for heartbeat?
     }
 }
 
@@ -184,45 +204,42 @@ void Device::checkHeartbeat()
 
 void Device::checkCurrent()
 {
-    if (Wagman::getCurrent(port) > Record::getBrownoutCurrent(port)) {
-        brownoutTime = millis();
-        brownoutWarnTime = millis(); // quick hack to log correctly.
-    } else if (logging) {
-        if (millis() - brownoutWarnTime > SECONDS(1)) {
-            Serial.print(logPrefix);
-            Serial.print(name);
-            Serial.println(" possible brownout");
-            brownoutWarnTime = millis();
-        }
+    if (Wagman::getCurrent(port) > Record::getFaultCurrent(port)) {
+        faultDetected = false;
+        faultTime = millis();
+    } else if (!faultDetected) {
+        faultDetected = true;
+        Serial.print(logPrefix);
+        Serial.print(name);
+        Serial.println(" fault warning");
     }
 }
 
 void Device::checkStopConditions()
 {
-    unsigned long currentTime = millis();
-
     if (managed) {
-        if (currentTime - heartbeatTime > SECONDS(120)) { // switch to use EEPROM
+        if (millis() - heartbeatTime > Record::getHeartbeatTimeout(port)) {
             if (logging) {
                 Serial.print(logPrefix);
                 Serial.print(name);
                 Serial.println(" heartbeat timeout!");
             }
-            stop(true);
-        }
 
-        if (currentTime - brownoutTime > SECONDS(5)) { // switch to use EEPROM
+            Record::incrementBootFailures(port);
+            stop();
+        } else if (millis() - faultTime > Record::getFaultTimeout(port)) {
             if (logging) {
                 Serial.print(logPrefix);
                 Serial.print(name);
-                Serial.println(" brownout! killing!");
+                Serial.println(" fault timeout!");
             }
-            Record::incrementBootFailures(port); // Record::incrementBootFailures(port);
+            
+            Record::incrementBootFailures(port);
             kill();
         }
     } else {
-        if (currentTime - heartbeatTime > HOURS(8)) {
-            stop(false);
+        if (millis() - startTime > Record::getUnmanagedChangeTime(port)) {
+            stop();
         }
     }
 }

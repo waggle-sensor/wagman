@@ -4,11 +4,18 @@ class Device
 {
     public:
 
-        Device();
+        void init();
         void start();
-        void stop(bool failure=false);
+        void stop();
         void kill();
         void update();
+
+        bool canStart() const;
+
+        int getBootMedia() const;
+
+        unsigned long timeSinceHeartbeat() const;
+        unsigned long timeSinceFault() const;
 
         const char *name;
         byte port;
@@ -17,13 +24,13 @@ class Device
         byte primaryMedia;
         byte secondaryMedia;
 
-        unsigned long heartbeatTime;
-
     private:
 
         void checkHeartbeat();
         void checkCurrent();
         void checkStopConditions();
+
+        unsigned long heartbeatTime;
 
         bool stopping;
         bool managed;
@@ -32,9 +39,10 @@ class Device
 
         byte repeatedResetCount;
         
-        unsigned long brownoutTime; // how do we infer a reset from this?
-        unsigned long brownoutWarnTime;
+        unsigned long faultTime;
+        bool faultDetected;
         
         int lastHeartbeat;
+
 };
 

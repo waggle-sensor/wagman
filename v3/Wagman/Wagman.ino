@@ -31,11 +31,15 @@
 #define MINUTES(x) ((unsigned long)(60000 * (x)))
 #define HOURS(x) ((unsigned long)(3600000 * (x)))
 
+bool resetWagman = false;
 bool logging = false;
 int poweronCurrent[5];
 
 static const byte DEVICE_NC = 0;
 static const byte DEVICE_GN = 1;
+
+static unsigned long lastStartTime = 0;
+
 static byte bootflags;
 
 Device devices[5];
@@ -57,6 +61,7 @@ void commandDate(int argc, const char **argv);
 void commandCurrent(int argc, const char **argv);
 void commandHeartbeat(int argc, const char **argv);
 void commandThermistor(int argc, const char **argv);
+void commandEnvironment(int argc, const char **argv);
 void commandBootMedia(int argc, const char **argv);
 void commandLog(int argc, const char **argv);
 void commandBootFlags(int argc, const char **argv);
@@ -71,6 +76,7 @@ Command commands[] = {
     { "id", commandID },
     { "cu", commandCurrent },
     { "hb", commandHeartbeat },
+    { "env", commandEnvironment},
     { "bs", commandBootMedia },
     { "th", commandThermistor },
     { "date", commandDate },
@@ -98,6 +104,8 @@ void commandStart(int argc, const char **argv)
         } else {
             Serial.println("invalid device");
         }
+
+        delay(500);
     }
 }
 
@@ -109,10 +117,12 @@ void commandStop(int argc, const char **argv)
         if (index == 0) {
             Serial.println("no...");
         } else if (0 < index && index < 5) {
-            devices[index].stop(false);
+            devices[index].stop();
         } else {
             Serial.println("invalid device");
         }
+
+        delay(500);
     }
 }
 
@@ -133,21 +143,7 @@ void commandKill(int argc, const char **argv)
 
 void commandReset(int argc, const char **argv)
 {
-    Serial.println("->>>");
-    Serial.end();
-
-    // watchdog will reset in a few seconds.
-    for (;;) {
-        Wagman::setLED(1, true);
-        delay(200);
-        Wagman::setLED(1, false);
-        delay(200);
-
-        Wagman::setLED(1, true);
-        delay(200);
-        Wagman::setLED(1, false);
-        delay(400);
-    }
+    resetWagman = true;
 }
 
 void commandID(int argc, const char **argv)
@@ -226,10 +222,8 @@ void commandCurrent(int argc, const char **argv)
 
 void commandHeartbeat(int argc, const char **argv)
 {
-    unsigned long currtime = millis();
-
     for (int i = 0; i < 5; i++) {
-        Serial.println((currtime - devices[i].heartbeatTime) / 1000);
+        Serial.println(devices[i].timeSinceHeartbeat());
     }
 }
 
@@ -238,6 +232,15 @@ void commandThermistor(int argc, const char **argv)
     for (int i = 0; i < 5; i++) {
         Serial.println(Wagman::getThermistor(i));
     }
+}
+
+void commandEnvironment(int argc, const char **argv)
+{
+    Serial.print("temperature: ");
+    Serial.println(Wagman::getTemperature());
+    
+    Serial.print("humidity: ");
+    Serial.println(Wagman::getHumidity());
 }
 
 void commandBootMedia(int argc, const char **argv)
@@ -257,11 +260,8 @@ void commandLog(int argc, const char **argv)
 {
     logging = !logging;
 
-    if (logging) {
-        Serial.println("logging: on");
-    } else {
-        Serial.println("logging: off");
-    }
+    Serial.print("logging: ");
+    Serial.println(logging ? "on" : "off");
 }
 
 void commandBootFlags(int argc, const char **argv)
@@ -355,8 +355,16 @@ void processCommand()
     }
 }
 
+// ...may want to add some kind of assert failure log...
+
+//void assert(bool condition, const char *msg)
+//{
+//    // for unexplained, unhandlable conditions, we can do an assertion failure.
+//}
+
 void setup()
 {
+    // save and clear boot flags
     bootflags = MCUSR;
     MCUSR = 0;
 
@@ -365,7 +373,7 @@ void setup()
     wdt_reset();
     Wagman::init();
 
-    // indicates that we got through the first step.
+    // blink sequence indicating that we got through the first step.
     for (int i = 0; i < 5; i++) {
         wdt_reset();
         Wagman::setLED(0, true);
@@ -382,39 +390,43 @@ void setup()
 
     wdt_reset();
     Record::init();
-    delay(1000);
+    delay(2000);
 
     wdt_reset();
     Serial.begin(115200);
-    delay(1000);
+    delay(2000);
 
     // node controller
-    devices[0].name = "nc";
+    devices[0].name = "nc"; // move this into EEPROM
     devices[0].port = 0;
     devices[0].bootSelector = 0;
     devices[0].primaryMedia = MEDIA_SD;
     devices[0].secondaryMedia = MEDIA_EMMC;
 
     // guest node
-    devices[1].name = "gn";
+    devices[1].name = "gn"; // move this into EEPROM
     devices[1].port = 1;
     devices[1].bootSelector = 1;
     devices[1].primaryMedia = MEDIA_EMMC;
     devices[1].secondaryMedia = MEDIA_SD;
+
+    devices[2].name = "";
+    devices[3].name = "";
+    devices[4].name = "";
     
     Record::incrementBootCount();
     Record::setLastBootTime(Wagman::getTime());
 
+    resetWagman = false; // used to reset Wagman in main loop
+
+    // initially used to track known current range...but this should be moved into EEPROM
     for (int i = 0; i < 5; i++) {
         poweronCurrent[i] = 0;
     }
 
-    // boot up after watchdog reset.
-    if (bootflags & _BV(WDRF)) {
-    }
-
     // boot up after brown out.
     if (bootflags & _BV(BORF)) {
+        // what would we do differently than a power-off reset flag.
     }
 
     // boot up after power on. this is a case where it'd be good to do a self test, current range check and device connected check.
@@ -430,9 +442,17 @@ void setup()
     }
 
     // tripped by external reset? (do we do something similar to a watchdog reset here?)
-    if (bootflags & _BV(EXTRF)) {
-        
+    if ((bootflags & _BV(EXTRF)) || (bootflags & _BV(WDRF))) {
+        // it looks like we were reset
     }
+
+    for (int i = 0; i < 5; i++) {
+        devices[i].init();
+    }
+
+    // always start node controller immediately, for now.
+    devices[0].start();
+    lastStartTime = millis();
 }
 
 static int bufferSize = 0;
@@ -460,16 +480,21 @@ void processCommands()
 
 void loop()
 {
-    // seemingly needed to catch an issue with the watchdog putting the bootloader into a
-    // locked state. this + clearing MCUSR seems to correct it. (would like to do even more
-    // testing.)
+    unsigned long currentTime = millis();
+    
+    // ensure that the watchdog is always enabled (in case some anomaly disables it)
     wdt_enable(WDTO_8S);
 
-    // we almost always want the node controller running (unless we add some environment checks later!)
-    // switch this to 
-    if (!devices[0].started) {
-        wdt_reset();
-        devices[0].start();
+    // start next unstarted device
+    if (currentTime - lastStartTime > MINUTES(3)) {
+        for (int i = 0; i < 5; i++) {
+            wdt_reset();
+            if (devices[i].canStart()) {
+                devices[i].start();
+                lastStartTime = currentTime;
+                break;
+            }
+        }
     }
 
     for (int i = 0; i < 5; i++) {
@@ -479,5 +504,22 @@ void loop()
 
     wdt_reset();
     processCommands();
+
+    if (resetWagman) {
+        // mark resetting journal flag so wagman knows it was told to reset.
+        
+        // watchdog will reset in a few seconds.
+        for (;;) {
+            Wagman::setLED(1, true);
+            delay(200);
+            Wagman::setLED(1, false);
+            delay(200);
+    
+            Wagman::setLED(1, true);
+            delay(200);
+            Wagman::setLED(1, false);
+            delay(400);
+        }
+    }
 }
 

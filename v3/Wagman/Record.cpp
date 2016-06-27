@@ -5,12 +5,44 @@ static const unsigned long MAGIC = 0xADA1ADA1;
 
 static const unsigned int DEVICE_COUNT = 5;
 
+// Config EEPROM Spec
+
 static const unsigned int
-    EEPROM_MAGIC = 0,
+    EEPROM_MAGIC_ADDR = 0,
     EEPROM_HARDWARE_VERSION = 4,
     EEPROM_FIRMWARE_VERSION = 6,
     EEPROM_BOOT_COUNT = 8,
     EEPROM_LAST_BOOT_TIME = 12;
+
+// Wagman EEPROM Spec
+
+static const unsigned int WAGMAN_REGION_START = 128;
+
+static const unsigned int WAGMAN_LAST_BOOT_TIME = 0;
+
+static const unsigned int WAGMAN_HTU21D_HEALTH = 4;
+static const unsigned int WAGMAN_HTU21D_MIN = 5;
+static const unsigned int WAGMAN_HTU21D_MAX = 7;
+
+static const unsigned int WAGMAN_HIH4030_HEALTH = 9;
+static const unsigned int WAGMAN_HIH4030_MIN = 10;
+static const unsigned int WAGMAN_HIH4030_MAX = 12;
+
+static const unsigned int WAGMAN_CURRENT_HEALTH = 14;
+static const unsigned int WAGMAN_CURRENT_MIN = 15;
+static const unsigned int WAGMAN_CURRENT_MAX = 17;
+
+// Device EEPROM Spec
+
+static const unsigned int EEPROM_PORT_REGIONS_START = 256;
+static const unsigned int EEPROM_PORT_REGIONS_SIZE = 128;
+static const unsigned int
+    EEPROM_PORT_ENABLED = 0,
+    EEPROM_PORT_MANAGED = 1,
+    EEPROM_PORT_BOOT_SELECT = 2,
+    EEPROM_PORT_LAST_BOOT_TIME = 3,
+    EEPROM_PORT_BOOT_ATTEMPTS = 7,
+    EEPROM_PORT_BOOT_FAILURES = 11;
 
 // sync up with memory layout.
 // some of these can be replace by a simple fixed size offset
@@ -25,10 +57,16 @@ static const unsigned int EEPROM_RELAY_JOURNALS[DEVICE_COUNT] = {800, 801, 1000,
 namespace Record
 {
 
+unsigned int deviceRegion(int device)
+{
+    return EEPROM_PORT_REGIONS_START + device * EEPROM_PORT_REGIONS_SIZE;
+}
+
 void init()
 {
     unsigned long magic;
-    EEPROM.get(EEPROM_MAGIC, magic);
+
+    EEPROM.get(EEPROM_MAGIC_ADDR, magic);
 
     if (magic != MAGIC) {
         Record::setBootCount(0);
@@ -45,19 +83,17 @@ void init()
         Record::setFirmwareVersion(version);
 
         for (unsigned int i = 0; i < DEVICE_COUNT; i++) {
+            setDeviceEnabled(i, false);
             setBootAttempts(i, 0);
             setBootFailures(i, 0);
-            EEPROM.write(EEPROM_RELAY_JOURNALS[i], 0);
+            EEPROM.write(EEPROM_RELAY_JOURNALS[i], JOURNAL_UNKNOWN);
         }
 
         // default setup is just node controller and single guest node.
         setDeviceEnabled(0, true);
         setDeviceEnabled(1, true);
-        setDeviceEnabled(2, false);
-        setDeviceEnabled(3, false);
-        setDeviceEnabled(4, false);
         
-        EEPROM.put(EEPROM_MAGIC, MAGIC);
+        EEPROM.put(EEPROM_MAGIC_ADDR, MAGIC);
     }
 }
 
@@ -100,12 +136,16 @@ void incrementBootCount()
 
 void setDeviceEnabled(int device, bool enabled)
 {
-    EEPROM.write(EEPROM_DEVICE_ENABLED[device], enabled);
+    EEPROM.write(deviceRegion(device) + EEPROM_PORT_ENABLED, enabled);
 }
 
-bool getDeviceEnabled(int device)
+bool deviceEnabled(int device)
 {
-    return EEPROM.read(EEPROM_DEVICE_ENABLED[device]);
+    if (0 <= device && device < 5) {
+        return EEPROM.read(deviceRegion(device) + EEPROM_PORT_ENABLED);
+    } else {
+        return false;
+    }
 }
 
 unsigned long getLastBootTime()
@@ -118,6 +158,18 @@ unsigned long getLastBootTime()
 void setLastBootTime(unsigned long time)
 {
     EEPROM.put(EEPROM_LAST_BOOT_TIME, time);
+}
+
+unsigned long getLastBootTime(int device)
+{
+    unsigned long time;
+    EEPROM.get(deviceRegion(device) + EEPROM_PORT_LAST_BOOT_TIME, time);
+    return time;
+}
+
+void setLastBootTime(int device, unsigned long time)
+{
+    EEPROM.put(deviceRegion(device) + EEPROM_PORT_LAST_BOOT_TIME, time);
 }
 
 unsigned int getBootAttempts(int device)
@@ -164,12 +216,12 @@ void setRelayEnd(int port)
     EEPROM.write(EEPROM_RELAY_JOURNALS[port], JOURNAL_SUCCESS);
 }
 
-bool setRelayFailed(int port)
+bool relayFailed(int port)
 {
     return EEPROM.read(EEPROM_RELAY_JOURNALS[port]) == JOURNAL_ATTEMPT;
 }
 
-int getBrownoutCurrent(int port)
+int getFaultCurrent(int port)
 {
     if (port == 0)
         return 120; // we also need a strategy for autodetecting reasonable ranges over time and then sticking to those.
@@ -177,11 +229,31 @@ int getBrownoutCurrent(int port)
     if (port == 1)
         return 140;
 
-    return 1000;
+    return 10000;
 }
 
-void setBrownoutCurrent(int port, int current)
+void setFaultCurrent(int port, int current)
 {
+}
+
+unsigned long getFaultTimeout(int device)
+{
+    return 15 * 1000; // 15 seconds
+}
+
+unsigned long getHeartbeatTimeout(int device)
+{
+    return 120 * 1000; // 120 seconds
+}
+
+unsigned long getUnmanagedChangeTime(int device)
+{
+    return 8 * 60 * 60 * 1000; // 8 hours
+}
+
+unsigned long getStopTimeout(int device)
+{
+    return 60 * 1000; // 60 seconds
 }
 
 };

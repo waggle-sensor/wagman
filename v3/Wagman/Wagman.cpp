@@ -60,6 +60,8 @@ static const byte BOOT_SELECTOR_PINS[BOOT_SELECTOR_COUNT] = {
 static HTU21D htu21d;
 static MCP342X mcp3428_1;
 
+static byte relayState[PORT_COUNT];
+
 namespace Wagman
 {
 
@@ -108,6 +110,7 @@ void init()
     for (int i = 0; i < PORT_COUNT; i++) {
         pinMode(POWER_PINS[i], OUTPUT);
         pinMode(HEARTBEAT_PINS[i], INPUT);
+        relayState[i] = RELAY_UNKNOWN;
     }
 
     for (int i = 0; i < BOOT_SELECTOR_COUNT; i++) {
@@ -139,6 +142,17 @@ void setRelay(int port, bool on)
         digitalWrite(POWER_PINS[port], on ? HIGH : LOW);
         delay(2);
     }
+
+    relayState[port] = on ? RELAY_ON : RELAY_OFF;
+}
+
+int getRelay(int port)
+{
+    if (!validPort(port)) {
+        return RELAY_UNKNOWN;
+    }
+
+    return relayState[port];
 }
 
 int getHeartbeat(int port)

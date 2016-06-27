@@ -18,14 +18,15 @@ struct SensorStatus
     Range range;
 };
 
-enum
-{
-    SENSOR_HTU21D,
-    SENSOR_HIH4030,
-};
+//enum
+//{
+//    SENSOR_HTU21D,
+//    SENSOR_HIH4030,
+//};
 
 enum
 {
+    JOURNAL_UNKNOWN = 0,
     JOURNAL_ATTEMPT = 0xAA,
     JOURNAL_SUCCESS = 0x55,
 };
@@ -45,14 +46,17 @@ namespace Record
     void incrementBootCount();
 
     void setDeviceEnabled(int device, bool enabled);
-    bool getDeviceEnabled(int device);
+    bool deviceEnabled(int device);
     
     unsigned long getLastBootTime();
     void setLastBootTime(unsigned long time);
 
+    unsigned long getLastBootTime(int device);
+    void setLastBootTime(int device, unsigned long time);
+
     void setRelayBegin(int port);
     void setRelayEnd(int port);
-    bool setRelayFailed(int port);
+    bool relayFailed(int port);
 
     void getSensorStatus(int sensor, SensorStatus &status);
     void setSensorStatus(int sensor, const SensorStatus &status);
@@ -68,7 +72,12 @@ namespace Record
     void setBootFailures(int device, unsigned int failures);
     void incrementBootFailures(int device);
 
-    int getBrownoutCurrent(int device);
-    void setBrownoutCurrent(int device, int current);
+    int getFaultCurrent(int device);
+    void setFaultCurrent(int device, int current);
+
+    unsigned long getFaultTimeout(int device);
+    unsigned long getHeartbeatTimeout(int device);
+    unsigned long getUnmanagedChangeTime(int device);
+    unsigned long getStopTimeout(int device);
 };
 

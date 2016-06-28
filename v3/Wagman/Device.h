@@ -53,6 +53,9 @@ class Device
         byte primaryMedia;
         byte secondaryMedia;
 
+        bool shouldForceBootMedia;
+        int forceBootMedia;
+
     private:
 
         byte state;

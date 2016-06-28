@@ -249,14 +249,37 @@ void commandEnvironment(int argc, const char **argv)
 
 void commandBootMedia(int argc, const char **argv)
 {
-    int media;
-    
-    if (argc >= 2) {
-        if (argc == 3) {
-            Wagman::setBootMedia(atoi(argv[1]), atoi(argv[2]));
+    if (argc < 2)
+        return;
+
+    int index = atoi(argv[1]);
+
+    if (!Wagman::validPort(index))
+        return;
+
+    // ...move these string into a lookup table...
+    if (argc == 3) {
+        if (strcmp(argv[2], "sd") == 0) {
+            devices[index].shouldForceBootMedia = true;
+            devices[index].forceBootMedia = MEDIA_SD;
+            Serial.println("set sd");
+        } else if (strcmp(argv[2], "emmc") == 0) {
+            devices[index].shouldForceBootMedia = true;
+            devices[index].forceBootMedia = MEDIA_EMMC;
+            Serial.println("set emmc");
+        } else {
+            Serial.println("invalid media");
         }
-        
-        Serial.println(Wagman::getBootMedia(atoi(argv[1])));
+    } else if (argc == 2) {
+        int bootMedia = devices[index].getBootMedia();
+
+        if (bootMedia == MEDIA_SD) {
+            Serial.println("sd");
+        } else if (bootMedia == MEDIA_EMMC) {
+            Serial.println("emmc");
+        } else {
+            Serial.println("invalid media");
+        }
     }
 }
 

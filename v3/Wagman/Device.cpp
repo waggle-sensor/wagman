@@ -3,8 +3,17 @@
 #include "Record.h"
 #include "Logger.h"
 
+const unsigned long HEARTBEAT_TIMEOUT = (unsigned long)80000;
+const unsigned long FAULT_TIMEOUT = (unsigned long)5000;
+const unsigned long STOP_TIMEOUT = (unsigned long)60000;
+const unsigned long DETECT_CURRENT_TIMEOUT = (unsigned long)10000;
+const unsigned long STOP_MESSAGE_TIMEOUT = (unsigned long)5000;
+
 void Device::init()
 {
+    shouldForceBootMedia = false;
+    forceBootMedia = MEDIA_SD;
+
     changeState(STATE_STOPPED);
 }
 
@@ -47,6 +56,10 @@ unsigned long Device::lastHeartbeatTime() const
 
 int Device::getBootMedia() const
 {
+    if (shouldForceBootMedia) {
+        return forceBootMedia;
+    }
+
     if (managed) {
         if (Record::getBootFailures(port) % 4 == 3) {
             return secondaryMedia;
@@ -79,8 +92,11 @@ void Device::start()
         case STATE_STOPPED:
             if (Record::deviceEnabled(port)) {
                 managed = Record::getBootFailures(port) < 30;
-            
+
                 int bootMedia = getBootMedia();
+                
+                // override boot media only applies to next boot!
+                shouldForceBootMedia = false;
                 
                 Wagman::setBootMedia(bootSelector, bootMedia);
     
@@ -189,7 +205,7 @@ void Device::updateState()
     switch (state)
     {
         case STATE_STOPPED:
-            if (aboveFault && steadyCurrentTimer.exceeds(15000)) { // 15 seconds
+            if (aboveFault && steadyCurrentTimer.exceeds(DETECT_CURRENT_TIMEOUT)) { // 15 seconds
                 Logger::begin(name);
                 Logger::log("current detected");
                 Logger::end();
@@ -198,7 +214,7 @@ void Device::updateState()
             }
             break;
         case STATE_STARTED:
-            if (heartbeatTimer.exceeds(120000)) { // 120 seconds
+            if (heartbeatTimer.exceeds(HEARTBEAT_TIMEOUT)) { // 120 seconds
                 Logger::begin(name);
                 Logger::log("heartbeat timeout");
                 Logger::end();
@@ -207,7 +223,7 @@ void Device::updateState()
                 stop();
             }
 
-            if (!aboveFault && steadyCurrentTimer.exceeds(15000)) { // 15 seconds
+            if (!aboveFault && steadyCurrentTimer.exceeds(FAULT_TIMEOUT)) { // 15 seconds
                 Logger::begin(name);
                 Logger::log("fault timeout");
                 Logger::end();
@@ -218,7 +234,7 @@ void Device::updateState()
             break;
         case STATE_STOPPING:
         
-            if (stopMessageTimer.exceeds(5000)) { // every 5 seconds, send stop message to device
+            if (stopMessageTimer.exceeds(STOP_MESSAGE_TIMEOUT)) { // every 5 seconds, send stop message to device
                 stopMessageTimer.reset();
 
                 Logger::begin(name);
@@ -226,7 +242,7 @@ void Device::updateState()
                 Logger::end();
             }
 
-            if (stateTimer.exceeds(60000)) {
+            if (stateTimer.exceeds(STOP_TIMEOUT)) {
                 Logger::begin(name);
                 Logger::log("stop timeout");
                 Logger::end();

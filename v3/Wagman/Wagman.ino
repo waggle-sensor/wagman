@@ -91,7 +91,7 @@ void commandPing(int argc, const char **argv)
     for (int i = 1; i < argc; i++) {
         int index = atoi(argv[i]);
 
-        if (0 <= index && index < 5) {
+        if (Wagman::validPort(index)) {
             devices[index].sendExternalHeartbeat();
         }
     }
@@ -101,7 +101,11 @@ void commandPing(int argc, const char **argv)
 
 void commandStart(int argc, const char **argv)
 {
-    deviceWantsStart = atoi(argv[1]);
+    int index = atoi(argv[1]);
+
+    if (Wagman::validPort(index)) {
+        deviceWantsStart = index;
+    }
 }
 
 void commandStop(int argc, const char **argv)
@@ -109,7 +113,7 @@ void commandStop(int argc, const char **argv)
     for (int i = 1; i < argc; i++) {
         int index = atoi(argv[i]);
 
-        if (0 <= index && index < 5) {
+        if (Wagman::validPort(index)) {
             devices[index].stop();
         } else {
             Serial.println("invalid device");
@@ -124,7 +128,7 @@ void commandKill(int argc, const char **argv)
     for (int i = 1; i < argc; i++) {
         int index = atoi(argv[i]);
 
-        if (0 <= index && index < 5) {
+        if (Wagman::validPort(index)) {
             devices[index].kill();
         } else {
             Serial.println("invalid device");
@@ -449,7 +453,7 @@ void processCommands()
 void startNextDevice()
 {
     // if we've asked for a specific device, select that to boot
-    if (0 <= deviceWantsStart && deviceWantsStart < 5) {
+    if (Wagman::validPort(deviceWantsStart)) {
         devices[deviceWantsStart].start();
         startTimer.reset();
         deviceWantsStart = -1;

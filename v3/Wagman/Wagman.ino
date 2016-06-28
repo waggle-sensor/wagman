@@ -29,7 +29,7 @@
 // TODO keepalive 1 T/F
 // TODO assertions
 
-static const int DEVICE_COUNT = 2;
+static const int DEVICE_COUNT = 5;
 
 int deviceWantsStart = -1;
 bool resetWagman = false;
@@ -88,10 +88,7 @@ Command commands[] = {
 };
 
 void commandPing(int argc, const char **argv)
-{
-    // always count as external heartbeat for node controller, since talking to wagman.
-    devices[0].sendExternalHeartbeat();
-    
+{    
     for (int i = 1; i < argc; i++) {
         int index = atoi(argv[i]);
 
@@ -414,23 +411,26 @@ void setup()
     Serial.begin(57600);
     delay(2000);
 
-    // node controller
-    devices[0].name = "nc"; // move this into EEPROM
+    devices[0].name = "nc"; // move this into EEPROM?
     devices[0].port = 0;
     devices[0].bootSelector = 0;
     devices[0].primaryMedia = MEDIA_SD;
     devices[0].secondaryMedia = MEDIA_EMMC;
 
-    // guest node
-    devices[1].name = "gn"; // move this into EEPROM
+    devices[1].name = "gn"; // move this into EEPROM?
     devices[1].port = 1;
     devices[1].bootSelector = 1;
     devices[1].primaryMedia = MEDIA_EMMC;
     devices[1].secondaryMedia = MEDIA_SD;
 
-    devices[2].name = "";
-    devices[3].name = "";
-    devices[4].name = "";
+    devices[2].name = "gn1";
+    devices[2].port = 2;
+    
+    devices[3].name = "gn2";
+    devices[3].port = 3;
+    
+    devices[4].name = "gn3";
+    devices[4].port = 4;
     
     Record::incrementBootCount();
     Record::setLastBootTime(Wagman::getTime());
@@ -497,8 +497,8 @@ void startNextDevice()
         return;
     }
 
-    if (startTimer.exceeds(60000)) {
-        for (int i = 0; i < DEVICE_COUNT; i++) {
+    if (startTimer.exceeds(30000)) {
+        for (int i = 0; i < 2; i++) {
             if (!devices[i].started() && devices[i].canStart()) {
                 devices[i].start();
                 startTimer.reset();
@@ -517,7 +517,7 @@ void loop()
     startNextDevice();
 
     wdt_reset();
-    for (int i = 0; i < DEVICE_COUNT; i++) {
+    for (int i = 0; i < 2; i++) {
         devices[i].update();
     }
 

@@ -93,6 +93,7 @@ void Device::start()
             if (Record::deviceEnabled(port)) {
                 managed = Record::getBootFailures(port) < 30;
 
+                // note: depends on force boot media flag. don't change the order!
                 int bootMedia = getBootMedia();
                 
                 // override boot media only applies to next boot!

@@ -42,6 +42,8 @@ class Device
 
         int getBootMedia() const;
 
+        void sendExternalHeartbeat();
+
         unsigned long timeSinceHeartbeat() const;
 
         unsigned long lastHeartbeatTime() const;

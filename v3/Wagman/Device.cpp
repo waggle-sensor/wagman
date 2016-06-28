@@ -216,7 +216,7 @@ void Device::updateState()
             break;
         case STATE_STOPPING:
         
-            if (stopMessageTimer.exceeds(5000)) {
+            if (stopMessageTimer.exceeds(5000)) { // every 5 seconds, send stop message to device
                 stopMessageTimer.reset();
 
                 Logger::begin(name);
@@ -246,6 +246,15 @@ void Device::changeState(byte newState)
 
     state = newState;
 }
+
+//
+// 
+//
+void Device::sendExternalHeartbeat()
+{
+    heartbeatTimer.reset();
+}
+
 
 void Timer::reset()
 {

@@ -88,6 +88,14 @@ Command commands[] = {
 
 void commandPing(int argc, const char **argv)
 {
+    for (int i = 1; i < argc; i++) {
+        int index = atoi(argv[i]);
+
+        if (0 <= index && index < 5) {
+            devices[index].sendExternalHeartbeat();
+        }
+    }
+
     Serial.println("pong");
 }
 

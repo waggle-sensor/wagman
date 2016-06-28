@@ -62,6 +62,7 @@ void commandHeartbeat(int argc, const char **argv);
 void commandThermistor(int argc, const char **argv);
 void commandEnvironment(int argc, const char **argv);
 void commandBootMedia(int argc, const char **argv);
+void commandFailCount(int argc, const char **argv);
 void commandLog(int argc, const char **argv);
 void commandBootFlags(int argc, const char **argv);
 void commandHelp(int argc, const char **argv);
@@ -81,6 +82,7 @@ Command commands[] = {
     { "date", commandDate },
     { "eedump", commandEEDump },
     { "bf", commandBootFlags },
+    { "fc", commandFailCount },
     { "help", commandHelp },
     { "log", commandLog },
     { NULL, NULL },
@@ -220,6 +222,13 @@ void commandHeartbeat(int argc, const char **argv)
 {
     for (int i = 0; i < 5; i++) {
         Serial.println(devices[i].timeSinceHeartbeat() / 1000);
+    }
+}
+
+void commandFailCount(int argc, const char **argv)
+{
+    for (int i = 0; i < 5; i++) {
+        Serial.println(Record::getBootFailures(i));
     }
 }
 

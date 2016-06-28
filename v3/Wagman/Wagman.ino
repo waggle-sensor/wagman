@@ -88,6 +88,9 @@ Command commands[] = {
 
 void commandPing(int argc, const char **argv)
 {
+    // always count as external heartbeat for node controller, since talking to wagman.
+    devices[0].sendExternalHeartbeat();
+    
     for (int i = 1; i < argc; i++) {
         int index = atoi(argv[i]);
 
@@ -393,6 +396,10 @@ void setup()
     devices[1].bootSelector = 1;
     devices[1].primaryMedia = MEDIA_EMMC;
     devices[1].secondaryMedia = MEDIA_SD;
+
+    devices[2].name = "";
+    devices[3].name = "";
+    devices[4].name = "";
     
     Record::incrementBootCount();
     Record::setLastBootTime(Wagman::getTime());
@@ -425,10 +432,9 @@ void setup()
         devices[i].init();
     }
 
-    startTimer.reset(); // 1 minute
-
     // set the node controller as starting device
     deviceWantsStart = 0;
+    startTimer.reset();
 }
 
 static int bufferSize = 0;
@@ -461,7 +467,7 @@ void startNextDevice()
     }
 
     if (startTimer.exceeds(60000)) {
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 5; i++) {
             if (!devices[i].started() && devices[i].canStart()) {
                 devices[i].start();
                 startTimer.reset();
@@ -480,7 +486,7 @@ void loop()
     startNextDevice();
 
     wdt_reset();
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 5; i++) {
         devices[i].update();
     }
 

@@ -136,10 +136,10 @@ void Device::kill()
 
     Record::setRelayBegin(port);
     delay(100);
-    Wagman::setRelay(port, true); // set this in case the pin level is back to low?
-    delay(500);
+    Wagman::setRelay(port, true);
+    delay(1000);
     Wagman::setRelay(port, false);
-    delay(500);
+    delay(1000);
     Record::setRelayEnd(port);
     delay(100);
 
@@ -148,9 +148,9 @@ void Device::kill()
 
 void Device::update()
 {
-    if (Record::deviceEnabled(port)) {
-        updateHeartbeat(); // maybe checkHeartbeat
-        updateFault();     // maybe checkCurrent
+    if (Record::deviceEnabled(port)) { // maybe cache all these device enables.
+        updateHeartbeat();
+        updateFault();
         updateState();
     }
 }
@@ -202,7 +202,8 @@ void Device::updateState()
                 Logger::begin(name);
                 Logger::log("heartbeat timeout");
                 Logger::end();
-                
+
+                Record::incrementBootFailures(port);
                 stop();
             }
 
@@ -210,7 +211,8 @@ void Device::updateState()
                 Logger::begin(name);
                 Logger::log("fault timeout");
                 Logger::end();
-                
+
+                Record::incrementBootFailures(port);
                 kill();
             }
             break;
@@ -253,6 +255,10 @@ void Device::changeState(byte newState)
 void Device::sendExternalHeartbeat()
 {
     heartbeatTimer.reset();
+
+    Logger::begin(name);
+    Logger::log("external heartbeat");
+    Logger::end();
 }
 
 

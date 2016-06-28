@@ -45,9 +45,7 @@ class Device
         void sendExternalHeartbeat();
 
         unsigned long timeSinceHeartbeat() const;
-
         unsigned long lastHeartbeatTime() const;
-//        unsigned long currentModeTime() const;
 
         const char *name;
         byte port;
@@ -77,9 +75,6 @@ class Device
         Timer stopMessageTimer;
         Timer heartbeatTimer;
         Timer steadyCurrentTimer;
-
-//        int currentMode;
-//        unsigned long currentModeStartTime;
         
         int lastHeartbeat;
 

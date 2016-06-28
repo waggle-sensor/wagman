@@ -27,11 +27,9 @@
 // TODO Observed in the logs that current checking is too aggresive. Use timeout as mentioned above.
 // TODO may want to occasionally send a ping to wake?
 // TODO keepalive 1 T/F
+// TODO assertions
 
-#define SECONDS(x) ((unsigned long)(1000 * (x)))
-#define MINUTES(x) ((unsigned long)(60000 * (x)))
-#define HOURS(x) ((unsigned long)(3600000 * (x)))
-
+int deviceWantsStart = -1;
 bool resetWagman = false;
 bool logging = false;
 int poweronCurrent[5];
@@ -39,7 +37,7 @@ int poweronCurrent[5];
 static const byte DEVICE_NC = 0;
 static const byte DEVICE_GN = 1;
 
-static unsigned long lastStartTime = 0;
+static Timer startTimer;
 
 static byte bootflags;
 
@@ -95,19 +93,7 @@ void commandPing(int argc, const char **argv)
 
 void commandStart(int argc, const char **argv)
 {
-    for (int i = 1; i < argc; i++) {
-        int index = atoi(argv[i]);
-
-        if (index == 0) {
-            Serial.println("what?");
-        } else if (0 < index && index < 5) {
-            devices[index].start();
-        } else {
-            Serial.println("invalid device");
-        }
-
-        delay(500);
-    }
+    deviceWantsStart = atoi(argv[1]);
 }
 
 void commandStop(int argc, const char **argv)
@@ -115,9 +101,7 @@ void commandStop(int argc, const char **argv)
     for (int i = 1; i < argc; i++) {
         int index = atoi(argv[i]);
 
-        if (index == 0) {
-            Serial.println("no...");
-        } else if (0 < index && index < 5) {
+        if (0 <= index && index < 5) {
             devices[index].stop();
         } else {
             Serial.println("invalid device");
@@ -132,9 +116,7 @@ void commandKill(int argc, const char **argv)
     for (int i = 1; i < argc; i++) {
         int index = atoi(argv[i]);
 
-        if (index == 0) {
-            Serial.println("no...");
-        } else if (0 < index && index < 5) {
+        if (0 <= index && index < 5) {
             devices[index].kill();
         } else {
             Serial.println("invalid device");
@@ -215,16 +197,14 @@ void commandCurrent(int argc, const char **argv)
     Serial.println(Wagman::getCurrent());
     
     for (int i = 0; i < 5; i++) {
-        Serial.print(Wagman::getCurrent(i));
-        Serial.print(" PO=");
-        Serial.println(poweronCurrent[i]);
+        Serial.println(Wagman::getCurrent(i));
     }
 }
 
 void commandHeartbeat(int argc, const char **argv)
 {
     for (int i = 0; i < 5; i++) {
-        Serial.println(devices[i].timeSinceHeartbeat());
+        Serial.println(devices[i].timeSinceHeartbeat() / 1000);
     }
 }
 
@@ -237,10 +217,10 @@ void commandThermistor(int argc, const char **argv)
 
 void commandEnvironment(int argc, const char **argv)
 {
-    Serial.print("temperature: ");
+    Serial.print("temperature=");
     Serial.println(Wagman::getTemperature());
     
-    Serial.print("humidity: ");
+    Serial.print("humidity=");
     Serial.println(Wagman::getHumidity());
 }
 
@@ -260,8 +240,6 @@ void commandBootMedia(int argc, const char **argv)
 void commandLog(int argc, const char **argv)
 {
     logging = !logging;
-
-    Serial.print("logging: ");
     Serial.println(logging ? "on" : "off");
 }
 
@@ -356,13 +334,6 @@ void processCommand()
     }
 }
 
-// ...may want to add some kind of assert failure log...
-
-//void assert(bool condition, const char *msg)
-//{
-//    // for unexplained, unhandlable conditions, we can do an assertion failure.
-//}
-
 void setup()
 {
     // save and clear boot flags
@@ -394,7 +365,7 @@ void setup()
     delay(2000);
 
     wdt_reset();
-    Serial.begin(115200);
+    Serial.begin(57600);
     delay(2000);
 
     // node controller
@@ -410,20 +381,11 @@ void setup()
     devices[1].bootSelector = 1;
     devices[1].primaryMedia = MEDIA_EMMC;
     devices[1].secondaryMedia = MEDIA_SD;
-
-    devices[2].name = "";
-    devices[3].name = "";
-    devices[4].name = "";
     
     Record::incrementBootCount();
     Record::setLastBootTime(Wagman::getTime());
 
     resetWagman = false; // used to reset Wagman in main loop
-
-    // initially used to track known current range...but this should be moved into EEPROM
-    for (int i = 0; i < 5; i++) {
-        poweronCurrent[i] = 0;
-    }
 
     // boot up after brown out.
     if (bootflags & _BV(BORF)) {
@@ -451,9 +413,10 @@ void setup()
         devices[i].init();
     }
 
-    // always start node controller immediately, for now.
-    devices[0].start();
-    lastStartTime = millis();
+    startTimer.reset(); // 1 minute
+
+    // set the node controller as starting device
+    deviceWantsStart = 0;
 }
 
 static int bufferSize = 0;
@@ -475,27 +438,37 @@ void processCommands()
     }
 }
 
-void loop()
+void startNextDevice()
 {
-    unsigned long currentTime = millis();
-    
-    // ensure that the watchdog is always enabled (in case some anomaly disables it)
-    wdt_enable(WDTO_8S);
+    // if we've asked for a specific device, select that to boot
+    if (0 <= deviceWantsStart && deviceWantsStart < 5) {
+        devices[deviceWantsStart].start();
+        startTimer.reset();
+        deviceWantsStart = -1;
+        return;
+    }
 
-    // start next unstarted device
-    if (currentTime - lastStartTime > MINUTES(3)) {
-        for (int i = 0; i < 5; i++) {
-            wdt_reset();
-            if (devices[i].canStart()) {
+    if (startTimer.exceeds(60000)) {
+        for (int i = 0; i < 2; i++) {
+            if (!devices[i].started() && devices[i].canStart()) {
                 devices[i].start();
-                lastStartTime = currentTime;
-                break;
+                startTimer.reset();
+                return;
             }
         }
     }
+}
 
-    for (int i = 0; i < 5; i++) {
-        wdt_reset();
+void loop()
+{    
+    // ensure that the watchdog is always enabled (in case some anomaly disables it)
+    wdt_enable(WDTO_8S);
+
+    wdt_reset();
+    startNextDevice();
+
+    wdt_reset();
+    for (int i = 0; i < 2; i++) {
         devices[i].update();
     }
 

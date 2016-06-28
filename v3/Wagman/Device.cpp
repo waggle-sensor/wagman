@@ -3,10 +3,6 @@
 #include "Record.h"
 #include "Logger.h"
 
-#define SECONDS(x) ((unsigned long)(1000 * (x)))
-#define MINUTES(x) ((unsigned long)(60000 * (x)))
-#define HOURS(x) ((unsigned long)(3600000 * (x)))
-
 void Device::init()
 {
     changeState(STATE_STOPPED);
@@ -36,13 +32,18 @@ bool Device::stopped() const
 
 unsigned long Device::timeSinceHeartbeat() const
 {
-    return millis() - heartbeatTime;
+    return heartbeatTimer.elapsed();
 }
 
-unsigned long Device::faultModeTime() const
+unsigned long Device::lastHeartbeatTime() const
 {
-    return millis() - faultModeStartTime;
+    return heartbeatTimer.elapsed();
 }
+
+//unsigned long Device::currentModeTime() const
+//{
+//    return millis() - currentModeStartTime;
+//}
 
 int Device::getBootMedia() const
 {
@@ -76,28 +77,30 @@ void Device::start()
             Logger::end();
             break;
         case STATE_STOPPED:
-            managed = Record::getBootFailures(port) < 30;
-        
-            int bootMedia = getBootMedia();
+            if (Record::deviceEnabled(port)) {
+                managed = Record::getBootFailures(port) < 30;
             
-            Wagman::setBootMedia(bootSelector, bootMedia);
+                int bootMedia = getBootMedia();
+                
+                Wagman::setBootMedia(bootSelector, bootMedia);
+    
+                Logger::begin(name);
+                Logger::log("starting ");
+                Logger::log((bootMedia == primaryMedia) ? "primary" : "secondary");
+                Logger::end();
+            
+                Record::incrementBootAttempts(port);
+    
+                Record::setRelayBegin(port);
+                Wagman::setRelay(port, true);
+                Record::setRelayEnd(port);
 
-            Logger::begin(name);
-            Logger::log("starting ");
-            Logger::log((bootMedia == primaryMedia) ? "primary" : "secondary");
-            Logger::end();
-        
-            Record::incrementBootAttempts(port);
-
-            Record::setRelayBegin(port);
-            Wagman::setRelay(port, true);
-            Record::setRelayEnd(port);
-
-            heartbeatTime = millis();
-            faultTime = millis();
-
-            changeState(STATE_STARTED);
-
+                changeState(STATE_STARTED);
+            } else {
+                Logger::begin(name);
+                Logger::log("device disabled");
+                Logger::end();
+            }
             break;
     }
 }
@@ -120,7 +123,6 @@ void Device::stop()
             Logger::begin(name);
             Logger::log("stopping");
             Logger::end();
-
             changeState(STATE_STOPPING);
             break;
     }
@@ -135,9 +137,9 @@ void Device::kill()
     Record::setRelayBegin(port);
     delay(100);
     Wagman::setRelay(port, true); // set this in case the pin level is back to low?
-    delay(100);
+    delay(500);
     Wagman::setRelay(port, false);
-    delay(100);
+    delay(500);
     Record::setRelayEnd(port);
     delay(100);
 
@@ -146,9 +148,11 @@ void Device::kill()
 
 void Device::update()
 {
-    updateHeartbeat();
-    updateFault();
-    updateState();
+    if (Record::deviceEnabled(port)) {
+        updateHeartbeat(); // maybe checkHeartbeat
+        updateFault();     // maybe checkCurrent
+        updateState();
+    }
 }
 
 void Device::updateHeartbeat()
@@ -157,7 +161,7 @@ void Device::updateHeartbeat()
 
     if (heartbeat != lastHeartbeat) {
         lastHeartbeat = heartbeat;
-        heartbeatTime = millis();
+        heartbeatTimer.reset();
 
         Logger::begin(name);
         Logger::log("heartbeat");
@@ -170,12 +174,12 @@ void Device::updateFault()
     bool newAboveFault = Wagman::getCurrent(port) > Record::getFaultCurrent(port);
 
     if (aboveFault != newAboveFault) {
-        faultModeStartTime = millis();
         aboveFault = newAboveFault;
+        steadyCurrentTimer.reset();
 
         Logger::begin(name);
-        Logger::log("fault");
-        Logger::log(aboveFault ? "ok" : "warn");
+        Logger::log("current ");
+        Logger::log(aboveFault ? "normal" : "low");
         Logger::end();
     }
 }
@@ -185,7 +189,7 @@ void Device::updateState()
     switch (state)
     {
         case STATE_STOPPED:
-            if (aboveFault && faultModeTime() > SECONDS(15)) {
+            if (aboveFault && steadyCurrentTimer.exceeds(15000)) { // 15 seconds
                 Logger::begin(name);
                 Logger::log("current detected");
                 Logger::end();
@@ -194,48 +198,67 @@ void Device::updateState()
             }
             break;
         case STATE_STARTED:
-            if (heartbeatTimeout()) {
+            if (heartbeatTimer.exceeds(120000)) { // 120 seconds
                 Logger::begin(name);
                 Logger::log("heartbeat timeout");
                 Logger::end();
                 
                 stop();
             }
-    
-            if (!aboveFault && faultModeTime() > SECONDS(15)) {
+
+            if (!aboveFault && steadyCurrentTimer.exceeds(15000)) { // 15 seconds
                 Logger::begin(name);
                 Logger::log("fault timeout");
                 Logger::end();
                 
-                stop();
+                kill();
             }
             break;
         case STATE_STOPPING:
-            
-            if (stopTimeout()) {
+        
+            if (stopMessageTimer.exceeds(5000)) {
+                stopMessageTimer.reset();
+
+                Logger::begin(name);
+                Logger::log("wants stop");
+                Logger::end();
+            }
+
+            if (stateTimer.exceeds(60000)) {
                 Logger::begin(name);
                 Logger::log("stop timeout");
                 Logger::end();
                 
                 kill();
             }
+
             break;
     }
 }
 
-bool Device::heartbeatTimeout()
-{
-    return (millis() - heartbeatTime) > Record::getHeartbeatTimeout(port);
-}
-
-bool Device::stopTimeout()
-{
-    return (millis() - stateStartTime) > Record::getStopTimeout(port);
-}
-
 void Device::changeState(byte newState)
-{
+{    
+    stateTimer.reset();
+    // these should be moved into their respective states. but for now, let's not forget anything.
+    stopMessageTimer.reset();
+    heartbeatTimer.reset();
+    steadyCurrentTimer.reset();
+
     state = newState;
-    stateStartTime = millis();
+}
+
+void Timer::reset()
+{
+    start = millis();
+}
+
+unsigned long Timer::elapsed() const
+{
+    return millis() - start;
+}
+
+bool Timer::exceeds(unsigned long time) const
+{
+    return (millis() - start) > time;
 }
 

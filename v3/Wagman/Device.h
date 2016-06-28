@@ -1,5 +1,22 @@
 #include <Arduino.h>
 
+// TODO Track what kind of things killed the device! This will help us determine
+// if we're having current problems, heartbeat problems, etc.
+
+class Timer
+{
+    public:
+
+        void reset();
+        unsigned long elapsed() const;
+        bool exceeds(unsigned long time) const;
+
+    private:
+
+        unsigned long start;
+//        bool running;
+};
+
 enum {
     STATE_STOPPED,
     STATE_STARTED,
@@ -20,11 +37,15 @@ class Device
         
         bool started() const;
         bool stopped() const;
+        
+        bool warning() const;
 
         int getBootMedia() const;
 
         unsigned long timeSinceHeartbeat() const;
-        unsigned long faultModeTime() const;
+
+        unsigned long lastHeartbeatTime() const;
+//        unsigned long currentModeTime() const;
 
         const char *name;
         byte port;
@@ -43,20 +64,20 @@ class Device
         void updateFault();
         void updateState();
 
-        bool heartbeatTimeout();
-        bool aboveFaultTimeout();
-        bool stopTimeout();
-
-        unsigned long heartbeatTime;
-
         bool managed;
 
         byte repeatedResetCount;
 
         bool aboveFault;
-        unsigned long faultModeStartTime;
-        unsigned long faultTime;
-        
+//        unsigned long faultModeStartTime;
+
+        Timer stateTimer;
+        Timer stopMessageTimer;
+        Timer heartbeatTimer;
+        Timer steadyCurrentTimer;
+
+//        int currentMode;
+//        unsigned long currentModeStartTime;
         
         int lastHeartbeat;
 

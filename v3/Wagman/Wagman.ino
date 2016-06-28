@@ -29,13 +29,12 @@
 // TODO keepalive 1 T/F
 // TODO assertions
 
+static const int DEVICE_COUNT = 2;
+
 int deviceWantsStart = -1;
 bool resetWagman = false;
 bool logging = false;
 int poweronCurrent[5];
-
-static const byte DEVICE_NC = 0;
-static const byte DEVICE_GN = 1;
 
 static Timer startTimer;
 
@@ -213,28 +212,28 @@ void commandCurrent(int argc, const char **argv)
 {
     Serial.println(Wagman::getCurrent());
     
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < DEVICE_COUNT; i++) {
         Serial.println(Wagman::getCurrent(i));
     }
 }
 
 void commandHeartbeat(int argc, const char **argv)
 {
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < DEVICE_COUNT; i++) {
         Serial.println(devices[i].timeSinceHeartbeat() / 1000);
     }
 }
 
 void commandFailCount(int argc, const char **argv)
 {
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < DEVICE_COUNT; i++) {
         Serial.println(Record::getBootFailures(i));
     }
 }
 
 void commandThermistor(int argc, const char **argv)
 {
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < DEVICE_COUNT; i++) {
         Serial.println(Wagman::getThermistor(i));
     }
 }
@@ -424,7 +423,7 @@ void setup()
     if (bootflags & _BV(PORF)) {
         // do some initial test / calibration here.
 
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < DEVICE_COUNT; i++) {
             wdt_reset();
             poweronCurrent[i] = Wagman::getCurrent(i);
         }
@@ -437,7 +436,7 @@ void setup()
         // it looks like we were reset
     }
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < DEVICE_COUNT; i++) {
         devices[i].init();
     }
 
@@ -476,7 +475,7 @@ void startNextDevice()
     }
 
     if (startTimer.exceeds(60000)) {
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < DEVICE_COUNT; i++) {
             if (!devices[i].started() && devices[i].canStart()) {
                 devices[i].start();
                 startTimer.reset();
@@ -495,7 +494,7 @@ void loop()
     startNextDevice();
 
     wdt_reset();
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < DEVICE_COUNT; i++) {
         devices[i].update();
     }
 

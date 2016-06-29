@@ -74,13 +74,6 @@ byte Device::getBootMedia() const
 
 void Device::start()
 {
-    if (!canStart()) {
-        Logger::begin(name);
-        Logger::log("cannot start"); // maybe give reason...
-        Logger::end();
-        return;
-    }
-
     switch (state)
     {
         case STATE_STARTED:
@@ -94,6 +87,13 @@ void Device::start()
             Logger::end();
             break;
         case STATE_STOPPED:
+            if (!canStart()) {
+                Logger::begin(name);
+                Logger::log("cannot start"); // maybe give reason...
+                Logger::end();
+                return;
+            }
+
             managed = Record::getBootFailures(port) < 30;
 
             // note: depends on force boot media flag. don't change the order!

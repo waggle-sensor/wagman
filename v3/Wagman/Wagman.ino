@@ -324,7 +324,7 @@ void commandHelp(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) co
     }
 }
 
-void executeCommand(byte sid, byte argc, const char **argv)
+void executeCommand(const char *sid, byte argc, const char **argv)
 {
     void (*func)(byte, const char **) = NULL;
 
@@ -337,14 +337,14 @@ void executeCommand(byte sid, byte argc, const char **argv)
     }
 
     // marks the beginning of a response packet.
-    Serial.print("<<<- ");
+    Serial.print("<<<- sid=");
     Serial.print(sid);
     Serial.print(' ');
     Serial.println(argv[0]);
 
     if (func != NULL) {
         func(argc, argv);
-    } else  {
+    } else {
         Serial.println("command not found");
     }
 
@@ -401,9 +401,9 @@ void processCommand()
         wdt_reset();
 
         if (argv[0][0] == '@') {
-            executeCommand(atoi(argv[0] + 1), argc - 1, argv + 1);
+            executeCommand(argv[0], argc - 1, argv + 1);
         } else {
-            executeCommand(0, argc, argv);
+            executeCommand("0", argc, argv);
         }
     }
 }

@@ -49,11 +49,6 @@ unsigned long Device::lastHeartbeatTime() const
     return heartbeatTimer.elapsed();
 }
 
-//unsigned long Device::currentModeTime() const
-//{
-//    return millis() - currentModeStartTime;
-//}
-
 int Device::getBootMedia() const
 {
     if (shouldForceBootMedia) {

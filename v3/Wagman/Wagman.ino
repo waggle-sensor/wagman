@@ -35,9 +35,7 @@
 
 // TODO watchout for keywords in naming
 
-// TODO set up full port range.
-
-static const int DEVICE_COUNT = 3;
+static const int DEVICE_COUNT = 5;
 static const int BUFFER_SIZE = 80;
 static const int MAX_FIELDS = 8;
 
@@ -174,9 +172,8 @@ void commandEEDump(int argc, const char **argv)
     for (unsigned int i = 0; i < 1024; i++) {
         byte value = EEPROM.read(i);
         
-        if ((value & 0xf0) == 0x00)
-           Serial.print('0');
-        Serial.print(value, HEX);
+        Serial.print((value >> 4) & 0x0F, HEX);
+        Serial.print(value & 0x0F, HEX);
         Serial.print(' ');
 
         if (i % 4 == 3)
@@ -231,7 +228,13 @@ void commandCurrent(int argc, const char **argv)
 void commandHeartbeat(int argc, const char **argv)
 {
     for (int i = 0; i < DEVICE_COUNT; i++) {
-        Serial.println(devices[i].timeSinceHeartbeat() / 1000);
+        Serial.print(devices[i].timeSinceHeartbeat());
+
+        if (devices[i].watchHeartbeat) {
+            Serial.print(" *");
+        }
+
+        Serial.println();
     }
 }
 
@@ -393,7 +396,7 @@ void processCommands()
 
     timer.reset();
 
-    while (Serial.available() > 0 && !timer.exceeds(3000)) {
+    while (Serial.available() > 0 && !timer.exceeds(2000)) {
         int c = Serial.read();
 
         buffer[bufferSize++] = c;
@@ -402,7 +405,7 @@ void processCommands()
             bufferSize = 0;
             
             // flush remainder of line.
-            while (Serial.available() > 0 && !timer.exceeds(3000)) {
+            while (Serial.available() > 0 && !timer.exceeds(2000)) {
                 if (Serial.read() == '\n')
                     break;
             }
@@ -478,8 +481,6 @@ void setup()
     Record::incrementBootCount();
     Record::setLastBootTime(Wagman::getTime());
 
-    resetWagman = false; // used to reset Wagman in main loop
-
     // boot up after brown out.
     if (bootflags & _BV(BORF)) {
         // what would we do differently than a power-off reset flag.
@@ -492,9 +493,7 @@ void setup()
         for (int i = 0; i < DEVICE_COUNT; i++) {
             wdt_reset();
             poweronCurrent[i] = Wagman::getCurrent(i);
-        }
-
-        
+        }        
 
         // perform remainder of sensor health checks BEFORE powering on the other devices if possible.
 
@@ -513,7 +512,8 @@ void setup()
     deviceWantsStart = 0;
     startTimer.reset();
 
-    // reset buffer size (just in case...)
+    // reinitialize globals just in case...
+    resetWagman = false; // used to reset Wagman in main loop
     bufferSize = 0;
 }
 
@@ -547,7 +547,7 @@ void loop()
     startNextDevice();
 
     wdt_reset();
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 3; i++) {
         devices[i].update();
     }
 

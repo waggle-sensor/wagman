@@ -24,16 +24,10 @@
 // This will possibly help us correctly decide on whether we start up with a self-test, a check
 // for why we got locked up, etc.
 // TODO Check that system current reading is correct.
-// TODO Observed in the logs that current checking is too aggresive. Use timeout as mentioned above.
-// TODO may want to occasionally send a ping to wake?
-// TODO keepalive 1 T/F
 
 // TODO minimize int types (int -> byte / char when possible)
 // TODO check if WDR shows up as NC serial dev change.
-
 // TODO add variable LED to encode states.
-
-// TODO watchout for keywords in naming
 
 static const byte DEVICE_COUNT = 5;
 static const byte BUFFER_SIZE = 80;
@@ -47,7 +41,6 @@ byte deviceWantsStart = 255;
 Device devices[5];
 
 static Timer startTimer;
-
 static char buffer[BUFFER_SIZE];
 static byte bufferSize = 0;
 
@@ -477,6 +470,7 @@ void setup()
     devices[0].primaryMedia = MEDIA_SD;
     devices[0].secondaryMedia = MEDIA_EMMC;
     devices[0].watchHeartbeat = true;
+    devices[0].watchCurrent = true;
 
     devices[1].name = "gn"; // move this into EEPROM?
     devices[1].port = 1;
@@ -484,18 +478,22 @@ void setup()
     devices[1].primaryMedia = MEDIA_EMMC;
     devices[1].secondaryMedia = MEDIA_SD;
     devices[1].watchHeartbeat = true;
+    devices[1].watchCurrent = true;
 
     devices[2].name = "coresense";
     devices[2].port = 2;
     devices[2].watchHeartbeat = false;
+    devices[2].watchCurrent = false;
     
     devices[3].name = "unused1";
     devices[3].port = 3;
     devices[3].watchHeartbeat = false;
+    devices[3].watchCurrent = false;
     
     devices[4].name = "unused2";
     devices[4].port = 4;
     devices[4].watchHeartbeat = false;
+    devices[4].watchCurrent = false;
 
     setupTime = Wagman::getTime(); // used for uptime
     Record::setLastBootTime(setupTime);
@@ -585,6 +583,8 @@ void loop()
             delay(400);
         }
     }
+
+    wdt_reset();
 
     delay(100); // check if saves power
 }

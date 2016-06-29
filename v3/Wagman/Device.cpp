@@ -204,7 +204,7 @@ void Device::updateState()
     switch (state)
     {
         case STATE_STOPPED:
-            if (aboveFault && steadyCurrentTimer.exceeds(DETECT_CURRENT_TIMEOUT)) { // 15 seconds
+            if (watchCurrent && aboveFault && steadyCurrentTimer.exceeds(DETECT_CURRENT_TIMEOUT)) { // 15 seconds
                 Logger::begin(name);
                 Logger::log("current detected");
                 Logger::end();
@@ -222,7 +222,7 @@ void Device::updateState()
                 stop();
             }
 
-            if (!aboveFault && steadyCurrentTimer.exceeds(FAULT_TIMEOUT)) { // 15 seconds
+            if (watchCurrent && !aboveFault && steadyCurrentTimer.exceeds(FAULT_TIMEOUT)) { // 15 seconds
                 Logger::begin(name);
                 Logger::log("fault timeout");
                 Logger::end();

@@ -144,6 +144,8 @@ bool deviceEnabled(byte device)
         return true;
     if (device == 1)
         return true;
+    if (device == 2)
+        return true;
     return false;
 //    if (0 <= device && device < 5) {
 //        return EEPROM.read(deviceRegion(device) + EEPROM_PORT_ENABLED);

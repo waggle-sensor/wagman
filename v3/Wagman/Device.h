@@ -56,6 +56,7 @@ class Device
         byte forceBootMedia;
 
         bool watchHeartbeat;
+        bool watchCurrent;
 
     private:
 

@@ -37,7 +37,7 @@
 
 static const byte DEVICE_COUNT = 5;
 static const byte BUFFER_SIZE = 80;
-static const byte MAX_FIELDS = 8;
+static const byte MAX_ARGC = 8;
 
 byte bootflags;
 bool resetWagman = false;
@@ -53,6 +53,9 @@ char buffer[BUFFER_SIZE];
 static byte bufferSize = 0;
 
 time_t setupTime;
+
+bool isspace(char c);
+bool isgraph(char c);
 
 struct Command {
     const char *name;
@@ -367,11 +370,11 @@ bool isgraph(char c) {
 void processCommand()
 {
     byte argc = 0;
-    const char *argv[MAX_FIELDS];
+    const char *argv[MAX_ARGC];
     
     char *s = buffer;
 
-    while (argc < MAX_FIELDS) {
+    while (argc < MAX_ARGC) {
 
         // skip whitespace
         while (isspace(*s)) {
@@ -407,22 +410,22 @@ void processCommand()
 
 void processCommands()
 {
-    Timer timer;
+    byte dataread = 0; // using this instead of a timer to reduce delay in processing byte stream
 
-    timer.reset();
-
-    while (Serial.available() > 0 && !timer.exceeds(2000)) {
+    while (Serial.available() > 0 && dataread < 240) {
         char c = Serial.read();
 
         buffer[bufferSize++] = c;
+        dataread++;
 
         if (bufferSize >= BUFFER_SIZE) { // exceeds buffer! dangerous!
             bufferSize = 0;
             
             // flush remainder of line.
-            while (Serial.available() > 0 && !timer.exceeds(2000)) {
+            while (Serial.available() > 0 && dataread < 240) {
                 if (Serial.read() == '\n')
                     break;
+                dataread++;
             }
         } else if (c == '\n') {
             buffer[bufferSize] = '\0';

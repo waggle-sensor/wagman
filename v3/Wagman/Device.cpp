@@ -4,7 +4,7 @@
 #include "Logger.h"
 
 const unsigned long HEARTBEAT_TIMEOUT = (unsigned long)80000;
-const unsigned long FAULT_TIMEOUT = (unsigned long)5000;
+const unsigned long FAULT_TIMEOUT = (unsigned long)2500;
 const unsigned long STOP_TIMEOUT = (unsigned long)60000;
 const unsigned long DETECT_CURRENT_TIMEOUT = (unsigned long)10000;
 const unsigned long STOP_MESSAGE_TIMEOUT = (unsigned long)5000;
@@ -153,10 +153,10 @@ void Device::kill()
 
     Record::setRelayBegin(port);
     delay(100);
-    Wagman::setRelay(port, true);
-    delay(1000);
+//    Wagman::setRelay(port, true); // check this behavior
+//    delay(1000);
     Wagman::setRelay(port, false);
-    delay(1000);
+    delay(500);
     Record::setRelayEnd(port);
     delay(100);
 
@@ -234,7 +234,6 @@ void Device::updateState()
             }
             break;
         case STATE_STOPPING:
-        
             if (stopMessageTimer.exceeds(STOP_MESSAGE_TIMEOUT)) { // every 5 seconds, send stop message to device
                 stopMessageTimer.reset();
 

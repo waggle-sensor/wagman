@@ -27,9 +27,19 @@
 // TODO Observed in the logs that current checking is too aggresive. Use timeout as mentioned above.
 // TODO may want to occasionally send a ping to wake?
 // TODO keepalive 1 T/F
-// TODO assertions
 
-static const int DEVICE_COUNT = 5;
+// TODO minimize int types (int -> byte / char when possible)
+// TODO check if WDR shows up as NC serial dev change.
+
+// TODO add variable LED to encode states.
+
+// TODO watchout for keywords in naming
+
+// TODO set up full port range.
+
+static const int DEVICE_COUNT = 3;
+static const int BUFFER_SIZE = 80;
+static const int MAX_FIELDS = 8;
 
 int deviceWantsStart = -1;
 bool resetWagman = false;
@@ -42,6 +52,9 @@ static byte bootflags;
 
 Device devices[5];
 unsigned long lastDeviceStartTime = 0;
+
+char buffer[BUFFER_SIZE];
+static int bufferSize = 0;
 
 struct Command {
     const char *name;
@@ -158,11 +171,12 @@ void commandID(int argc, const char **argv)
 
 void commandEEDump(int argc, const char **argv)
 {
-    for (int i = 0; i < 1024; i++) {
+    for (unsigned int i = 0; i < 1024; i++) {
         byte value = EEPROM.read(i);
         
-        Serial.print(value & 0x0F, HEX);
-        Serial.print(value >> 8, HEX);
+        if ((value & 0xf0) == 0x00)
+           Serial.print('0');
+        Serial.print(value, HEX);
         Serial.print(' ');
 
         if (i % 4 == 3)
@@ -305,10 +319,6 @@ void commandHelp(int argc, const char **argv)
     }
 }
 
-const int BUFFER_SIZE = 80;
-const int MAX_FIELDS = 8;
-char buffer[BUFFER_SIZE];
-
 void executeCommand(int argc, const char **argv)
 {
     void (*func)(int, const char **) = NULL;
@@ -377,19 +387,49 @@ void processCommand()
     }
 }
 
+void processCommands()
+{
+    Timer timer;
+
+    timer.reset();
+
+    while (Serial.available() > 0 && !timer.exceeds(3000)) {
+        int c = Serial.read();
+
+        buffer[bufferSize++] = c;
+
+        if (bufferSize >= BUFFER_SIZE) { // exceeds buffer! dangerous!
+            bufferSize = 0;
+            
+            // flush remainder of line.
+            while (Serial.available() > 0 && !timer.exceeds(3000)) {
+                if (Serial.read() == '\n')
+                    break;
+            }
+        } else if (c == '\n') {
+            buffer[bufferSize] = '\0';
+            bufferSize = 0;
+            processCommand();
+        }
+    }
+}
+
 void setup()
 {
     // save and clear boot flags
     bootflags = MCUSR;
     MCUSR = 0;
+    wdt_disable();
 
+    delay(2000);
+    
     wdt_enable(WDTO_8S);
-
     wdt_reset();
+    
     Wagman::init();
 
     // blink sequence indicating that we got through the first step.
-    for (int i = 0; i < 5; i++) {
+    for (byte i = 0; i < 5; i++) {
         wdt_reset();
         Wagman::setLED(0, true);
         delay(200);
@@ -405,13 +445,11 @@ void setup()
 
     wdt_reset();
     Record::init();
-    delay(2000);
 
     wdt_reset();
     Serial.begin(57600);
-    delay(2000);
 
-    devices[0].name = "nc"; // move this into EEPROM?
+    devices[0].name = "nc"; // move this into EEPROM? / rename to something other than name?
     devices[0].port = 0;
     devices[0].bootSelector = 0;
     devices[0].primaryMedia = MEDIA_SD;
@@ -423,13 +461,13 @@ void setup()
     devices[1].primaryMedia = MEDIA_EMMC;
     devices[1].secondaryMedia = MEDIA_SD;
 
-    devices[2].name = "gn1";
+    devices[2].name = "coresense";
     devices[2].port = 2;
     
-    devices[3].name = "gn2";
+    devices[3].name = "na1";
     devices[3].port = 3;
     
-    devices[4].name = "gn3";
+    devices[4].name = "na2";
     devices[4].port = 4;
     
     Record::incrementBootCount();
@@ -451,12 +489,15 @@ void setup()
             poweronCurrent[i] = Wagman::getCurrent(i);
         }
 
+        
+
         // perform remainder of sensor health checks BEFORE powering on the other devices if possible.
+
+        // want ensure that devices are off and then set base line current values
     }
 
     // tripped by external reset? (do we do something similar to a watchdog reset here?)
     if ((bootflags & _BV(EXTRF)) || (bootflags & _BV(WDRF))) {
-        // it looks like we were reset
     }
 
     for (int i = 0; i < DEVICE_COUNT; i++) {
@@ -466,30 +507,14 @@ void setup()
     // set the node controller as starting device
     deviceWantsStart = 0;
     startTimer.reset();
-}
 
-static int bufferSize = 0;
-
-void processCommands()
-{
-    while (Serial.available() > 0) {
-        int c = Serial.read();
-
-        buffer[bufferSize++] = c;
-
-        if (bufferSize == BUFFER_SIZE) { // exceeds buffer! dangerous!
-            bufferSize = 0;
-        } else if (c == '\n') {
-            buffer[bufferSize] = '\0';
-            bufferSize = 0;
-            processCommand();
-        }
-    }
+    // reset buffer size (just in case...)
+    bufferSize = 0;
 }
 
 void startNextDevice()
 {
-    // if we've asked for a specific device, select that to boot
+    // if we've asked for a specific device, start that device.
     if (Wagman::validPort(deviceWantsStart)) {
         devices[deviceWantsStart].start();
         startTimer.reset();
@@ -498,8 +523,8 @@ void startNextDevice()
     }
 
     if (startTimer.exceeds(30000)) {
-        for (int i = 0; i < 2; i++) {
-            if (!devices[i].started() && devices[i].canStart()) {
+        for (int i = 0; i < DEVICE_COUNT; i++) {
+            if (!devices[i].started() && devices[i].canStart()) { // include !started in canStart() call.
                 devices[i].start();
                 startTimer.reset();
                 return;
@@ -509,7 +534,7 @@ void startNextDevice()
 }
 
 void loop()
-{    
+{
     // ensure that the watchdog is always enabled (in case some anomaly disables it)
     wdt_enable(WDTO_8S);
 
@@ -517,15 +542,19 @@ void loop()
     startNextDevice();
 
     wdt_reset();
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 5; i++) {
         devices[i].update();
     }
 
     wdt_reset();
     processCommands();
 
+    wdt_reset();
+
     if (resetWagman) {
-        // mark resetting journal flag so wagman knows it was told to reset.
+        // 1. store "about to reset" marker
+        // 2. tell other devices they're about to lose power
+        // 3. 
         
         // watchdog will reset in a few seconds.
         for (;;) {
@@ -540,5 +569,7 @@ void loop()
             delay(400);
         }
     }
+
+    delay(100); // check if saves power
 }
 

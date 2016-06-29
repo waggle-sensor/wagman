@@ -1,43 +1,41 @@
 #include "Time.h"
 
-const int MEDIA_SD = 0;
-const int MEDIA_EMMC = 1;
-const int MEDIA_INVALID = -1;
+const byte MEDIA_SD = 0;
+const byte MEDIA_EMMC = 1;
+const byte MEDIA_INVALID = 255;
 
-const int RELAY_UNKNOWN = 0;
-const int RELAY_OFF = 1;
-const int RELAY_ON = 2;
+const byte RELAY_OFF = 0;
+const byte RELAY_ON = 1;
+const byte RELAY_UNKNOWN = 255;
 
 namespace Wagman
 {
     void init();
-//    void initPowerOn(); // to distinguish different state conditions
-//    void initReset();
     
-    void setRelay(int port, bool on);
-    int getRelay(int port);
+    void setRelay(byte port, bool on);
+    byte getRelay(byte port);
 
-    int getHeartbeat(int port);
+    byte getHeartbeat(byte port);
 
     int getCurrent();
-    int getCurrent(int port);
+    int getCurrent(byte port);
 
-    unsigned int getThermistor(int port);
+    unsigned int getThermistor(byte port);
     
-    void setLED(int led, bool on);
-    bool getLED(int led);
-    void toggleLED(int led);
+    void setLED(byte led, bool on);
+    bool getLED(byte led);
+    void toggleLED(byte led);
     
     float getHumidity();
     float getTemperature();
 
-    int getBootMedia(int selector);
-    void setBootMedia(int selector, int media);
-    void toggleBootMedia(int selector);
+    byte getBootMedia(byte selector);
+    void setBootMedia(byte selector, byte media);
+    void toggleBootMedia(byte selector);
 
-    bool validPort(int port);
-    bool validLED(int led);
-    bool validBootSelector(int selector);
+    bool validPort(byte port);
+    bool validLED(byte led);
+    bool validBootSelector(byte selector);
 
     time_t getTime();
     void setTime(int year, int month, int day, int hour, int minute, int second);

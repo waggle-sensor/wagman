@@ -60,12 +60,12 @@ static const byte BOOT_SELECTOR_PINS[BOOT_SELECTOR_COUNT] = {
 static HTU21D htu21d;
 static MCP342X mcp3428_1;
 
-static byte relayState[PORT_COUNT];
+static byte relayState[PORT_COUNT]; // don't really need this.
 
 namespace Wagman
 {
 
-unsigned int getThermistor(int port)
+unsigned int getThermistor(byte port)
 {
     if (!validPort(port))
         return 0;
@@ -78,7 +78,7 @@ unsigned int getThermistor(int port)
     }
 }
 
-void setLED(int led, bool on)
+void setLED(byte led, bool on)
 {
     if (!validLED(led))
         return;
@@ -86,7 +86,7 @@ void setLED(int led, bool on)
     digitalWrite(LED_PINS[led], on ? HIGH : LOW);
 }
 
-bool getLED(int led)
+bool getLED(byte led)
 {
     if (!validLED(led))
         return false;
@@ -94,7 +94,7 @@ bool getLED(int led)
     return digitalRead(LED_PINS[led]) == HIGH;
 }
 
-void toggleLED(int led)
+void toggleLED(byte led)
 {
     setLED(led, !getLED(led));
 }
@@ -102,51 +102,58 @@ void toggleLED(int led)
 void init()
 {
     Wire.begin();
+    delay(1000);
     
-    for (int i = 0; i < LED_COUNT; i++) {
+    for (byte i = 0; i < LED_COUNT; i++) {
         pinMode(LED_PINS[i], OUTPUT);
     }
 
-    for (int i = 0; i < PORT_COUNT; i++) {
+    for (byte i = 0; i < PORT_COUNT; i++) {
         pinMode(POWER_PINS[i], OUTPUT);
         pinMode(HEARTBEAT_PINS[i], INPUT);
         relayState[i] = RELAY_UNKNOWN;
     }
 
-    for (int i = 0; i < BOOT_SELECTOR_COUNT; i++) {
+    for (byte i = 0; i < BOOT_SELECTOR_COUNT; i++) {
         pinMode(BOOT_SELECTOR_PINS[i], OUTPUT);
     }
 
     pinMode(POWER_LATCH_0_PIN, OUTPUT);
+    
+    delay(500);
 
     mcp3428_1.init(MCP342X::H, MCP342X::H);
+    delay(500);
 
     htu21d.begin();
+    delay(500);
+
+    // check if RTC is ticking and if not keep track of this.
 }
 
-void setRelay(int port, bool on)
+void setRelay(byte port, bool on)
 {
     if (!validPort(port))
         return;
 
     if (port == 0) {
         digitalWrite(POWER_LATCH_0_PIN, LOW);
-        delay(2);
+        delay(10);
         digitalWrite(POWER_PINS[port], on ? HIGH : LOW);
-        delay(2);
+        delay(10);
         digitalWrite(POWER_LATCH_0_PIN, HIGH);
-        delay(2);
+        delay(10);
         digitalWrite(POWER_LATCH_0_PIN, LOW);
-        delay(2);
+        delay(10);
     } else {
         digitalWrite(POWER_PINS[port], on ? HIGH : LOW);
-        delay(2);
+        delay(10);
     }
 
-    relayState[port] = on ? RELAY_ON : RELAY_OFF;
+    relayState[port] = on ? RELAY_ON : RELAY_OFF; // possible to replace 
 }
 
-int getRelay(int port)
+byte getRelay(byte port)
 {
     if (!validPort(port)) {
         return RELAY_UNKNOWN;
@@ -155,7 +162,7 @@ int getRelay(int port)
     return relayState[port];
 }
 
-int getHeartbeat(int port)
+byte getHeartbeat(byte port)
 {
     if (!validPort(port))
         return LOW;
@@ -174,7 +181,7 @@ int getCurrent()
 //
 // Gets the current drawn by a particular port.
 //
-int getCurrent(int port)
+int getCurrent(byte port)
 {
     if (!validPort(port))
         return 0;
@@ -192,7 +199,7 @@ float getTemperature()
     return htu21d.readTemperature();
 }
 
-int getBootMedia(int selector)
+byte getBootMedia(byte selector)
 {
     if (!validBootSelector(selector))
         return MEDIA_INVALID;
@@ -207,12 +214,12 @@ int getBootMedia(int selector)
     }
 }
 
-void setBootMedia(int selector, int media)
+void setBootMedia(byte selector, byte media)
 {
     if (!validBootSelector(selector))
         return;
 
-    switch (digitalRead(BOOT_SELECTOR_PINS[selector])) {
+    switch (media) {
         case MEDIA_SD:
             digitalWrite(BOOT_SELECTOR_PINS[selector], LOW);
             break;
@@ -222,7 +229,7 @@ void setBootMedia(int selector, int media)
     }
 }
 
-void toggleBootMedia(int selector)
+void toggleBootMedia(byte selector)
 {
     if (getBootMedia(selector) == MEDIA_SD) {
         setBootMedia(selector, MEDIA_EMMC);
@@ -231,17 +238,17 @@ void toggleBootMedia(int selector)
     }
 }
 
-bool validPort(int port)
+bool validPort(byte port)
 {
     return 0 <= port && port < PORT_COUNT;
 }
 
-bool validLED(int led)
+bool validLED(byte led)
 {
     return 0 <= led && led < LED_COUNT;
 }
 
-bool validBootSelector(int selector)
+bool validBootSelector(byte selector)
 {
     return 0 <= selector && selector < BOOT_SELECTOR_COUNT;
 }
@@ -258,11 +265,14 @@ int getAddressCurrent(int addr)
     Wire.write(0);
     // Sensor expects restart condition, so end I2C transaction (no stop bit)
     Wire.endTransmission(0);
+
+    delay(100);
     
     // Ask sensor for data
     Wire.requestFrom(addr, 3);
 
     while (Wire.available() < 3) {
+        delay(100);
     }
 
     Wire.read(); // ignore first byte

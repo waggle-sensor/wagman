@@ -39,7 +39,7 @@ class Device
         
         bool warning() const;
 
-        char getBootMedia() const;
+        byte getBootMedia() const;
 
         void sendExternalHeartbeat();
 
@@ -49,11 +49,11 @@ class Device
         const char *name;
         byte port;
         byte bootSelector;
-        char primaryMedia;
-        char secondaryMedia;
+        byte primaryMedia;
+        byte secondaryMedia;
 
         bool shouldForceBootMedia;
-        char forceBootMedia;
+        byte forceBootMedia;
 
         bool watchHeartbeat;
 
@@ -79,7 +79,7 @@ class Device
         Timer heartbeatTimer;
         Timer steadyCurrentTimer;
         
-        char lastHeartbeat;
+        byte lastHeartbeat;
 
 };
 

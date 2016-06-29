@@ -49,7 +49,7 @@ unsigned long Device::lastHeartbeatTime() const
     return heartbeatTimer.elapsed();
 }
 
-char Device::getBootMedia() const
+byte Device::getBootMedia() const
 {
     if (shouldForceBootMedia) {
         return forceBootMedia;

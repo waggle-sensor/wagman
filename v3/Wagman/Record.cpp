@@ -48,7 +48,6 @@ static const unsigned int
 // some of these can be replace by a simple fixed size offset
 // for now...using this.
 
-static const unsigned int EEPROM_DEVICE_ENABLED[DEVICE_COUNT] = {520, 584, 1000, 808, 1000};
 static const unsigned int EEPROM_BOOT_ATTEMPTS[DEVICE_COUNT] = {521, 585, 1000, 808, 1000};
 static const unsigned int EEPROM_BOOT_FAILURES[DEVICE_COUNT] = {523, 587, 1000, 808, 1000};
 
@@ -136,16 +135,21 @@ void incrementBootCount()
 
 void setDeviceEnabled(int device, bool enabled)
 {
-    EEPROM.write(deviceRegion(device) + EEPROM_PORT_ENABLED, enabled);
+//    EEPROM.write(deviceRegion(device) + EEPROM_PORT_ENABLED, enabled);
 }
 
 bool deviceEnabled(int device)
 {
-    if (0 <= device && device < 5) {
-        return EEPROM.read(deviceRegion(device) + EEPROM_PORT_ENABLED);
-    } else {
-        return false;
-    }
+    if (device == 0)
+        return true;
+    if (device == 1)
+        return true;
+    return false;
+//    if (0 <= device && device < 5) {
+//        return EEPROM.read(deviceRegion(device) + EEPROM_PORT_ENABLED);
+//    } else {
+//        return false;
+//    }
 }
 
 unsigned long getLastBootTime()
@@ -227,7 +231,7 @@ int getFaultCurrent(int port)
         return 120; // we also need a strategy for autodetecting reasonable ranges over time and then sticking to those.
 
     if (port == 1)
-        return 140;
+        return 120;
 
     return 10000;
 }
@@ -238,22 +242,22 @@ void setFaultCurrent(int port, int current)
 
 unsigned long getFaultTimeout(int device)
 {
-    return 15 * 1000; // 15 seconds
+    return (unsigned long)15000; // 15 seconds
 }
 
 unsigned long getHeartbeatTimeout(int device)
 {
-    return 120 * 1000; // 120 seconds
+    return (unsigned long)60000; // 60 seconds
 }
 
 unsigned long getUnmanagedChangeTime(int device)
 {
-    return 8 * 60 * 60 * 1000; // 8 hours
+    return (unsigned long)28800000; // 8 hours
 }
 
 unsigned long getStopTimeout(int device)
 {
-    return 60 * 1000; // 60 seconds
+    return (unsigned long)60000; // 60 seconds
 }
 
 };

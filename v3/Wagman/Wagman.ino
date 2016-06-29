@@ -42,7 +42,7 @@ static const byte MAX_ARGC = 8;
 byte bootflags;
 bool resetWagman = false;
 bool logging = false;
-char deviceWantsStart = -1;
+byte deviceWantsStart = 255;
 
 static Timer startTimer;
 
@@ -106,7 +106,7 @@ Command commands[] = {
 void commandPing(byte argc, const char **argv)
 {    
     for (byte i = 1; i < argc; i++) {
-        char index = atoi(argv[i]);
+        byte index = atoi(argv[i]);
 
         if (Wagman::validPort(index)) {
             devices[index].sendExternalHeartbeat();
@@ -116,7 +116,7 @@ void commandPing(byte argc, const char **argv)
     Serial.println("pong");
 }
 
-void commandStart(byte argc, const char **argv)
+void commandStart(__attribute__ ((unused)) byte argc, const char **argv)
 {
     byte index = atoi(argv[1]);
 
@@ -128,7 +128,7 @@ void commandStart(byte argc, const char **argv)
 void commandStop(byte argc, const char **argv)
 {
     for (byte i = 1; i < argc; i++) {
-        char index = atoi(argv[i]);
+        byte index = atoi(argv[i]);
 
         if (Wagman::validPort(index)) {
             devices[index].stop();
@@ -143,7 +143,7 @@ void commandStop(byte argc, const char **argv)
 void commandKill(byte argc, const char **argv)
 {
     for (byte i = 1; i < argc; i++) {
-        char index = atoi(argv[i]);
+        byte index = atoi(argv[i]);
 
         if (Wagman::validPort(index)) {
             devices[index].kill();
@@ -153,12 +153,12 @@ void commandKill(byte argc, const char **argv)
     }
 }
 
-void commandReset(byte argc, const char **argv)
+void commandReset(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     resetWagman = true;
 }
 
-void commandID(byte argc, const char **argv)
+void commandID(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     byte id[8];
 
@@ -172,9 +172,9 @@ void commandID(byte argc, const char **argv)
     Serial.println();
 }
 
-void commandEEDump(byte argc, const char **argv)
+void commandEEDump(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
-    for (int i = 0; i < 1024; i++) {
+    for (unsigned int i = 0; i < 1024; i++) {
         byte value = EEPROM.read(i);
         
         Serial.print((value >> 4) & 0x0F, HEX);
@@ -221,7 +221,7 @@ void commandDate(byte argc, const char **argv)
     }
 }
 
-void commandCurrent(byte argc, const char **argv)
+void commandCurrent(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     Serial.println(Wagman::getCurrent());
     
@@ -230,7 +230,7 @@ void commandCurrent(byte argc, const char **argv)
     }
 }
 
-void commandHeartbeat(byte argc, const char **argv)
+void commandHeartbeat(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     for (byte i = 0; i < DEVICE_COUNT; i++) {
         Serial.print(devices[i].timeSinceHeartbeat());
@@ -243,21 +243,21 @@ void commandHeartbeat(byte argc, const char **argv)
     }
 }
 
-void commandFailCount(byte argc, const char **argv)
+void commandFailCount(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     for (byte i = 0; i < DEVICE_COUNT; i++) {
         Serial.println(Record::getBootFailures(i));
     }
 }
 
-void commandThermistor(byte argc, const char **argv)
+void commandThermistor(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     for (byte i = 0; i < DEVICE_COUNT; i++) {
         Serial.println(Wagman::getThermistor(i));
     }
 }
 
-void commandEnvironment(byte argc, const char **argv)
+void commandEnvironment(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     Serial.print("temperature=");
     Serial.println(Wagman::getTemperature());
@@ -271,7 +271,7 @@ void commandBootMedia(byte argc, const char **argv)
     if (argc < 2)
         return;
 
-    char index = atoi(argv[1]);
+    byte index = atoi(argv[1]);
 
     if (!Wagman::validPort(index))
         return;
@@ -289,7 +289,7 @@ void commandBootMedia(byte argc, const char **argv)
             Serial.println("invalid media");
         }
     } else if (argc == 2) {
-        char bootMedia = devices[index].getBootMedia();
+        byte bootMedia = devices[index].getBootMedia();
 
         if (bootMedia == MEDIA_SD) {
             Serial.println("sd");
@@ -301,13 +301,13 @@ void commandBootMedia(byte argc, const char **argv)
     }
 }
 
-void commandLog(byte argc, const char **argv)
+void commandLog(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     logging = !logging;
     Serial.println(logging ? "on" : "off");
 }
 
-void commandBootFlags(byte argc, const char **argv)
+void commandBootFlags(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     if (bootflags & _BV(WDRF))
         Serial.println("WDRF");
@@ -319,15 +319,15 @@ void commandBootFlags(byte argc, const char **argv)
         Serial.println("PORF");
 }
 
-void commandUptime(byte argc, const char **argv)
+void commandUptime(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     Serial.println(Wagman::getTime() - setupTime);
 }
 
-void commandHelp(byte argc, const char **argv)
+void commandHelp(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
-    for (Command *c = commands; c->name; c++) {
-        Serial.println(c->name);
+    for (byte i = 0; commands[i].name != NULL; i++) {
+        Serial.println(commands[i].name);
     }
 }
 
@@ -336,9 +336,9 @@ void executeCommand(byte argc, const char **argv)
     void (*func)(byte, const char **) = NULL;
 
     // search for command and execute if found
-    for (Command *c = commands; c->name; c++) {
-        if (strcmp(c->name, argv[0]) == 0) {
-            func = c->func;
+    for (byte i = 0; commands[i].name != NULL; i++) {
+        if (strcmp(commands[i].name, argv[0]) == 0) {
+            func = commands[i].func;
             break;
         }
     }
@@ -440,7 +440,8 @@ void setup()
     // save and clear boot flags
     bootflags = MCUSR;
     MCUSR = 0;
-    wdt_disable();
+    
+    wdt_disable(); // do we really want this?
 
     delay(2000);
     
@@ -488,11 +489,11 @@ void setup()
     devices[2].port = 2;
     devices[2].watchHeartbeat = false;
     
-    devices[3].name = "na1";
+    devices[3].name = "unused1";
     devices[3].port = 3;
     devices[3].watchHeartbeat = false;
     
-    devices[4].name = "na2";
+    devices[4].name = "unused2";
     devices[4].port = 4;
     devices[4].watchHeartbeat = false;
 
@@ -507,22 +508,13 @@ void setup()
 
     // boot up after power on. this is a case where it'd be good to do a self test, current range check and device connected check.
     if (bootflags & _BV(PORF)) {
-        // do some initial test / calibration here.
-
-        for (int i = 0; i < DEVICE_COUNT; i++) {
-            wdt_reset();
-        }        
-
-        // perform remainder of sensor health checks BEFORE powering on the other devices if possible.
-
-        // want ensure that devices are off and then set base line current values
     }
 
     // tripped by external reset? (do we do something similar to a watchdog reset here?)
     if ((bootflags & _BV(EXTRF)) || (bootflags & _BV(WDRF))) {
     }
 
-    for (int i = 0; i < DEVICE_COUNT; i++) {
+    for (byte i = 0; i < DEVICE_COUNT; i++) {
         devices[i].init();
     }
 
@@ -546,7 +538,7 @@ void startNextDevice()
     }
 
     if (startTimer.exceeds(30000)) {
-        for (int i = 0; i < DEVICE_COUNT; i++) {
+        for (byte i = 0; i < DEVICE_COUNT; i++) {
             if (!devices[i].started() && devices[i].canStart()) { // include !started in canStart() call.
                 devices[i].start();
                 startTimer.reset();
@@ -565,7 +557,7 @@ void loop()
     startNextDevice();
 
     wdt_reset();
-    for (int i = 0; i < 3; i++) {
+    for (byte i = 0; i < 3; i++) {
         devices[i].update();
     }
 

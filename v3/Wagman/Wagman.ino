@@ -454,21 +454,26 @@ void setup()
     devices[0].bootSelector = 0;
     devices[0].primaryMedia = MEDIA_SD;
     devices[0].secondaryMedia = MEDIA_EMMC;
+    devices[0].watchHeartbeat = true;
 
     devices[1].name = "gn"; // move this into EEPROM?
     devices[1].port = 1;
     devices[1].bootSelector = 1;
     devices[1].primaryMedia = MEDIA_EMMC;
     devices[1].secondaryMedia = MEDIA_SD;
+    devices[1].watchHeartbeat = true;
 
     devices[2].name = "coresense";
     devices[2].port = 2;
+    devices[2].watchHeartbeat = false;
     
     devices[3].name = "na1";
     devices[3].port = 3;
+    devices[3].watchHeartbeat = false;
     
     devices[4].name = "na2";
     devices[4].port = 4;
+    devices[4].watchHeartbeat = false;
     
     Record::incrementBootCount();
     Record::setLastBootTime(Wagman::getTime());

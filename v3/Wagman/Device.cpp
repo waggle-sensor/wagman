@@ -215,7 +215,7 @@ void Device::updateState()
             }
             break;
         case STATE_STARTED:
-            if (heartbeatTimer.exceeds(HEARTBEAT_TIMEOUT)) { // 120 seconds
+            if (watchHeartbeat && heartbeatTimer.exceeds(HEARTBEAT_TIMEOUT)) { // 120 seconds
                 Logger::begin(name);
                 Logger::log("heartbeat timeout");
                 Logger::end();

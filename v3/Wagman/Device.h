@@ -56,6 +56,8 @@ class Device
         bool shouldForceBootMedia;
         int forceBootMedia;
 
+        bool watchHeartbeat;
+
     private:
 
         byte state;

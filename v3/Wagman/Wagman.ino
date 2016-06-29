@@ -401,7 +401,7 @@ void processCommand()
         wdt_reset();
 
         if (argv[0][0] == '@') {
-            executeCommand(argv[0], argc - 1, argv + 1);
+            executeCommand(argv[0] + 1, argc - 1, argv + 1);
         } else {
             executeCommand("0", argc, argv);
         }

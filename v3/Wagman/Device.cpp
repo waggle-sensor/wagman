@@ -89,7 +89,7 @@ void Device::start()
         case STATE_STOPPED:
             if (!canStart()) {
                 Logger::begin(name);
-                Logger::log("cannot start"); // maybe give reason...
+                Logger::log("cannot start"); // needs to be factored out...and maybe has return flag instead.
                 Logger::end();
                 return;
             }

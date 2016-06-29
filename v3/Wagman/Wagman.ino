@@ -324,7 +324,7 @@ void commandHelp(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) co
     }
 }
 
-void executeCommand(byte argc, const char **argv)
+void executeCommand(byte sid, byte argc, const char **argv)
 {
     void (*func)(byte, const char **) = NULL;
 
@@ -337,7 +337,9 @@ void executeCommand(byte argc, const char **argv)
     }
 
     // marks the beginning of a response packet.
-    Serial.print("<<<- 0 ");
+    Serial.print("<<<- ");
+    Serial.print(sid);
+    Serial.print(' ');
     Serial.println(argv[0]);
 
     if (func != NULL) {
@@ -397,7 +399,12 @@ void processCommand()
 
     if (argc > 0) {
         wdt_reset();
-        executeCommand(argc, argv);
+
+        if (argv[0][0] == '@') {
+            executeCommand(atoi(argv[0] + 1), argc - 1, argv + 1);
+        } else {
+            executeCommand(0, argc, argv);
+        }
     }
 }
 

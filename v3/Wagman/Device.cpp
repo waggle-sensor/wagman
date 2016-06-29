@@ -49,7 +49,7 @@ unsigned long Device::lastHeartbeatTime() const
     return heartbeatTimer.elapsed();
 }
 
-int Device::getBootMedia() const
+char Device::getBootMedia() const
 {
     if (shouldForceBootMedia) {
         return forceBootMedia;
@@ -85,7 +85,7 @@ void Device::start()
             Logger::end();
             break;
         case STATE_STOPPED:
-            if (Record::deviceEnabled(port)) {
+            if (port != 0 && Record::deviceEnabled(port)) {
                 managed = Record::getBootFailures(port) < 30;
 
                 // note: depends on force boot media flag. don't change the order!

@@ -14,7 +14,6 @@ class Timer
     private:
 
         unsigned long start;
-//        bool running;
 };
 
 enum {
@@ -40,7 +39,7 @@ class Device
         
         bool warning() const;
 
-        int getBootMedia() const;
+        char getBootMedia() const;
 
         void sendExternalHeartbeat();
 
@@ -50,18 +49,17 @@ class Device
         const char *name;
         byte port;
         byte bootSelector;
-        byte primaryMedia;
-        byte secondaryMedia;
+        char primaryMedia;
+        char secondaryMedia;
 
         bool shouldForceBootMedia;
-        int forceBootMedia;
+        char forceBootMedia;
 
         bool watchHeartbeat;
 
     private:
 
         byte state;
-        unsigned long stateStartTime;
 
         void changeState(byte newState);
 
@@ -81,7 +79,7 @@ class Device
         Timer heartbeatTimer;
         Timer steadyCurrentTimer;
         
-        int lastHeartbeat;
+        char lastHeartbeat;
 
 };
 

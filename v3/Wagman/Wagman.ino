@@ -41,15 +41,14 @@ static const byte MAX_ARGC = 8;
 
 byte bootflags;
 bool resetWagman = false;
-bool logging = false;
+bool logging = true;
 byte deviceWantsStart = 255;
+
+Device devices[5];
 
 static Timer startTimer;
 
-Device devices[5];
-unsigned long lastDeviceStartTime = 0;
-
-char buffer[BUFFER_SIZE];
+static char buffer[BUFFER_SIZE];
 static byte bufferSize = 0;
 
 time_t setupTime;
@@ -98,6 +97,7 @@ Command commands[] = {
     { "bf", commandBootFlags },
     { "fc", commandFailCount },
     { "uptime", commandUptime },
+    { "up", commandUptime },
     { "help", commandHelp },
     { "log", commandLog },
     { NULL, NULL },
@@ -531,18 +531,19 @@ void startNextDevice()
 {
     // if we've asked for a specific device, start that device.
     if (Wagman::validPort(deviceWantsStart)) {
-        devices[deviceWantsStart].start();
         startTimer.reset();
-        deviceWantsStart = -1;
+        devices[deviceWantsStart].start();
+        deviceWantsStart = 255;
         return;
     }
 
     if (startTimer.exceeds(30000)) {
+        startTimer.reset();
+
         for (byte i = 0; i < DEVICE_COUNT; i++) {
-            if (!devices[i].started() && devices[i].canStart()) { // include !started in canStart() call.
+            if (devices[i].canStart()) { // include !started in canStart() call.
                 devices[i].start();
-                startTimer.reset();
-                return;
+                break;
             }
         }
     }

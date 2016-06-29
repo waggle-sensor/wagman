@@ -17,8 +17,9 @@ namespace Wagman
 
     byte getHeartbeat(byte port);
 
-    int getCurrent();
-    int getCurrent(byte port);
+    unsigned int getCurrent();
+    unsigned int getCurrent(byte port);
+    unsigned int getAddressCurrent(byte addr);
 
     unsigned int getThermistor(byte port);
     
@@ -38,8 +39,6 @@ namespace Wagman
     bool validBootSelector(byte selector);
 
     time_t getTime();
-    void setTime(int year, int month, int day, int hour, int minute, int second);
-
-    int getAddressCurrent(int addr);
+    void setTime(byte year, byte month, byte day, byte hour, byte minute, byte second);
 };
 

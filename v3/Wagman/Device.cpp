@@ -19,12 +19,14 @@ void Device::init()
 
 bool Device::canStart() const
 {
-    if (state != STATE_STOPPED)
+    if (state != STATE_STOPPED) {
         return false;
+    }
 
     // node controller always allowed to start
-    if (port == 0)
+    if (port == 0) {
         return true;
+    }
 
     return Record::deviceEnabled(port) && !Record::relayFailed(port);
 }
@@ -72,6 +74,13 @@ byte Device::getBootMedia() const
 
 void Device::start()
 {
+    if (!canStart()) {
+        Logger::begin(name);
+        Logger::log("cannot start"); // maybe give reason...
+        Logger::end();
+        return;
+    }
+
     switch (state)
     {
         case STATE_STARTED:
@@ -85,34 +94,28 @@ void Device::start()
             Logger::end();
             break;
         case STATE_STOPPED:
-            if (port != 0 && Record::deviceEnabled(port)) {
-                managed = Record::getBootFailures(port) < 30;
+            managed = Record::getBootFailures(port) < 30;
 
-                // note: depends on force boot media flag. don't change the order!
-                int bootMedia = getBootMedia();
-                
-                // override boot media only applies to next boot!
-                shouldForceBootMedia = false;
-                
-                Wagman::setBootMedia(bootSelector, bootMedia);
-    
-                Logger::begin(name);
-                Logger::log("starting ");
-                Logger::log((bootMedia == primaryMedia) ? "primary" : "secondary");
-                Logger::end();
+            // note: depends on force boot media flag. don't change the order!
+            byte bootMedia = getBootMedia();
             
-                Record::incrementBootAttempts(port);
-    
-                Record::setRelayBegin(port);
-                Wagman::setRelay(port, true);
-                Record::setRelayEnd(port);
+            // override boot media only applies to next boot!
+            shouldForceBootMedia = false;
+            
+            Wagman::setBootMedia(bootSelector, bootMedia);
 
-                changeState(STATE_STARTED);
-            } else {
-                Logger::begin(name);
-                Logger::log("device disabled");
-                Logger::end();
-            }
+            Logger::begin(name);
+            Logger::log("starting ");
+            Logger::log((bootMedia == primaryMedia) ? "primary" : "secondary");
+            Logger::end();
+        
+            Record::incrementBootAttempts(port);
+
+            Record::setRelayBegin(port);
+            Wagman::setRelay(port, true);
+            Record::setRelayEnd(port);
+
+            changeState(STATE_STARTED);
             break;
     }
 }
@@ -169,7 +172,7 @@ void Device::update()
 
 void Device::updateHeartbeat()
 {
-    int heartbeat = Wagman::getHeartbeat(port);
+    byte heartbeat = Wagman::getHeartbeat(port);
 
     if (heartbeat != lastHeartbeat) {
         lastHeartbeat = heartbeat;
@@ -260,9 +263,6 @@ void Device::changeState(byte newState)
     state = newState;
 }
 
-//
-// 
-//
 void Device::sendExternalHeartbeat()
 {
     heartbeatTimer.reset();

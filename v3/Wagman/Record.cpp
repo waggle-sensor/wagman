@@ -3,7 +3,7 @@
 
 static const unsigned long MAGIC = 0xADA1ADA1;
 
-static const unsigned int DEVICE_COUNT = 5;
+static const byte DEVICE_COUNT = 5;
 
 // Config EEPROM Spec
 
@@ -56,7 +56,7 @@ static const unsigned int EEPROM_RELAY_JOURNALS[DEVICE_COUNT] = {800, 801, 1000,
 namespace Record
 {
 
-unsigned int deviceRegion(int device)
+unsigned int deviceRegion(byte device)
 {
     return EEPROM_PORT_REGIONS_START + device * EEPROM_PORT_REGIONS_SIZE;
 }
@@ -133,12 +133,12 @@ void incrementBootCount()
     setBootCount(getBootCount() + 1);
 }
 
-void setDeviceEnabled(int device, bool enabled)
+void setDeviceEnabled(byte device, bool enabled)
 {
 //    EEPROM.write(deviceRegion(device) + EEPROM_PORT_ENABLED, enabled);
 }
 
-bool deviceEnabled(int device)
+bool deviceEnabled(byte device)
 {
     if (device == 0)
         return true;
@@ -164,68 +164,68 @@ void setLastBootTime(unsigned long time)
     EEPROM.put(EEPROM_LAST_BOOT_TIME, time);
 }
 
-unsigned long getLastBootTime(int device)
+unsigned long getLastBootTime(byte device)
 {
     unsigned long time;
     EEPROM.get(deviceRegion(device) + EEPROM_PORT_LAST_BOOT_TIME, time);
     return time;
 }
 
-void setLastBootTime(int device, unsigned long time)
+void setLastBootTime(byte device, unsigned long time)
 {
     EEPROM.put(deviceRegion(device) + EEPROM_PORT_LAST_BOOT_TIME, time);
 }
 
-unsigned int getBootAttempts(int device)
+unsigned int getBootAttempts(byte device)
 {
     unsigned int attempts;
     EEPROM.get(EEPROM_BOOT_ATTEMPTS[device], attempts);
     return attempts;
 }
 
-void setBootAttempts(int device, unsigned int attempts)
+void setBootAttempts(byte device, unsigned int attempts)
 {
     EEPROM.put(EEPROM_BOOT_ATTEMPTS[device], attempts);
 }
 
-void incrementBootAttempts(int device)
+void incrementBootAttempts(byte device)
 {
     setBootAttempts(device, getBootAttempts(device) + 1);
 }
 
-unsigned int getBootFailures(int device)
+unsigned int getBootFailures(byte device)
 {
     unsigned int failures;
     EEPROM.get(EEPROM_BOOT_FAILURES[device], failures);
     return failures;
 }
 
-void setBootFailures(int device, unsigned int failures)
+void setBootFailures(byte device, unsigned int failures)
 {
     EEPROM.put(EEPROM_BOOT_FAILURES[device], failures);
 }
 
-void incrementBootFailures(int device)
+void incrementBootFailures(byte device)
 {
     setBootFailures(device, getBootFailures(device) + 1);
 }
 
-void setRelayBegin(int port)
+void setRelayBegin(byte port)
 {
     EEPROM.write(EEPROM_RELAY_JOURNALS[port], JOURNAL_ATTEMPT);
 }
 
-void setRelayEnd(int port)
+void setRelayEnd(byte port)
 {
     EEPROM.write(EEPROM_RELAY_JOURNALS[port], JOURNAL_SUCCESS);
 }
 
-bool relayFailed(int port)
+bool relayFailed(byte port)
 {
     return EEPROM.read(EEPROM_RELAY_JOURNALS[port]) == JOURNAL_ATTEMPT;
 }
 
-int getFaultCurrent(int port)
+int getFaultCurrent(byte port)
 {
     if (port == 0)
         return 120; // we also need a strategy for autodetecting reasonable ranges over time and then sticking to those.
@@ -236,26 +236,26 @@ int getFaultCurrent(int port)
     return 10000;
 }
 
-void setFaultCurrent(int port, int current)
+void setFaultCurrent(byte port, int current)
 {
 }
 
-unsigned long getFaultTimeout(int device)
+unsigned long getFaultTimeout(byte device)
 {
     return (unsigned long)15000; // 15 seconds
 }
 
-unsigned long getHeartbeatTimeout(int device)
+unsigned long getHeartbeatTimeout(byte device)
 {
     return (unsigned long)60000; // 60 seconds
 }
 
-unsigned long getUnmanagedChangeTime(int device)
+unsigned long getUnmanagedChangeTime(byte device)
 {
     return (unsigned long)28800000; // 8 hours
 }
 
-unsigned long getStopTimeout(int device)
+unsigned long getStopTimeout(byte device)
 {
     return (unsigned long)60000; // 60 seconds
 }

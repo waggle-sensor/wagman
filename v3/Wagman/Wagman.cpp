@@ -173,7 +173,7 @@ byte getHeartbeat(byte port)
 //
 // Gets the current drawn by the entire system.
 //
-int getCurrent()
+unsigned int getCurrent()
 {
     return getAddressCurrent(SYSTEM_CURRENT_ADDRESS);
 }
@@ -181,7 +181,7 @@ int getCurrent()
 //
 // Gets the current drawn by a particular port.
 //
-int getCurrent(byte port)
+unsigned int getCurrent(byte port)
 {
     if (!validPort(port))
         return 0;
@@ -240,23 +240,22 @@ void toggleBootMedia(byte selector)
 
 bool validPort(byte port)
 {
-    return 0 <= port && port < PORT_COUNT;
+    return port < PORT_COUNT;
 }
 
 bool validLED(byte led)
 {
-    return 0 <= led && led < LED_COUNT;
+    return led < LED_COUNT;
 }
 
 bool validBootSelector(byte selector)
 {
-    return 0 <= selector && selector < BOOT_SELECTOR_COUNT;
+    return selector < BOOT_SELECTOR_COUNT;
 }
 
-int getAddressCurrent(int addr)
+unsigned int getAddressCurrent(byte addr)
 {
-    static const int MILLIAMPS_PER_STEP = 16;
-
+    static const unsigned int MILLIAMPS_PER_STEP = 16;
     byte csb, lsb;
     // Start I2C transaction with current sensor
 
@@ -272,7 +271,6 @@ int getAddressCurrent(int addr)
     Wire.requestFrom(addr, 3);
 
     while (Wire.available() < 3) {
-        delay(100);
     }
 
     Wire.read(); // ignore first byte
@@ -280,9 +278,10 @@ int getAddressCurrent(int addr)
     lsb = Wire.read();
     Wire.endTransmission(1);
 
-    // Calculate milliamps from raw sensor data
-    unsigned int milliamps = ((csb << 8) | lsb) * MILLIAMPS_PER_STEP;
-    return milliamps;
+    delay(100);
+
+    // Return milliamps from raw sensor data.
+    return ((csb << 8) | lsb) * MILLIAMPS_PER_STEP;
 }
 
 time_t getTime()
@@ -290,7 +289,7 @@ time_t getTime()
     return RTC.get();
 }
 
-void setTime(int year, int month, int day, int hour, int minute, int second)
+void setTime(byte year, byte month, byte day, byte hour, byte minute, byte second)
 {
     tmElements_t tm;
     

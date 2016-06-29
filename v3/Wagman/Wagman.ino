@@ -54,6 +54,8 @@ unsigned long lastDeviceStartTime = 0;
 char buffer[BUFFER_SIZE];
 static int bufferSize = 0;
 
+time_t setupTime;
+
 struct Command {
     const char *name;
     void (*func)(int, const char **);
@@ -75,6 +77,7 @@ void commandBootMedia(int argc, const char **argv);
 void commandFailCount(int argc, const char **argv);
 void commandLog(int argc, const char **argv);
 void commandBootFlags(int argc, const char **argv);
+void commandUptime(int argc, const char **argv);
 void commandHelp(int argc, const char **argv);
 
 Command commands[] = {
@@ -93,6 +96,7 @@ Command commands[] = {
     { "eedump", commandEEDump },
     { "bf", commandBootFlags },
     { "fc", commandFailCount },
+    { "uptime", commandUptime },
     { "help", commandHelp },
     { "log", commandLog },
     { NULL, NULL },
@@ -315,6 +319,11 @@ void commandBootFlags(int argc, const char **argv)
         Serial.println("PORF");
 }
 
+void commandUptime(int argc, const char **argv)
+{
+    Serial.println(RTC.get() - setupTime);
+}
+
 void commandHelp(int argc, const char **argv)
 {
     for (Command *c = commands; c->name; c++) {
@@ -477,9 +486,10 @@ void setup()
     devices[4].name = "na2";
     devices[4].port = 4;
     devices[4].watchHeartbeat = false;
-    
+
+    setupTime = Wagman::getTime(); // used for uptime
+    Record::setLastBootTime(setupTime);
     Record::incrementBootCount();
-    Record::setLastBootTime(Wagman::getTime());
 
     // boot up after brown out.
     if (bootflags & _BV(BORF)) {

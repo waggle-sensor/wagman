@@ -38,7 +38,7 @@ namespace Wagman
     bool validLED(byte led);
     bool validBootSelector(byte selector);
 
-    time_t getTime();
+    void getTime(time_t &time);
     void setTime(byte year, byte month, byte day, byte hour, byte minute, byte second);
 };
 

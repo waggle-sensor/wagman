@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include "Time.h"
 
 struct Version
 {
@@ -18,12 +19,6 @@ struct SensorStatus
     Range range;
 };
 
-//enum
-//{
-//    SENSOR_HTU21D,
-//    SENSOR_HIH4030,
-//};
-
 enum
 {
     JOURNAL_UNKNOWN = 0,
@@ -41,28 +36,22 @@ namespace Record
     void getFirmwareVersion(Version &version);
     void setFirmwareVersion(const Version &version);
 
-    unsigned long getBootCount();
-    void setBootCount(unsigned long count);
+    void getBootCount(unsigned long &count);
+    void setBootCount(const unsigned long &count);
     void incrementBootCount();
+
+    void getLastBootTime(time_t &time);
+    void setLastBootTime(const time_t &time);
 
     void setDeviceEnabled(byte device, bool enabled);
     bool deviceEnabled(byte device);
-    
-    unsigned long getLastBootTime();
-    void setLastBootTime(unsigned long time);
 
-    unsigned long getLastBootTime(byte device);
-    void setLastBootTime(byte device, unsigned long time);
+    void getDeviceBootTime(byte device, time_t &time);
+    void setDeviceBootTime(byte device, const time_t &time);
 
     void setRelayBegin(byte port);
     void setRelayEnd(byte port);
     bool relayFailed(byte port);
-
-//    void getSensorStatus(int sensor, SensorStatus &status);
-//    void setSensorStatus(int sensor, const SensorStatus &status);
-//
-//    void getSensorStatus(byte port, int sensor, SensorStatus &status);
-//    void setSensorStatus(byte port, int sensor, const SensorStatus &status);
 
     unsigned int getBootAttempts(byte device);
     void setBootAttempts(byte device, unsigned int attempts);

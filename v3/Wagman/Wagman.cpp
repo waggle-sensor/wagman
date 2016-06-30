@@ -284,9 +284,9 @@ unsigned int getAddressCurrent(byte addr)
     return ((csb << 8) | lsb) * MILLIAMPS_PER_STEP;
 }
 
-time_t getTime()
+void getTime(time_t &time)
 {
-    return RTC.get();
+    time = RTC.get();
 }
 
 void setTime(byte year, byte month, byte day, byte hour, byte minute, byte second)

@@ -11,21 +11,10 @@
 // TODO Cleanup, really think about communication pathway. Does this allow us to reduce anything from the core.
 // TODO Add persistant event logging on using system hardware so we can trace what happened
 //      during a device failure.
-// TODO look at Serial write buffer overflow lock up.
 // TODO Rearrange to better reflect state diagram. (Or update the state diagram.)
-// TODO Add a short "manage" message to tell Wagman we're bringing down a device.
-// TODO Add a "die" command to tell wagman to stop...we're about to reset it.
-// TODO Add temperature / humiditity readouts. Or `environment` command.
-// TODO Add a delay to killing a device which consumes low power. We don't want to be too aggresive on this.
-// For example, it may just be the case that a device is resetting.
-// On the other hand, we should keep track of how frequently a device is resetting. We don't want it to get
-// stuck in an endless reboot cycle.
-// TODO Check the start flags to see if we can differentiate between different start conditions.
-// This will possibly help us correctly decide on whether we start up with a self-test, a check
-// for why we got locked up, etc.
+
 // TODO Check that system current reading is correct.
 
-// TODO minimize int types (int -> byte / char when possible)
 // TODO check if WDR shows up as NC serial dev change.
 // TODO add variable LED to encode states.
 
@@ -48,6 +37,12 @@ time_t setupTime;
 
 bool isspace(char c);
 bool isgraph(char c);
+
+const byte ERROR_INVALID_ARGUMENT = 22;
+const byte ERROR_BAD_ADDRESS = 14;
+const byte ERROR_NO_DEVICE = 19;
+const byte ERROR_BUSY = 16;
+const byte ERROR_TIMEOUT = 62;
 
 struct Command {
     const char *name;
@@ -72,6 +67,8 @@ void commandLog(byte argc, const char **argv);
 void commandBootFlags(byte argc, const char **argv);
 void commandUptime(byte argc, const char **argv);
 void commandHelp(byte argc, const char **argv);
+void commandEnable(byte argc, const char **argv);
+void commandWatch(byte argc, const char **argv);
 
 Command commands[] = {
     { "ping", commandPing },
@@ -93,6 +90,8 @@ Command commands[] = {
     { "up", commandUptime },
     { "help", commandHelp },
     { "log", commandLog },
+    { "enable", commandEnable },
+    { "watch", commandWatch },
     { NULL, NULL },
 };
 
@@ -314,7 +313,9 @@ void commandBootFlags(__attribute__ ((unused)) byte argc, __attribute__ ((unused
 
 void commandUptime(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
-    Serial.println(Wagman::getTime() - setupTime);
+    time_t time;
+    Wagman::getTime(time);
+    Serial.println(time - setupTime);
 }
 
 void commandHelp(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
@@ -322,6 +323,37 @@ void commandHelp(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) co
     for (byte i = 0; commands[i].name != NULL; i++) {
         Serial.println(commands[i].name);
     }
+}
+
+void commandEnable(byte argc, const char **argv)
+{
+    if (argc == 3) {
+        byte index = atoi(argv[1]);
+        if (Wagman::validPort(index)) {
+//            devices[index].enabled = strcmp(argv[2], "t") == 0;
+        }
+    }
+}
+
+void commandWatch(byte argc, const char **argv)
+{
+//    if (argc != 4)
+//        return ERROR_USAGE;
+
+    if (argc == 4) {
+        byte index = atoi(argv[1]);
+        if (Wagman::validPort(index)) {
+            bool mode = strcmp(argv[3], "t") == 0;
+
+            if (strcmp(argv[2], "hb") == 0) {
+                devices[index].watchHeartbeat = mode;
+            } else if (strcmp(argv[2], "cu")) {
+                devices[index].watchCurrent = mode;
+            }
+        }
+    }
+
+//    return ERROR_NONE;
 }
 
 void executeCommand(const char *sid, byte argc, const char **argv)
@@ -352,12 +384,12 @@ void executeCommand(const char *sid, byte argc, const char **argv)
     Serial.println("->>>");
 }
 
-// For ASCII Encoded
+// Assumes ASCII encoding.
 bool isspace(char c) {
     return c == ' ' || c == '\t';
 }
 
-// For ASCII Encoded
+// Assumes ASCII encoding.
 bool isgraph(char c) {
     return '!' <= c && c <= '~';
 }
@@ -400,6 +432,7 @@ void processCommand()
     if (argc > 0) {
         wdt_reset();
 
+        // this sid case was suggested by wolfgang to help identify the source of certain messages.
         if (argv[0][0] == '@') {
             executeCommand(argv[0] + 1, argc - 1, argv + 1);
         } else {
@@ -502,7 +535,7 @@ void setup()
     devices[4].watchHeartbeat = false;
     devices[4].watchCurrent = false;
 
-    setupTime = Wagman::getTime(); // used for uptime
+    Wagman::getTime(setupTime); // used for uptime
     Record::setLastBootTime(setupTime);
     Record::incrementBootCount();
 
@@ -563,7 +596,7 @@ void loop()
     startNextDevice();
 
     wdt_reset();
-    for (byte i = 0; i < 3; i++) {
+    for (byte i = 0; i < DEVICE_COUNT; i++) {
         devices[i].update();
     }
 

@@ -1,5 +1,6 @@
 #include <EEPROM.h>
 #include "Record.h"
+#include "Wagman.h"
 
 static const unsigned long MAGIC = 0xADA1ADA1;
 
@@ -39,19 +40,31 @@ static const unsigned int EEPROM_PORT_REGIONS_SIZE = 128;
 static const unsigned int
     EEPROM_PORT_ENABLED = 0,
     EEPROM_PORT_MANAGED = 1,
+
     EEPROM_PORT_BOOT_SELECT = 2,
+    
     EEPROM_PORT_LAST_BOOT_TIME = 3,
     EEPROM_PORT_BOOT_ATTEMPTS = 7,
-    EEPROM_PORT_BOOT_FAILURES = 11;
+    EEPROM_PORT_BOOT_FAILURES = 11,
+    
+    EEPROM_PORT_THERM_HEALTH = 15,
+    EEPROM_PORT_THREM_MIN = 16,
+    EEPROM_PORT_THREM_MAX = 18,
+    
+    EEPROM_PORT_CURRENT_HEALTH = 20,
+    EEPROM_PORT_CURRENT_MIN = 21,
+    EEPROM_PORT_CURRENT_MAX = 23,
+    EEPROM_PORT_CURRENT_FAULT_LEVEL = 25,
+    
+    EEPROM_PORT_CURRENT_FAULT_TIMEOUT = 27,
+    EEPROM_PORT_CURRENT_HEARTBEAT_TIMEOUT = 31,
+
+    EEPROM_PORT_RELAY_HEALTH = 35,
+    EEPROM_PORT_RELAY_JOURNAL = 36;
 
 // sync up with memory layout.
 // some of these can be replace by a simple fixed size offset
 // for now...using this.
-
-static const unsigned int EEPROM_BOOT_ATTEMPTS[DEVICE_COUNT] = {521, 585, 1000, 808, 1000};
-static const unsigned int EEPROM_BOOT_FAILURES[DEVICE_COUNT] = {523, 587, 1000, 808, 1000};
-
-static const unsigned int EEPROM_RELAY_JOURNALS[DEVICE_COUNT] = {800, 801, 1000, 1000, 1000};
 
 namespace Record
 {
@@ -85,7 +98,9 @@ void init()
             setDeviceEnabled(i, false);
             setBootAttempts(i, 0);
             setBootFailures(i, 0);
-            EEPROM.write(EEPROM_RELAY_JOURNALS[i], JOURNAL_UNKNOWN);
+
+            unsigned int addr = deviceRegion(i) + EEPROM_PORT_RELAY_JOURNAL;
+            EEPROM.write(addr, JOURNAL_SUCCESS);
         }
 
         // default setup is just node controller and single guest node.
@@ -116,26 +131,28 @@ void setFirmwareVersion(const Version &version)
     EEPROM.put(EEPROM_FIRMWARE_VERSION, version);
 }
 
-unsigned long getBootCount()
+void getBootCount(unsigned long &count)
 {
-    unsigned long count;
     EEPROM.get(EEPROM_BOOT_COUNT, count);
-    return count;
 }
 
-void setBootCount(unsigned long count)
+void setBootCount(const unsigned long &count)
 {
     EEPROM.put(EEPROM_BOOT_COUNT, count);
 }
 
 void incrementBootCount()
 {
-    setBootCount(getBootCount() + 1);
+    unsigned long count;
+    
+    getBootCount(count);
+    count++;
+    setBootCount(count);
 }
 
 void setDeviceEnabled(byte device, bool enabled)
 {
-//    EEPROM.write(deviceRegion(device) + EEPROM_PORT_ENABLED, enabled);
+    EEPROM.write(deviceRegion(device) + EEPROM_PORT_ENABLED, enabled);
 }
 
 bool deviceEnabled(byte device)
@@ -146,48 +163,46 @@ bool deviceEnabled(byte device)
         return true;
     if (device == 2)
         return true;
-    return false;
-//    if (0 <= device && device < 5) {
-//        return EEPROM.read(deviceRegion(device) + EEPROM_PORT_ENABLED);
-//    } else {
-//        return false;
-//    }
+
+    if (Wagman::validPort(device)) {
+        return EEPROM.read(deviceRegion(device) + EEPROM_PORT_ENABLED);
+    } else {
+        return false;
+    }
 }
 
-unsigned long getLastBootTime()
+void getLastBootTime(time_t &time)
 {
-    unsigned long time;
     EEPROM.get(EEPROM_LAST_BOOT_TIME, time);
-    return time;
 }
 
-void setLastBootTime(unsigned long time)
+void setLastBootTime(const time_t &time)
 {
     EEPROM.put(EEPROM_LAST_BOOT_TIME, time);
 }
 
-unsigned long getLastBootTime(byte device)
+void getLastBootTime(byte device, time_t &time)
 {
-    unsigned long time;
     EEPROM.get(deviceRegion(device) + EEPROM_PORT_LAST_BOOT_TIME, time);
-    return time;
 }
 
-void setLastBootTime(byte device, unsigned long time)
+void setLastBootTime(byte device, const time_t &time)
 {
     EEPROM.put(deviceRegion(device) + EEPROM_PORT_LAST_BOOT_TIME, time);
 }
 
 unsigned int getBootAttempts(byte device)
 {
+    unsigned int addr = deviceRegion(device) + EEPROM_PORT_BOOT_ATTEMPTS;
     unsigned int attempts;
-    EEPROM.get(EEPROM_BOOT_ATTEMPTS[device], attempts);
+    EEPROM.get(addr, attempts);
     return attempts;
 }
 
 void setBootAttempts(byte device, unsigned int attempts)
 {
-    EEPROM.put(EEPROM_BOOT_ATTEMPTS[device], attempts);
+    unsigned int addr = deviceRegion(device) + EEPROM_PORT_BOOT_ATTEMPTS;
+    EEPROM.put(addr, attempts);
 }
 
 void incrementBootAttempts(byte device)
@@ -197,14 +212,16 @@ void incrementBootAttempts(byte device)
 
 unsigned int getBootFailures(byte device)
 {
+    unsigned int addr = deviceRegion(device) + EEPROM_PORT_BOOT_FAILURES;
     unsigned int failures;
-    EEPROM.get(EEPROM_BOOT_FAILURES[device], failures);
+    EEPROM.get(addr, failures);
     return failures;
 }
 
 void setBootFailures(byte device, unsigned int failures)
 {
-    EEPROM.put(EEPROM_BOOT_FAILURES[device], failures);
+    unsigned int addr = deviceRegion(device) + EEPROM_PORT_BOOT_FAILURES;
+    EEPROM.put(addr, failures);
 }
 
 void incrementBootFailures(byte device)
@@ -214,27 +231,30 @@ void incrementBootFailures(byte device)
 
 void setRelayBegin(byte port)
 {
-    EEPROM.write(EEPROM_RELAY_JOURNALS[port], JOURNAL_ATTEMPT);
+    unsigned int addr = deviceRegion(port) + EEPROM_PORT_RELAY_JOURNAL;
+    EEPROM.write(addr, JOURNAL_ATTEMPT);
 }
 
 void setRelayEnd(byte port)
 {
-    EEPROM.write(EEPROM_RELAY_JOURNALS[port], JOURNAL_SUCCESS);
+    unsigned int addr = deviceRegion(port) + EEPROM_PORT_RELAY_JOURNAL;
+    EEPROM.write(addr, JOURNAL_SUCCESS);
 }
 
 bool relayFailed(byte port)
 {
-    return EEPROM.read(EEPROM_RELAY_JOURNALS[port]) == JOURNAL_ATTEMPT;
+    unsigned int addr = deviceRegion(port) + EEPROM_PORT_RELAY_JOURNAL;
+    return EEPROM.read(addr) == JOURNAL_ATTEMPT;
 }
 
 int getFaultCurrent(byte port)
 {
     if (port == 0)
         return 120; // we also need a strategy for autodetecting reasonable ranges over time and then sticking to those.
-
     if (port == 1)
         return 120;
-
+    if (port == 2)
+        return 110;
     return 10000;
 }
 

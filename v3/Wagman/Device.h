@@ -68,6 +68,10 @@ class Device
         void updateFault();
         void updateState();
 
+        void updateStopped(); // can explicitly inline these since only used in updateState()
+        void updateStarted();
+        void updateStopping();
+
         bool managed;
 
         byte repeatedResetCount;

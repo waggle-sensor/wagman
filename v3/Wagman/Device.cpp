@@ -150,13 +150,11 @@ void Device::kill()
     Logger::end();
 
     Record::setRelayBegin(port);
-    delay(100);
-//    Wagman::setRelay(port, true); // check this behavior
-//    delay(1000);
+    delay(10);
     Wagman::setRelay(port, false);
-    delay(500);
+    delay(1000);
     Record::setRelayEnd(port);
-    delay(100);
+    delay(10);
 
     changeState(STATE_STOPPED);
 }
@@ -201,61 +199,73 @@ void Device::updateFault()
 
 void Device::updateState()
 {
-    switch (state)
-    {
+    switch (state) {
         case STATE_STOPPED:
-            if (watchCurrent && aboveFault && steadyCurrentTimer.exceeds(DETECT_CURRENT_TIMEOUT)) { // 15 seconds
-                Logger::begin(name);
-                Logger::log("current detected");
-                Logger::end();
-                
-                start();
-            }
+            updateStopped();
             break;
         case STATE_STARTED:
-            if (watchHeartbeat && heartbeatTimer.exceeds(HEARTBEAT_TIMEOUT)) { // 120 seconds
-                Logger::begin(name);
-                Logger::log("heartbeat timeout");
-                Logger::end();
-
-                Record::incrementBootFailures(port);
-                stop();
-            }
-
-            if (watchCurrent && !aboveFault && steadyCurrentTimer.exceeds(FAULT_TIMEOUT)) { // 15 seconds
-                Logger::begin(name);
-                Logger::log("fault timeout");
-                Logger::end();
-
-                Record::incrementBootFailures(port);
-                kill();
-            }
+            updateStarted();
             break;
         case STATE_STOPPING:
-            if (stopMessageTimer.exceeds(STOP_MESSAGE_TIMEOUT)) { // every 5 seconds, send stop message to device
-                stopMessageTimer.reset();
-
-                Logger::begin(name);
-                Logger::log("wants stop");
-                Logger::end();
-            }
-
-            if (stateTimer.exceeds(STOP_TIMEOUT)) {
-                Logger::begin(name);
-                Logger::log("stop timeout");
-                Logger::end();
-                
-                kill();
-            }
-
+            updateStopping();
             break;
+    }
+}
+
+void Device::updateStopped()
+{
+    if (watchCurrent && aboveFault && steadyCurrentTimer.exceeds(DETECT_CURRENT_TIMEOUT)) { // 15 seconds
+        Logger::begin(name);
+        Logger::log("current detected");
+        Logger::end();
+        
+        start();
+    }
+}
+
+void Device::updateStarted()
+{
+    if (watchHeartbeat && heartbeatTimer.exceeds(HEARTBEAT_TIMEOUT)) {
+        Logger::begin(name);
+        Logger::log("heartbeat timeout");
+        Logger::end();
+
+        Record::incrementBootFailures(port);
+        stop();
+    }
+
+    if (watchCurrent && !aboveFault && steadyCurrentTimer.exceeds(FAULT_TIMEOUT)) {
+        Logger::begin(name);
+        Logger::log("fault timeout");
+        Logger::end();
+
+        Record::incrementBootFailures(port);
+        kill();
+    }
+}
+
+void Device::updateStopping()
+{
+    if (stopMessageTimer.exceeds(STOP_MESSAGE_TIMEOUT)) { // every 5 seconds, send stop message to device
+        stopMessageTimer.reset();
+
+        Logger::begin(name);
+        Logger::log("wants stop");
+        Logger::end();
+    }
+
+    if (stateTimer.exceeds(STOP_TIMEOUT)) {
+        Logger::begin(name);
+        Logger::log("stop timeout");
+        Logger::end();
+        
+        kill();
     }
 }
 
 void Device::changeState(byte newState)
 {    
     stateTimer.reset();
-    // these should be moved into their respective states. but for now, let's not forget anything.
     stopMessageTimer.reset();
     heartbeatTimer.reset();
     steadyCurrentTimer.reset();

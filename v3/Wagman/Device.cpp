@@ -3,6 +3,10 @@
 #include "Record.h"
 #include "Logger.h"
 
+const byte PORT_NC = 0;
+const byte PORT_GN = 1;
+const byte PORT_CORESENSE = 2;
+
 const unsigned long HEARTBEAT_TIMEOUT = (unsigned long)80000;
 const unsigned long FAULT_TIMEOUT = (unsigned long)2500;
 const unsigned long STOP_TIMEOUT = (unsigned long)60000;
@@ -74,73 +78,102 @@ byte Device::getBootMedia() const
 
 void Device::start()
 {
-    switch (state)
-    {
-        case STATE_STARTED:
-            Logger::begin(name);
-            Logger::log("already started");
-            Logger::end();
-            break;
-        case STATE_STOPPING:
-            Logger::begin(name);
-            Logger::log("busy stopping");
-            Logger::end();
-            break;
-        case STATE_STOPPED:
-            if (!canStart()) {
-                Logger::begin(name);
-                Logger::log("cannot start"); // needs to be factored out...and maybe has return flag instead.
-                Logger::end();
-                return;
-            }
-
-            managed = Record::getBootFailures(port) < 30;
-
-            // note: depends on force boot media flag. don't change the order!
-            byte bootMedia = getBootMedia();
-            
-            // override boot media only applies to next boot!
-            shouldForceBootMedia = false;
-            
-            Wagman::setBootMedia(bootSelector, bootMedia);
-
-            Logger::begin(name);
-            Logger::log("starting ");
-            Logger::log((bootMedia == primaryMedia) ? "primary" : "secondary");
-            Logger::end();
-        
-            Record::incrementBootAttempts(port);
-
-            Record::setRelayBegin(port);
-            Wagman::setRelay(port, true);
-            Record::setRelayEnd(port);
-
-            changeState(STATE_STARTED);
-            break;
+    if (state == STATE_STARTED) {
+        Logger::begin(name);
+        Logger::log("already started");
+        Logger::end();
+        return;
     }
+
+    if (state == STATE_STOPPING) {
+        Logger::begin(name);
+        Logger::log("busy stopping");
+        Logger::end();
+        return;
+    }
+
+    if (port != PORT_NC && !Record::deviceEnabled(port)) {
+        Logger::begin(name);
+        Logger::log("not enabled");
+        Logger::end();
+        return;
+    }
+
+    if (port != PORT_NC && Record::relayFailed(port)) {
+        Logger::begin(name);
+        Logger::log("relay failed");
+        Logger::end();
+        return;
+    }
+
+    managed = Record::getBootFailures(port) < 30;
+
+    /* note: depends on force boot media flag. don't change the order! */
+    byte bootMedia = getBootMedia();
+    
+    /* override boot media only applies to next boot! */
+    shouldForceBootMedia = false;
+    
+    Wagman::setBootMedia(bootSelector, bootMedia);
+
+    Logger::begin(name);
+    Logger::log("starting ");
+    Logger::log((bootMedia == primaryMedia) ? "primary" : "secondary");
+    Logger::end();
+
+    Record::incrementBootAttempts(port);
+
+    Record::setRelayBegin(port);
+    Wagman::setRelay(port, true);
+    Record::setRelayEnd(port);
+
+    changeState(STATE_STARTED);
 }
 
 void Device::stop()
 {
-    switch (state)
-    {
-        case STATE_STOPPED:
-            Logger::begin(name);
-            Logger::log("already stopped");
-            Logger::end();
-            break;
-        case STATE_STOPPING:
-            Logger::begin(name);
-            Logger::log("already stopping");
-            Logger::end();
-            break;
-        case STATE_STARTED:
-            Logger::begin(name);
-            Logger::log("stopping");
-            Logger::end();
-            changeState(STATE_STOPPING);
-            break;
+    if (state == STATE_STOPPED) {
+        Logger::begin(name);
+        Logger::log("already stopped");
+        Logger::end();
+        return;
     }
+
+    if (state == STATE_STOPPING) {
+        Logger::begin(name);
+        Logger::log("busy stopping");
+        Logger::end();
+        return;
+    }
+
+    if (port == PORT_NC) {
+        Logger::begin(name);
+        Logger::log("cannot stop");
+        Logger::end();
+        return;
+    }
+    
+    Logger::begin(name);
+    Logger::log("stopping");
+    Logger::end();
+
+    shouldRestart = false;
+
+    changeState(STATE_STOPPING);
+}
+
+void Device::restart()
+{
+    // simulated restart...but really should ask device to restart itself.
+    if (state == STATE_STARTED) {
+        stop();
+
+        Logger::begin(name);
+        Logger::log("will restart");
+        Logger::end();
+    }
+
+    shouldRestart = true;
 }
 
 void Device::kill()
@@ -214,7 +247,8 @@ void Device::updateState()
 
 void Device::updateStopped()
 {
-    if (watchCurrent && aboveFault && steadyCurrentTimer.exceeds(DETECT_CURRENT_TIMEOUT)) { // 15 seconds
+    /* if a device does seem to have power, then change state to started. */
+    if (watchCurrent && aboveFault && steadyCurrentTimer.exceeds(DETECT_CURRENT_TIMEOUT)) {
         Logger::begin(name);
         Logger::log("current detected");
         Logger::end();
@@ -246,7 +280,8 @@ void Device::updateStarted()
 
 void Device::updateStopping()
 {
-    if (stopMessageTimer.exceeds(STOP_MESSAGE_TIMEOUT)) { // every 5 seconds, send stop message to device
+    /* periodically send a stop message to the device. */
+    if (stopMessageTimer.exceeds(STOP_MESSAGE_TIMEOUT)) {
         stopMessageTimer.reset();
 
         Logger::begin(name);
@@ -254,6 +289,7 @@ void Device::updateStopping()
         Logger::end();
     }
 
+    /* device had sufficient time to shutdown, so kill it. */
     if (stateTimer.exceeds(STOP_TIMEOUT)) {
         Logger::begin(name);
         Logger::log("stop timeout");

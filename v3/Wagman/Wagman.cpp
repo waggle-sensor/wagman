@@ -257,31 +257,44 @@ unsigned int getAddressCurrent(byte addr)
 {
     static const unsigned int MILLIAMPS_PER_STEP = 16;
     byte csb, lsb;
-    // Start I2C transaction with current sensor
+    byte attempts;
+    byte timeout;
 
-    Wire.beginTransmission(addr);
-    // Tell sensor we want to read "data" register
-    Wire.write(0);
-    // Sensor expects restart condition, so end I2C transaction (no stop bit)
-    Wire.endTransmission(0);
+    for (attempts = 0; attempts < 10; attempts++) {
 
-    delay(100);
-    
-    // Ask sensor for data
-    Wire.requestFrom(addr, 3);
+        // request data from sensor
+        Wire.beginTransmission(addr);
+        delay(5);
+        Wire.write(0);
+        delay(5);
+        if (Wire.endTransmission(0) != 0)
+            continue;
+        delay(5);
 
-    while (Wire.available() < 3) {
+        Wire.requestFrom(addr, 3);
+        delay(5);
+
+        for (timeout = 0; Wire.available() < 3; timeout++) {
+            delay(5); // could get stuck here! have explicit bound here!
+            if (timeout >= 100)
+                break;
+        }
+        
+        if (timeout >= 100)
+            continue;
+        
+        Wire.read(); // ignore first byte
+        csb = Wire.read() & 0x01;
+        lsb = Wire.read();
+        if (Wire.endTransmission(1) != 0)
+            continue;
+        delay(5);
+
+        // return milliamps from raw sensor data.
+        return ((csb << 8) | lsb) * MILLIAMPS_PER_STEP;
     }
 
-    Wire.read(); // ignore first byte
-    csb = Wire.read() & 0x01;
-    lsb = Wire.read();
-    Wire.endTransmission(1);
-
-    delay(100);
-
-    // Return milliamps from raw sensor data.
-    return ((csb << 8) | lsb) * MILLIAMPS_PER_STEP;
+    return 0xFFFF;
 }
 
 void getTime(time_t &time)

@@ -30,6 +30,7 @@ class Device
         void start();
         void stop();
         void kill();
+        void restart();
         void update();
 
         bool canStart() const;
@@ -78,6 +79,8 @@ class Device
 
         bool aboveFault;
 //        unsigned long faultModeStartTime;
+        
+        bool shouldRestart;
 
         Timer stateTimer;
         Timer stopMessageTimer;

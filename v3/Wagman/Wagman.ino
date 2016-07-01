@@ -6,17 +6,15 @@
 #include "Logger.h"
 #include "MCP79412RTC.h"
 
-// TODO Speedup communications. Not bad now, but could be faster?
-// TODO Add error detection to communications. Can still easily write a front end to talk using protocol.
-// TODO Cleanup, really think about communication pathway. Does this allow us to reduce anything from the core.
-// TODO Add persistant event logging on using system hardware so we can trace what happened
-//      during a device failure.
-// TODO Rearrange to better reflect state diagram. (Or update the state diagram.)
-
-// TODO Check that system current reading is correct.
-
-// TODO check if WDR shows up as NC serial dev change.
-// TODO add variable LED to encode states.
+/*
+ * TODO Speedup communications. Not bad now, but could be faster?
+ * TODO Add error detection to communications. Can still easily write a front end to talk using protocol.
+ * TODO Cleanup, really think about communication pathway. Does this allow us to reduce anything from the core?
+ * TODO Add persistant event logging on using system hardware so we can trace what happened during a device failure.
+ * TODO Check that system current reading is correct.
+ * TODO Check if WDR shows up as NC serial dev change.
+ * TODO Add variable LED to encode states.
+ */
 
 static const byte DEVICE_COUNT = 5;
 static const byte BUFFER_SIZE = 80;
@@ -27,7 +25,7 @@ bool resetWagman = false;
 bool logging = true;
 byte deviceWantsStart = 255;
 
-Device devices[5];
+Device devices[DEVICE_COUNT];
 
 static Timer startTimer;
 static char buffer[BUFFER_SIZE];

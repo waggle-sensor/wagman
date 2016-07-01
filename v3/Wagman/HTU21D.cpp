@@ -46,6 +46,8 @@ void HTU21D::begin(void)
 //Returns 999 if CRC is wrong
 float HTU21D::readHumidity(void)
 {
+    byte timeout;
+
 	//Request a humidity reading
 	Wire.beginTransmission(HTDU21D_ADDRESS);
 	Wire.write(TRIGGER_HUMD_MEASURE_NOHOLD); //Measure humidity with no bus holding
@@ -58,12 +60,15 @@ float HTU21D::readHumidity(void)
 	Wire.requestFrom(HTDU21D_ADDRESS, 3);
 
 	//Wait for data to become available
-	int counter = 0;
-	while(Wire.available() < 3)
+	timeout = 0;
+   
+	while (Wire.available() < 3)
 	{
-		counter++;
 		delay(1);
-		if(counter > 100) return 998; //Error out
+
+        if(timeout++ > 100) {
+            return 998;
+        }
 	}
 
 	byte msb, lsb, checksum;

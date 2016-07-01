@@ -262,39 +262,45 @@ unsigned int getAddressCurrent(byte addr)
 
     for (attempts = 0; attempts < 10; attempts++) {
 
-        // request data from sensor
+        /* request data from sensor */
         Wire.beginTransmission(addr);
         delay(5);
         Wire.write(0);
         delay(5);
+
+        /* retry on error */
         if (Wire.endTransmission(0) != 0)
             continue;
+
         delay(5);
 
+        /* read data from sensor */
         Wire.requestFrom(addr, 3);
         delay(5);
 
-        for (timeout = 0; Wire.available() < 3; timeout++) {
-            delay(5); // could get stuck here! have explicit bound here!
-            if (timeout >= 100)
-                break;
+        for (timeout = 0; timeout < 100 && Wire.available() < 3; timeout++) {
+            delay(5);
         }
-        
+
+        /* retry on error */
         if (timeout >= 100)
             continue;
         
-        Wire.read(); // ignore first byte
+        Wire.read();
         csb = Wire.read() & 0x01;
         lsb = Wire.read();
+
+        /* retry on error */
         if (Wire.endTransmission(1) != 0)
             continue;
+
         delay(5);
 
-        // return milliamps from raw sensor data.
+        /* return milliamps from raw sensor data. */
         return ((csb << 8) | lsb) * MILLIAMPS_PER_STEP;
     }
 
-    return 0xFFFF;
+    return 0xFFFF; /* return error value */
 }
 
 void getTime(time_t &time)

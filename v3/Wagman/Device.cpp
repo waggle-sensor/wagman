@@ -217,7 +217,13 @@ void Device::updateHeartbeat()
 
 void Device::updateFault()
 {
-    bool newAboveFault = Wagman::getCurrent(port) > Record::getFaultCurrent(port);
+    unsigned int current = Wagman::getCurrent(port);
+
+    /* current sensor error */
+    if (current == 0xFFFF)
+        return;
+    
+    bool newAboveFault = current > Record::getFaultCurrent(port);
 
     if (aboveFault != newAboveFault) {
         aboveFault = newAboveFault;

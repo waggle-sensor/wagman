@@ -14,6 +14,7 @@
  * TODO Check that system current reading is correct.
  * TODO Check if WDR shows up as NC serial dev change.
  * TODO Add variable LED to encode states.
+ * TODO Move towards errors aware API.
  */
 
 static const byte DEVICE_COUNT = 5;
@@ -36,11 +37,39 @@ time_t setupTime;
 bool isspace(char c);
 bool isgraph(char c);
 
-const byte ERROR_INVALID_ARGUMENT = 22;
-const byte ERROR_BAD_ADDRESS = 14;
-const byte ERROR_NO_DEVICE = 19;
-const byte ERROR_BUSY = 16;
-const byte ERROR_TIMEOUT = 62;
+//byte Device::start()
+//{
+//    if (state == STATE_STARTED)
+//        return ERROR_ALREADY_DONE;
+//
+//    if (state == STATE_STARTING)
+//        return ERROR_BUSY;
+//    
+//    if (state == STATE_STOPPING)
+//        return ERROR_BUSY;
+//
+//    if (error) {
+//        Logger::error(error);
+//        return;
+//    }
+//
+//    return 0;
+//}
+//
+//byte commandStart(byte argc, const char **argv)
+//{
+//    if (argc != 2) {
+//        return ERROR_INVALID_ARGS;
+//    }
+//
+//    Device *device = getDevice(argv[1]);
+//
+//    if (device) {
+//        return device->start();
+//    } else {
+//        return ERROR_INVALID_DEVICE;
+//    }
+//}
 
 struct Command {
     const char *name;
@@ -507,16 +536,16 @@ void setup()
     devices[0].bootSelector = 0;
     devices[0].primaryMedia = MEDIA_SD;
     devices[0].secondaryMedia = MEDIA_EMMC;
-    devices[0].watchHeartbeat = true;
-    devices[0].watchCurrent = true;
+    devices[0].watchHeartbeat = false;
+    devices[0].watchCurrent = false;
 
     devices[1].name = "gn"; // move this into EEPROM?
     devices[1].port = 1;
     devices[1].bootSelector = 1;
-    devices[1].primaryMedia = MEDIA_EMMC;
-    devices[1].secondaryMedia = MEDIA_SD;
-    devices[1].watchHeartbeat = true;
-    devices[1].watchCurrent = true;
+    devices[1].primaryMedia = MEDIA_SD;
+    devices[1].secondaryMedia = MEDIA_EMMC;
+    devices[1].watchHeartbeat = false;
+    devices[1].watchCurrent = false;
 
     devices[2].name = "coresense";
     devices[2].port = 2;
@@ -573,7 +602,7 @@ void startNextDevice()
         return;
     }
 
-    if (startTimer.exceeds(30000)) {
+    if (startTimer.exceeds(8000)) {
         startTimer.reset();
 
         for (byte i = 0; i < DEVICE_COUNT; i++) {

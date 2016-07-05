@@ -2,6 +2,7 @@
 #include "Wagman.h"
 #include "Record.h"
 #include "Logger.h"
+#include "Error.h"
 
 const byte PORT_NC = 0;
 const byte PORT_GN = 1;
@@ -76,34 +77,34 @@ byte Device::getBootMedia() const
     }
 }
 
-void Device::start()
+byte Device::start()
 {
     if (state == STATE_STARTED) {
         Logger::begin(name);
         Logger::log("already started");
         Logger::end();
-        return;
+        return ERROR_ALREADY_DONE;
     }
 
     if (state == STATE_STOPPING) {
         Logger::begin(name);
         Logger::log("busy stopping");
         Logger::end();
-        return;
+        return ERROR_BUSY;
     }
 
     if (port != PORT_NC && !Record::deviceEnabled(port)) {
         Logger::begin(name);
         Logger::log("not enabled");
         Logger::end();
-        return;
+        return ERROR_DISABLED;
     }
 
     if (port != PORT_NC && Record::relayFailed(port)) {
         Logger::begin(name);
         Logger::log("relay failed");
         Logger::end();
-        return;
+        return ERROR_DISABLED;
     }
 
     managed = Record::getBootFailures(port) < 30;
@@ -128,6 +129,8 @@ void Device::start()
     Record::setRelayEnd(port);
 
     changeState(STATE_STARTED);
+
+    return 0;
 }
 
 void Device::stop()
@@ -218,10 +221,31 @@ void Device::updateHeartbeat()
 void Device::updateFault()
 {
     unsigned int current = Wagman::getCurrent(port);
+    byte error;
+
+    /* may want to start designing some of the code in this way. probably don't want to
+     * return error either...since we have multiple types of errors to handle.
+     * in any case, should be more sensitive to such failures along the way!
+     */
+
+    /*
+    Wagman::getCurrent(&current, &error);
+
+    if (error == ERROR_SENSOR_FAILED) {
+        currentSensorFailure++;
+
+        if (currentSensorFailure > ...) {
+            watchCurrent = false;
+        }
+    
+        return;
+    }
+*/
 
     /* current sensor error */
-    if (current == 0xFFFF)
+    if (current == 0xFFFF) {
         return;
+    }
     
     bool newAboveFault = current > Record::getFaultCurrent(port);
 

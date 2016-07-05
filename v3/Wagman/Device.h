@@ -27,7 +27,7 @@ class Device
     public:
 
         void init();
-        void start();
+        byte start();
         void stop();
         void kill();
         void restart();

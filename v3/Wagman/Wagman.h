@@ -16,7 +16,7 @@ namespace Wagman
     byte getRelay(byte port);
 
     byte getHeartbeat(byte port);
-
+    
     unsigned int getCurrent();
     unsigned int getCurrent(byte port);
     unsigned int getAddressCurrent(byte addr);

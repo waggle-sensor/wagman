@@ -93,6 +93,8 @@ void commandFailCount(byte argc, const char **argv);
 void commandLog(byte argc, const char **argv);
 void commandBootFlags(byte argc, const char **argv);
 void commandUptime(byte argc, const char **argv);
+void commandDigitalRead(byte argc, const char **argv);
+void commandDigitalWrite(byte argc, const char **argv);
 void commandHelp(byte argc, const char **argv);
 void commandEnable(byte argc, const char **argv);
 void commandWatch(byte argc, const char **argv);
@@ -116,9 +118,11 @@ Command commands[] = {
     { "uptime", commandUptime },
     { "up", commandUptime },
     { "help", commandHelp },
-    { "log", commandLog },
     { "enable", commandEnable },
     { "watch", commandWatch },
+    { "dr", commandDigitalRead },
+    { "dw", commandDigitalWrite },
+    { "log", commandLog },
     { NULL, NULL },
 };
 
@@ -381,6 +385,39 @@ void commandWatch(byte argc, const char **argv)
     }
 
 //    return ERROR_NONE;
+}
+
+void commandDigitalRead(byte argc, const char **argv)
+{
+    if (argc == 2) {
+        switch (digitalRead(atoi(argv[1]))) {
+            case LOW:
+                Serial.println(0);
+                break;
+            case HIGH:
+                Serial.println(1);
+                break;
+            default:
+                Serial.println(-1);
+                break;
+        }
+    }
+}
+
+void commandDigitalWrite(byte argc, const char **argv)
+{
+    if (argc == 3) {
+        byte pin = atoi(argv[1]);
+        
+        switch (atoi(argv[2])) {
+            case 0:
+                digitalWrite(pin, LOW);
+                break;
+            case 1:
+                digitalWrite(pin, HIGH);
+                break;
+        }
+    }
 }
 
 void executeCommand(const char *sid, byte argc, const char **argv)

@@ -1,6 +1,7 @@
 from serial import Serial
+import sys
 
-serial = Serial('/dev/waggle_sysmon', 115200)
+serial = Serial(sys.argv[1])
 
 while True:
     serial.write(input('$ ').encode('ascii'))

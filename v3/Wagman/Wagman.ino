@@ -14,6 +14,7 @@
  * TODO Check that system current reading is correct.
  * TODO Add variable LED to encode states.
  * TODO Move towards errors aware API.
+ * TODO Go a little easier on faults / if gn locks up system, don't want to totally kill.
  */
 
 static const byte DEVICE_COUNT = 5;
@@ -514,10 +515,18 @@ void setup()
     }
 
     wdt_reset();
-    Record::init();
+    Serial.begin(57600);
+
+    delay(2000);
+
+    if (!Record::initialized()) {
+        Logger::begin("init");
+        Logger::log("record initialized");
+        Logger::end();
+    }
 
     wdt_reset();
-    Serial.begin(57600);
+    Record::init();
 
     devices[0].name = "nc";
     devices[0].port = 0;
@@ -567,20 +576,65 @@ void setup()
         Wagman::setLED(0, false);
         delay(250);
 
-        if (heartbeatCounters[0] >= 4)
+        if (heartbeatCounters[0] >= 4 || Wagman::getCurrent(0) > 120) {
+            // update what state we think the node controller relay is in.
             break;
-
-        if (Wagman::getCurrent(0) > 120)
-            break;
+        }
     }
 
     wdt_reset();
 
-    if ((bootflags & _BV(EXTRF)) || (bootflags & _BV(WDRF))) {
-        Wagman::setLED(0, heartbeatCounters[0] >= 4);
-        Wagman::setLED(1, Wagman::getCurrent(0) > 120);
+    if (bootflags & _BV(EXTRF) || bootflags & _BV(WDRF)) {
+        Logger::begin("init");
 
-        // need to expand on this more. in either case, we'll treat this as a "soft reset".
+        if (bootflags & _BV(EXTRF))
+            Logger::log("ext ");
+
+        if (bootflags & _BV(WDRF))
+            Logger::log("wdf ");
+        
+        for (byte i = 0; i < 5; i++) {
+            byte state = Record::getRelayState(i);
+
+            if (state == RELAY_TURNING_ON || state == RELAY_TURNING_OFF) {
+                Record::setRelayState(i, RELAY_OFF);
+                if (bootflags & _BV(WDRF))
+                    Logger::log(" relay fault ");
+                    Logger::log(i);
+            }
+        }
+
+        Logger::end();
+    }
+
+    if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
+        Logger::begin("init");
+
+        if (bootflags & _BV(PORF))
+            Logger::log("porf ");
+
+        if (bootflags & _BV(BORF))
+            Logger::log("borf ");
+        
+        for (byte i = 0; i < 5; i++) {
+            byte state = Record::getRelayState(i);
+
+            if (state == RELAY_TURNING_ON || state == RELAY_TURNING_OFF) {
+                Record::setDeviceEnabled(i, false);
+                Record::setRelayState(i, RELAY_OFF);
+
+                Logger::log(" relay fault ");
+                Logger::log(i);
+            }
+        }
+
+        Logger::end();
+    }
+
+    if (bootflags == 0) {
+        Logger::begin("init");
+        Logger::log("ok");
+        Logger::end();
     }
 
     for (byte i = 0; i < DEVICE_COUNT; i++) {
@@ -715,6 +769,28 @@ void loop()
 
         for (byte i = 0; i < 5; i++) {
             Logger::log(Wagman::getThermistor(i));
+            Logger::log(' ');
+        }
+        
+        Logger::end();
+
+        delay(100);
+
+        Logger::begin("fails");
+
+        for (byte i = 0; i < 5; i++) {
+            Logger::log(Record::getBootFailures(i));
+            Logger::log(' ');
+        }
+        
+        Logger::end();
+
+        delay(100);
+
+        Logger::begin("enabled");
+
+        for (byte i = 0; i < 5; i++) {
+            Logger::log(Record::getDeviceEnabled(i));
             Logger::log(' ');
         }
         

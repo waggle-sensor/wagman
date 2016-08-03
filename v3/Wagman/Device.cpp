@@ -33,7 +33,7 @@ bool Device::canStart() const
         return true;
     }
 
-    return Record::deviceEnabled(port) && Record::getRelayState(port) != RELAY_TURNING_ON && Record::getRelayState(port) != RELAY_TURNING_OFF;
+    return Record::getDeviceEnabled(port) && Record::getRelayState(port) != RELAY_TURNING_ON && Record::getRelayState(port) != RELAY_TURNING_OFF;
 }
 
 bool Device::started() const
@@ -93,7 +93,7 @@ byte Device::start()
         return ERROR_BUSY;
     }
 
-    if (port != PORT_NC && !Record::deviceEnabled(port)) {
+    if (port != PORT_NC && !Record::getDeviceEnabled(port)) {
         Logger::begin(name);
         Logger::log("not enabled");
         Logger::end();
@@ -200,7 +200,7 @@ void Device::kill()
 
 void Device::update()
 {
-    if (Record::deviceEnabled(port)) { // maybe cache all these device enables.
+    if (Record::getDeviceEnabled(port)) { // maybe cache all these device enables.
         updateHeartbeat();
         updateFault();
         updateState();

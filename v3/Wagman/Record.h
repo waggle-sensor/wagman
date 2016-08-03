@@ -39,7 +39,7 @@ namespace Record
     void setLastBootTime(const time_t &time);
 
     void setDeviceEnabled(byte device, bool enabled);
-    bool deviceEnabled(byte device);
+    bool getDeviceEnabled(byte device);
 
     void getDeviceBootTime(byte device, time_t &time);
     void setDeviceBootTime(byte device, const time_t &time);

@@ -96,7 +96,6 @@ void init()
     Record::setFirmwareVersion(version);
 
     for (byte i = 0; i < DEVICE_COUNT; i++) {
-        setDeviceEnabled(i, false);
         setBootAttempts(i, 0);
         setBootFailures(i, 0);
         setRelayState(i, RELAY_OFF);
@@ -105,6 +104,9 @@ void init()
     // default setup is just node controller and single guest node.
     setDeviceEnabled(0, true);
     setDeviceEnabled(1, true);
+    setDeviceEnabled(2, true);
+    setDeviceEnabled(3, false);
+    setDeviceEnabled(4, false);
     
     EEPROM.put(EEPROM_MAGIC_ADDR, MAGIC);
 }
@@ -153,20 +155,15 @@ void setDeviceEnabled(byte device, bool enabled)
     EEPROM.write(deviceRegion(device) + EEPROM_PORT_ENABLED, enabled);
 }
 
-bool deviceEnabled(byte device)
+bool getDeviceEnabled(byte device)
 {
+    if (!Wagman::validPort(device))
+        return false;
+
     if (device == 0)
         return true;
-    if (device == 1)
-        return true;
-    if (device == 2)
-        return true;
 
-    if (Wagman::validPort(device)) {
-        return EEPROM.read(deviceRegion(device) + EEPROM_PORT_ENABLED);
-    } else {
-        return false;
-    }
+    return EEPROM.read(deviceRegion(device) + EEPROM_PORT_ENABLED);
 }
 
 void getLastBootTime(time_t &time)

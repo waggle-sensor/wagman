@@ -21,7 +21,7 @@ static const byte BUFFER_SIZE = 80;
 static const byte MAX_ARGC = 8;
 
 static unsigned int baseSystemCurrent = 0;
-static unsigned int baseCurrent[5] = {0, 0, 0, 0, 0};
+static unsigned int baseCurrent[DEVICE_COUNT] = {0, 0, 0, 0, 0};
 
 byte bootflags = 0;
 bool shouldResetSystem = false;
@@ -32,6 +32,7 @@ Device devices[DEVICE_COUNT];
 
 static Timer startTimer;
 static Timer statusTimer;
+
 static char buffer[BUFFER_SIZE];
 static byte bufferSize = 0;
 
@@ -780,6 +781,24 @@ void logStatus()
         Logger::log(' ');
     }
     
+    Logger::end();
+
+    delay(100);
+
+    Logger::begin("media");
+
+    for (byte i = 0; i < 5; i++) {
+        byte bootMedia = devices[i].getBootMedia();
+
+        if (bootMedia == MEDIA_SD) {
+            Logger::log("sd ");
+        } else if (bootMedia == MEDIA_EMMC) {
+            Logger::log("emmc ");
+        } else {
+            Logger::log("? ");
+        }
+    }
+
     Logger::end();
 
     delay(100);

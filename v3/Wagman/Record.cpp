@@ -191,16 +191,14 @@ void setLastBootTime(byte device, const time_t &time)
 
 unsigned int getBootAttempts(byte device)
 {
-    unsigned int addr = deviceRegion(device) + EEPROM_PORT_BOOT_ATTEMPTS;
     unsigned int attempts;
-    EEPROM.get(addr, attempts);
+    EEPROM.get(deviceRegion(device) + EEPROM_PORT_BOOT_ATTEMPTS, attempts);
     return attempts;
 }
 
 void setBootAttempts(byte device, unsigned int attempts)
 {
-    unsigned int addr = deviceRegion(device) + EEPROM_PORT_BOOT_ATTEMPTS;
-    EEPROM.put(addr, attempts);
+    EEPROM.put(deviceRegion(device) + EEPROM_PORT_BOOT_ATTEMPTS, attempts);
 }
 
 void incrementBootAttempts(byte device)
@@ -210,16 +208,14 @@ void incrementBootAttempts(byte device)
 
 unsigned int getBootFailures(byte device)
 {
-    unsigned int addr = deviceRegion(device) + EEPROM_PORT_BOOT_FAILURES;
     unsigned int failures;
-    EEPROM.get(addr, failures);
+    EEPROM.get(deviceRegion(device) + EEPROM_PORT_BOOT_FAILURES, failures);
     return failures;
 }
 
 void setBootFailures(byte device, unsigned int failures)
 {
-    unsigned int addr = deviceRegion(device) + EEPROM_PORT_BOOT_FAILURES;
-    EEPROM.put(addr, failures);
+    EEPROM.put(deviceRegion(device) + EEPROM_PORT_BOOT_FAILURES, failures);
 }
 
 void incrementBootFailures(byte device)
@@ -229,22 +225,21 @@ void incrementBootFailures(byte device)
 
 byte getRelayState(byte port)
 {
-    unsigned int addr = deviceRegion(port) + EEPROM_PORT_RELAY_JOURNAL;
-    return EEPROM.read(addr);
+    return EEPROM.read(deviceRegion(port) + EEPROM_PORT_RELAY_JOURNAL);
 }
 
 void setRelayState(byte port, byte state)
 {
-    unsigned int addr = deviceRegion(port) + EEPROM_PORT_RELAY_JOURNAL;
-    EEPROM.write(addr, state);
+    EEPROM.write(deviceRegion(port) + EEPROM_PORT_RELAY_JOURNAL, state);
 }
 
 int getFaultCurrent(byte port)
 {
+    // these are hardcoded for now to be "sensible" levels.
     if (port == 0)
-        return 124; // we also need a strategy for autodetecting reasonable ranges over time and then sticking to those.
+        return 122;
     if (port == 1)
-        return 124;
+        return 122;
     if (port == 2)
         return 112;
     return 10000;

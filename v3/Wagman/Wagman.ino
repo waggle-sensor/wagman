@@ -23,14 +23,15 @@ static const byte MAX_ARGC = 8;
 static unsigned int baseSystemCurrent = 0;
 static unsigned int baseCurrent[5] = {0, 0, 0, 0, 0};
 
-byte bootflags;
-bool resetWagman = false;
+byte bootflags = 0;
+bool shouldResetSystem = false;
 bool logging = true;
 byte deviceWantsStart = 255;
 
 Device devices[DEVICE_COUNT];
 
 static Timer startTimer;
+static Timer statusTimer;
 static char buffer[BUFFER_SIZE];
 static byte bufferSize = 0;
 
@@ -73,9 +74,7 @@ Command commands[] = {
     { "reset", commandReset },
     { "id", commandID },
     { "cu", commandCurrent },
-    { "c", commandCurrent },
     { "hb", commandHeartbeat },
-    { "h", commandHeartbeat },
     { "env", commandEnvironment},
     { "bs", commandBootMedia },
     { "th", commandThermistor },
@@ -144,7 +143,7 @@ void commandKill(byte argc, const char **argv)
 
 void commandReset(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
-    resetWagman = true;
+    shouldResetSystem = true;
 }
 
 void commandID(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
@@ -294,10 +293,15 @@ void commandBootMedia(byte argc, const char **argv)
     }
 }
 
-void commandLog(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
+void commandLog(byte argc, const char **argv)
 {
-    logging = !logging;
-    Serial.println(logging ? "on" : "off");
+    if (argc == 2) {
+        if (strcmp(argv[1], "on") == 0) {
+            logging = true;
+        } else if (strcmp(argv[1], "off") == 0) {
+            logging = false;
+        }
+    }
 }
 
 void commandBootFlags(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
@@ -515,7 +519,7 @@ void setup()
     wdt_reset();
     Serial.begin(57600);
 
-    devices[0].name = "nc"; // move this into EEPROM? / rename to something other than name?
+    devices[0].name = "nc";
     devices[0].port = 0;
     devices[0].bootSelector = 0;
     devices[0].primaryMedia = MEDIA_SD;
@@ -523,7 +527,7 @@ void setup()
     devices[0].watchHeartbeat = true;
     devices[0].watchCurrent = true;
 
-    devices[1].name = "gn"; // move this into EEPROM?
+    devices[1].name = "gn";
     devices[1].port = 1;
     devices[1].bootSelector = 1;
     devices[1].primaryMedia = MEDIA_SD;
@@ -531,7 +535,7 @@ void setup()
     devices[1].watchHeartbeat = true;
     devices[1].watchCurrent = true;
 
-    devices[2].name = "coresense";
+    devices[2].name = "cs";
     devices[2].port = 2;
     devices[2].watchHeartbeat = false;
     devices[2].watchCurrent = false;
@@ -565,14 +569,18 @@ void setup()
 
         if (heartbeatCounters[0] >= 4)
             break;
+
+        if (Wagman::getCurrent(0) > 120)
+            break;
     }
 
     wdt_reset();
 
     if ((bootflags & _BV(EXTRF)) || (bootflags & _BV(WDRF))) {
-        Wagman::setLED(0, heartbeatCounters[0] >= 3);
-        // now, we can use this to set what we think is the best guess as to the initial state of the device.
-        // we should also do a current check...
+        Wagman::setLED(0, heartbeatCounters[0] >= 4);
+        Wagman::setLED(1, Wagman::getCurrent(0) > 120);
+
+        // need to expand on this more. in either case, we'll treat this as a "soft reset".
     }
 
     for (byte i = 0; i < DEVICE_COUNT; i++) {
@@ -580,12 +588,12 @@ void setup()
     }
 
     // set the node controller as starting device
-    
     deviceWantsStart = 0;
     startTimer.reset();
+    statusTimer.reset();
 
     // reinitialize globals just in case...
-    resetWagman = false; // used to reset Wagman in main loop
+    shouldResetSystem = false; // used to reset Wagman in main loop
     bufferSize = 0;
 }
 
@@ -611,15 +619,39 @@ void startNextDevice()
     }
 }
 
+void resetSystem()
+{
+    wdt_enable(WDTO_8S);
+    wdt_reset();
+    
+    // watchdog will reset in a few seconds.
+    for (;;) {
+        for (byte i = 0; i < 5; i++) {
+            Wagman::setLED(0, true);
+            Wagman::setLED(1, true);
+            delay(50);
+            Wagman::setLED(0, false);
+            Wagman::setLED(1, false);
+            delay(50);
+        }
+
+        Wagman::setLED(0, true);
+        Wagman::setLED(1, true);
+        delay(200);
+        Wagman::setLED(0, false);
+        Wagman::setLED(1, false);
+        delay(200);
+    }
+}
+
 void loop()
 {
     // ensure that the watchdog is always enabled (in case some anomaly disables it)
     wdt_enable(WDTO_8S);
-
     wdt_reset();
+
     startNextDevice();
 
-    wdt_reset();
     for (byte i = 0; i < DEVICE_COUNT; i++) {
         devices[i].update();
     }
@@ -627,29 +659,72 @@ void loop()
     wdt_reset();
     processCommands();
 
-    wdt_reset();
+    if (statusTimer.exceeds(30000)) {
+        statusTimer.reset();
 
-    if (resetWagman) {
-        // 1. store "about to reset" marker
-        // 2. tell other devices they're about to lose power
-        // 3. 
-        
-        // watchdog will reset in a few seconds.
-        for (;;) {
-            Wagman::setLED(1, true);
-            delay(200);
-            Wagman::setLED(1, false);
-            delay(200);
-    
-            Wagman::setLED(1, true);
-            delay(200);
-            Wagman::setLED(1, false);
-            delay(400);
+        wdt_reset();
+
+        byte id[8];
+        RTC.idRead(id);
+
+        Logger::begin("id");
+
+        for (byte i = 0; i < 8; i++) {
+            Logger::logHex(id[i] & 0x0F);
+            Logger::logHex(id[i] >> 8);
         }
+
+        Logger::end();
+
+        delay(100);
+
+        tmElements_t tm;
+        RTC.read(tm);
+
+        Logger::begin("date");
+        Logger::log(tm.Year + 1970);
+        Logger::log(' ');
+        Logger::log(tm.Month);
+        Logger::log(' ');
+        Logger::log(tm.Day);
+        Logger::log(' ');
+        Logger::log(tm.Hour);
+        Logger::log(' ');
+        Logger::log(tm.Minute);
+        Logger::log(' ');
+        Logger::log(tm.Second);
+        Logger::end();
+
+        delay(100);
+
+        Logger::begin("cu");
+
+        Logger::log(Wagman::getCurrent());
+        Logger::log(' ');
+
+        for (byte i = 0; i < 5; i++) {
+            Logger::log(Wagman::getCurrent(i));
+            Logger::log(' ');
+        }
+        
+        Logger::end();
+
+        delay(100);
+
+        Logger::begin("th");
+
+        for (byte i = 0; i < 5; i++) {
+            Logger::log(Wagman::getThermistor(i));
+            Logger::log(' ');
+        }
+        
+        Logger::end();
+
+        delay(100);
     }
 
-    wdt_reset();
-
-    delay(100); // check if saves power
+    if (shouldResetSystem) {
+        resetSystem();
+    }
 }
 

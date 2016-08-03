@@ -242,11 +242,11 @@ void setRelayState(byte port, byte state)
 int getFaultCurrent(byte port)
 {
     if (port == 0)
-        return 120; // we also need a strategy for autodetecting reasonable ranges over time and then sticking to those.
+        return 124; // we also need a strategy for autodetecting reasonable ranges over time and then sticking to those.
     if (port == 1)
-        return 120;
+        return 124;
     if (port == 2)
-        return 110;
+        return 112;
     return 10000;
 }
 

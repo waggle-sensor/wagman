@@ -1,5 +1,4 @@
 #include "Logger.h"
-#include "Arduino.h"
 
 namespace Logger
 {
@@ -20,12 +19,20 @@ void end()
     }
 }
 
-void log(const char *str)
-{
-    if (logging) {
-        Serial.print(str);
-    }
-}
+//void log(const char *str)
+//{
+//    if (logging) {
+//        Serial.print(str);
+//    }
+//}
+
+//template <class T>
+//void log(T value)
+//{
+//    if (logging) {
+//        Serial.print(value);
+//    }
+//}
 
 };
 

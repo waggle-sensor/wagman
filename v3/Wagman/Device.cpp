@@ -209,7 +209,7 @@ void Device::update()
 
 void Device::updateHeartbeat()
 {
-    if (heartbeatCounters[port] >= 4) {
+    if (heartbeatCounters[port] >= 5) {
         heartbeatCounters[port] = 0;
         
         heartbeatTimer.reset();

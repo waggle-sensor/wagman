@@ -1,9 +1,24 @@
+#include "Arduino.h"
+
+extern bool logging;
+
 namespace Logger
 {
     void begin(const char *name);
     void end();
-    void log(const char *str);
-};
 
-extern bool logging;
+    template <class T>
+    void log(T value) {
+        if (logging) {
+            Serial.print(value);
+        }
+    }
+
+    template <class T>
+    void logHex(T value) {
+        if (logging) {
+            Serial.print(value, HEX);
+        }
+    }
+};
 

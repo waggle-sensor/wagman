@@ -265,7 +265,9 @@ unsigned int getAddressCurrent(byte addr)
         delay(5);
 
         /* read data from sensor */
-        Wire.requestFrom(addr, 3);
+        if (Wire.requestFrom(addr, 3) != 3)
+            continue;
+
         delay(5);
 
         for (timeout = 0; timeout < 100 && Wire.available() < 3; timeout++) {

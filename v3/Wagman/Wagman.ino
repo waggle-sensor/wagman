@@ -12,7 +12,6 @@
  * TODO Cleanup, really think about communication pathway. Does this allow us to reduce anything from the core?
  * TODO Add persistant event logging on using system hardware so we can trace what happened during a device failure.
  * TODO Check that system current reading is correct.
- * TODO Add variable LED to encode states.
  * TODO Move towards errors aware API.
  * TODO Go a little easier on faults / if gn locks up system, don't want to totally kill.
  */
@@ -83,10 +82,10 @@ Command commands[] = {
     { "eedump", commandEEDump },
     { "bf", commandBootFlags },
     { "fc", commandFailCount },
-    { "uptime", commandUptime },
+//    { "uptime", commandUptime },
     { "up", commandUptime },
-    { "help", commandHelp },
-    { "enable", commandEnable },
+//    { "help", commandHelp },
+    { "en", commandEnable },
     { "watch", commandWatch },
     { "log", commandLog },
     { NULL, NULL },
@@ -333,10 +332,15 @@ void commandHelp(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) co
 
 void commandEnable(byte argc, const char **argv)
 {
-    if (argc == 3) {
+    if (argc == 2) {
         byte index = atoi(argv[1]);
         if (Wagman::validPort(index)) {
-//            devices[index].enabled = strcmp(argv[2], "t") == 0;
+            Serial.println(Record::getDeviceEnabled(index));
+        }
+    } else if (argc == 3) {
+        byte index = atoi(argv[1]);
+        if (Wagman::validPort(index)) {
+            Record::setDeviceEnabled(index, strcmp(argv[2], "1") == 0);
         }
     }
 }
@@ -521,7 +525,7 @@ void setup()
 
     if (!Record::initialized()) {
         Logger::begin("init");
-        Logger::log("record initialized");
+        Logger::log("record init");
         Logger::end();
     }
 
@@ -591,7 +595,7 @@ void setup()
             Logger::log("ext ");
 
         if (bootflags & _BV(WDRF))
-            Logger::log("wdf ");
+            Logger::log("wd ");
         
         for (byte i = 0; i < 5; i++) {
             byte state = Record::getRelayState(i);
@@ -698,6 +702,89 @@ void resetSystem()
     }
 }
 
+void logStatus()
+{
+    byte id[8];
+    RTC.idRead(id);
+
+    Logger::begin("id");
+
+    for (byte i = 0; i < 8; i++) {
+        Logger::logHex(id[i] & 0x0F);
+        Logger::logHex(id[i] >> 8);
+    }
+
+    Logger::end();
+
+    delay(100);
+
+    tmElements_t tm;
+    RTC.read(tm);
+
+    Logger::begin("date");
+    Logger::log(tm.Year + 1970);
+    Logger::log(' ');
+    Logger::log(tm.Month);
+    Logger::log(' ');
+    Logger::log(tm.Day);
+    Logger::log(' ');
+    Logger::log(tm.Hour);
+    Logger::log(' ');
+    Logger::log(tm.Minute);
+    Logger::log(' ');
+    Logger::log(tm.Second);
+    Logger::end();
+
+    delay(100);
+
+    Logger::begin("cu");
+
+    Logger::log(Wagman::getCurrent());
+    Logger::log(' ');
+
+    for (byte i = 0; i < 5; i++) {
+        Logger::log(Wagman::getCurrent(i));
+        Logger::log(' ');
+    }
+    
+    Logger::end();
+
+    delay(100);
+
+    Logger::begin("th");
+
+    for (byte i = 0; i < 5; i++) {
+        Logger::log(Wagman::getThermistor(i));
+        Logger::log(' ');
+    }
+    
+    Logger::end();
+
+    delay(100);
+
+    Logger::begin("fails");
+
+    for (byte i = 0; i < 5; i++) {
+        Logger::log(Record::getBootFailures(i));
+        Logger::log(' ');
+    }
+    
+    Logger::end();
+
+    delay(100);
+
+    Logger::begin("enabled");
+
+    for (byte i = 0; i < 5; i++) {
+        Logger::log(Record::getDeviceEnabled(i));
+        Logger::log(' ');
+    }
+    
+    Logger::end();
+
+    delay(100);
+}
+
 void loop()
 {
     // ensure that the watchdog is always enabled (in case some anomaly disables it)
@@ -715,92 +802,14 @@ void loop()
 
     if (statusTimer.exceeds(30000)) {
         statusTimer.reset();
-
         wdt_reset();
-
-        byte id[8];
-        RTC.idRead(id);
-
-        Logger::begin("id");
-
-        for (byte i = 0; i < 8; i++) {
-            Logger::logHex(id[i] & 0x0F);
-            Logger::logHex(id[i] >> 8);
-        }
-
-        Logger::end();
-
-        delay(100);
-
-        tmElements_t tm;
-        RTC.read(tm);
-
-        Logger::begin("date");
-        Logger::log(tm.Year + 1970);
-        Logger::log(' ');
-        Logger::log(tm.Month);
-        Logger::log(' ');
-        Logger::log(tm.Day);
-        Logger::log(' ');
-        Logger::log(tm.Hour);
-        Logger::log(' ');
-        Logger::log(tm.Minute);
-        Logger::log(' ');
-        Logger::log(tm.Second);
-        Logger::end();
-
-        delay(100);
-
-        Logger::begin("cu");
-
-        Logger::log(Wagman::getCurrent());
-        Logger::log(' ');
-
-        for (byte i = 0; i < 5; i++) {
-            Logger::log(Wagman::getCurrent(i));
-            Logger::log(' ');
-        }
-        
-        Logger::end();
-
-        delay(100);
-
-        Logger::begin("th");
-
-        for (byte i = 0; i < 5; i++) {
-            Logger::log(Wagman::getThermistor(i));
-            Logger::log(' ');
-        }
-        
-        Logger::end();
-
-        delay(100);
-
-        Logger::begin("fails");
-
-        for (byte i = 0; i < 5; i++) {
-            Logger::log(Record::getBootFailures(i));
-            Logger::log(' ');
-        }
-        
-        Logger::end();
-
-        delay(100);
-
-        Logger::begin("enabled");
-
-        for (byte i = 0; i < 5; i++) {
-            Logger::log(Record::getDeviceEnabled(i));
-            Logger::log(' ');
-        }
-        
-        Logger::end();
-
-        delay(100);
+        logStatus();
     }
 
     if (shouldResetSystem) {
         resetSystem();
     }
+
+    Wagman::toggleLED(0);
 }
 

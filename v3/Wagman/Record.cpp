@@ -157,11 +157,14 @@ void setDeviceEnabled(byte device, bool enabled)
 
 bool getDeviceEnabled(byte device)
 {
-    if (!Wagman::validPort(device))
+    if (!Wagman::validPort(device)) {
         return false;
+    }
 
-    if (device == 0)
+    // we never allow the node controller port to be disabled!
+    if (device == 0) {
         return true;
+    }
 
     return EEPROM.read(deviceRegion(device) + EEPROM_PORT_ENABLED);
 }

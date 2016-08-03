@@ -12,7 +12,6 @@
  * TODO Cleanup, really think about communication pathway. Does this allow us to reduce anything from the core?
  * TODO Add persistant event logging on using system hardware so we can trace what happened during a device failure.
  * TODO Check that system current reading is correct.
- * TODO Check if WDR shows up as NC serial dev change.
  * TODO Add variable LED to encode states.
  * TODO Move towards errors aware API.
  */
@@ -20,6 +19,9 @@
 static const byte DEVICE_COUNT = 5;
 static const byte BUFFER_SIZE = 80;
 static const byte MAX_ARGC = 8;
+
+static unsigned int baseSystemCurrent = 0;
+static unsigned int baseCurrent[5] = {0, 0, 0, 0, 0};
 
 byte bootflags;
 bool resetWagman = false;
@@ -36,40 +38,6 @@ time_t setupTime;
 
 bool isspace(char c);
 bool isgraph(char c);
-
-//byte Device::start()
-//{
-//    if (state == STATE_STARTED)
-//        return ERROR_ALREADY_DONE;
-//
-//    if (state == STATE_STARTING)
-//        return ERROR_BUSY;
-//    
-//    if (state == STATE_STOPPING)
-//        return ERROR_BUSY;
-//
-//    if (error) {
-//        Logger::error(error);
-//        return;
-//    }
-//
-//    return 0;
-//}
-//
-//byte commandStart(byte argc, const char **argv)
-//{
-//    if (argc != 2) {
-//        return ERROR_INVALID_ARGS;
-//    }
-//
-//    Device *device = getDevice(argv[1]);
-//
-//    if (device) {
-//        return device->start();
-//    } else {
-//        return ERROR_INVALID_DEVICE;
-//    }
-//}
 
 struct Command {
     const char *name;
@@ -93,8 +61,6 @@ void commandFailCount(byte argc, const char **argv);
 void commandLog(byte argc, const char **argv);
 void commandBootFlags(byte argc, const char **argv);
 void commandUptime(byte argc, const char **argv);
-void commandDigitalRead(byte argc, const char **argv);
-void commandDigitalWrite(byte argc, const char **argv);
 void commandHelp(byte argc, const char **argv);
 void commandEnable(byte argc, const char **argv);
 void commandWatch(byte argc, const char **argv);
@@ -107,7 +73,9 @@ Command commands[] = {
     { "reset", commandReset },
     { "id", commandID },
     { "cu", commandCurrent },
+    { "c", commandCurrent },
     { "hb", commandHeartbeat },
+    { "h", commandHeartbeat },
     { "env", commandEnvironment},
     { "bs", commandBootMedia },
     { "th", commandThermistor },
@@ -120,8 +88,6 @@ Command commands[] = {
     { "help", commandHelp },
     { "enable", commandEnable },
     { "watch", commandWatch },
-    { "dr", commandDigitalRead },
-    { "dw", commandDigitalWrite },
     { "log", commandLog },
     { NULL, NULL },
 };
@@ -219,15 +185,15 @@ void commandDate(byte argc, const char **argv)
     if (argc == 1) {
         RTC.read(tm);
         Serial.print(tm.Year + 1970);
-        Serial.print('-');
+        Serial.print(' ');
         Serial.print(tm.Month);
-        Serial.print('-');
+        Serial.print(' ');
         Serial.print(tm.Day);
         Serial.print(' ');
         Serial.print(tm.Hour);
-        Serial.print(':');
+        Serial.print(' ');
         Serial.print(tm.Minute);
-        Serial.print(':');
+        Serial.print(' ');
         Serial.print(tm.Second);
         Serial.println();
     } else {
@@ -246,10 +212,14 @@ void commandDate(byte argc, const char **argv)
 
 void commandCurrent(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
-    Serial.println(Wagman::getCurrent());
+    Serial.print(Wagman::getCurrent());
+    Serial.print(" / ");
+    Serial.println(baseSystemCurrent);
     
     for (byte i = 0; i < DEVICE_COUNT; i++) {
-        Serial.println(Wagman::getCurrent(i));
+        Serial.print(Wagman::getCurrent(i));
+        Serial.print(" / ");
+        Serial.println(baseCurrent[i]);
     }
 }
 
@@ -387,39 +357,6 @@ void commandWatch(byte argc, const char **argv)
 //    return ERROR_NONE;
 }
 
-void commandDigitalRead(byte argc, const char **argv)
-{
-    if (argc == 2) {
-        switch (digitalRead(atoi(argv[1]))) {
-            case LOW:
-                Serial.println(0);
-                break;
-            case HIGH:
-                Serial.println(1);
-                break;
-            default:
-                Serial.println(-1);
-                break;
-        }
-    }
-}
-
-void commandDigitalWrite(byte argc, const char **argv)
-{
-    if (argc == 3) {
-        byte pin = atoi(argv[1]);
-        
-        switch (atoi(argv[2])) {
-            case 0:
-                digitalWrite(pin, LOW);
-                break;
-            case 1:
-                digitalWrite(pin, HIGH);
-                break;
-        }
-    }
-}
-
 void executeCommand(const char *sid, byte argc, const char **argv)
 {
     void (*func)(byte, const char **) = NULL;
@@ -534,32 +471,42 @@ void processCommands()
 
 void setup()
 {
-    // save and clear boot flags
     bootflags = MCUSR;
     MCUSR = 0;
     
-    wdt_disable(); // do we really want this?
-
-    delay(2000);
-    
     wdt_enable(WDTO_8S);
     wdt_reset();
-    
+
     Wagman::init();
 
-    // blink sequence indicating that we got through the first step.
-    for (byte i = 0; i < 5; i++) {
-        wdt_reset();
-        Wagman::setLED(0, true);
-        delay(200);
-        Wagman::setLED(0, false);
-        delay(200);
+    if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
+        // kill all of the devices onboard
+        for (byte i = 0; i < 5; i++) {
+            Wagman::setRelay(i, false);
+            delay(100);
+        }
 
-        wdt_reset();
+        // update our base current levels
+        baseSystemCurrent = Wagman::getCurrent();
+        delay(100);
+        
+        for (byte i = 0; i < 5; i++) {
+            baseCurrent[i] = Wagman::getCurrent(i);
+            delay(100);
+        }
+    }
+
+    wdt_reset();
+
+    for (byte i = 0; i < 8; i++) {
         Wagman::setLED(0, true);
-        delay(200);
+        delay(100);
+        Wagman::setLED(1, true);
+        delay(100);
         Wagman::setLED(0, false);
-        delay(400);
+        delay(100);
+        Wagman::setLED(1, false);
+        delay(100);
     }
 
     wdt_reset();
@@ -603,17 +550,29 @@ void setup()
     Record::setLastBootTime(setupTime);
     Record::incrementBootCount();
 
-    // boot up after brown out.
-    if (bootflags & _BV(BORF)) {
-        // what would we do differently than a power-off reset flag.
+    // Wait to see if node controller heartbeat was detected.
+    for (byte i = 0; i < 8; i++) {
+        wdt_reset();
+        
+        Wagman::setLED(0, true);
+        delay(250);
+        Wagman::setLED(1, true);
+        delay(250);
+        Wagman::setLED(1, false);
+        delay(250);
+        Wagman::setLED(0, false);
+        delay(250);
+
+        if (heartbeatCounters[0] >= 4)
+            break;
     }
 
-    // boot up after power on. this is a case where it'd be good to do a self test, current range check and device connected check.
-    if (bootflags & _BV(PORF)) {
-    }
+    wdt_reset();
 
-    // tripped by external reset? (do we do something similar to a watchdog reset here?)
     if ((bootflags & _BV(EXTRF)) || (bootflags & _BV(WDRF))) {
+        Wagman::setLED(0, heartbeatCounters[0] >= 3);
+        // now, we can use this to set what we think is the best guess as to the initial state of the device.
+        // we should also do a current check...
     }
 
     for (byte i = 0; i < DEVICE_COUNT; i++) {
@@ -621,6 +580,7 @@ void setup()
     }
 
     // set the node controller as starting device
+    
     deviceWantsStart = 0;
     startTimer.reset();
 

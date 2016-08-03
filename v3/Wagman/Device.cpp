@@ -33,7 +33,7 @@ bool Device::canStart() const
         return true;
     }
 
-    return Record::deviceEnabled(port) && !Record::relayFailed(port);
+    return Record::deviceEnabled(port) && Record::getRelayState(port) != RELAY_TURNING_ON && Record::getRelayState(port) != RELAY_TURNING_OFF;
 }
 
 bool Device::started() const
@@ -100,7 +100,7 @@ byte Device::start()
         return ERROR_DISABLED;
     }
 
-    if (port != PORT_NC && Record::relayFailed(port)) {
+    if (port != PORT_NC && (Record::getRelayState(port) == RELAY_TURNING_ON || Record::getRelayState(port) == RELAY_TURNING_OFF)) {
         Logger::begin(name);
         Logger::log("relay failed");
         Logger::end();
@@ -124,9 +124,12 @@ byte Device::start()
 
     Record::incrementBootAttempts(port);
 
-    Record::setRelayBegin(port);
+    Record::setRelayState(port, RELAY_TURNING_ON);
+    delay(10);
     Wagman::setRelay(port, true);
-    Record::setRelayEnd(port);
+    delay(100);
+    Record::setRelayState(port, RELAY_ON);
+    delay(10);
 
     changeState(STATE_STARTED);
 
@@ -185,11 +188,11 @@ void Device::kill()
     Logger::log("killing");
     Logger::end();
 
-    Record::setRelayBegin(port);
+    Record::setRelayState(port, RELAY_TURNING_OFF);
     delay(10);
     Wagman::setRelay(port, false);
-    delay(1000);
-    Record::setRelayEnd(port);
+    delay(100);
+    Record::setRelayState(port, RELAY_OFF);
     delay(10);
 
     changeState(STATE_STOPPED);
@@ -206,10 +209,9 @@ void Device::update()
 
 void Device::updateHeartbeat()
 {
-    byte heartbeat = Wagman::getHeartbeat(port);
-
-    if (heartbeat != lastHeartbeat) {
-        lastHeartbeat = heartbeat;
+    if (heartbeatCounters[port] >= 4) {
+        heartbeatCounters[port] = 0;
+        
         heartbeatTimer.reset();
 
         Logger::begin(name);
@@ -221,26 +223,6 @@ void Device::updateHeartbeat()
 void Device::updateFault()
 {
     unsigned int current = Wagman::getCurrent(port);
-    byte error;
-
-    /* may want to start designing some of the code in this way. probably don't want to
-     * return error either...since we have multiple types of errors to handle.
-     * in any case, should be more sensitive to such failures along the way!
-     */
-
-    /*
-    Wagman::getCurrent(&current, &error);
-
-    if (error == ERROR_SENSOR_FAILED) {
-        currentSensorFailure++;
-
-        if (currentSensorFailure > ...) {
-            watchCurrent = false;
-        }
-    
-        return;
-    }
-*/
 
     /* current sensor error */
     if (current == 0xFFFF) {
@@ -330,7 +312,8 @@ void Device::updateStopping()
 }
 
 void Device::changeState(byte newState)
-{    
+{
+    // reset all timers
     stateTimer.reset();
     stopMessageTimer.reset();
     heartbeatTimer.reset();

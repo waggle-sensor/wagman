@@ -62,10 +62,6 @@ static const unsigned int
     EEPROM_PORT_RELAY_HEALTH = 35,
     EEPROM_PORT_RELAY_JOURNAL = 36;
 
-// sync up with memory layout.
-// some of these can be replace by a simple fixed size offset
-// for now...using this.
-
 namespace Record
 {
 
@@ -74,41 +70,43 @@ unsigned int deviceRegion(byte device)
     return EEPROM_PORT_REGIONS_START + device * EEPROM_PORT_REGIONS_SIZE;
 }
 
-void init()
+bool initialized()
 {
     unsigned long magic;
-
     EEPROM.get(EEPROM_MAGIC_ADDR, magic);
+    return magic == MAGIC;
+}
 
-    if (magic != MAGIC) {
-        Record::setBootCount(0);
-        Record::setLastBootTime(0);
+void init()
+{
+    if (initialized())
+        return;
 
-        Version version;
-    
-        version.major = 3;
-        version.minor = 1;
-        Record::setHardwareVersion(version);
-    
-        version.major = 1;
-        version.minor = 0;
-        Record::setFirmwareVersion(version);
+    Record::setBootCount(0);
+    Record::setLastBootTime(0);
 
-        for (unsigned int i = 0; i < DEVICE_COUNT; i++) {
-            setDeviceEnabled(i, false);
-            setBootAttempts(i, 0);
-            setBootFailures(i, 0);
+    Version version;
 
-            unsigned int addr = deviceRegion(i) + EEPROM_PORT_RELAY_JOURNAL;
-            EEPROM.write(addr, JOURNAL_SUCCESS);
-        }
+    version.major = 3;
+    version.minor = 1;
+    Record::setHardwareVersion(version);
 
-        // default setup is just node controller and single guest node.
-        setDeviceEnabled(0, true);
-        setDeviceEnabled(1, true);
-        
-        EEPROM.put(EEPROM_MAGIC_ADDR, MAGIC);
+    version.major = 1;
+    version.minor = 0;
+    Record::setFirmwareVersion(version);
+
+    for (byte i = 0; i < DEVICE_COUNT; i++) {
+        setDeviceEnabled(i, false);
+        setBootAttempts(i, 0);
+        setBootFailures(i, 0);
+        setRelayState(i, RELAY_OFF);
     }
+
+    // default setup is just node controller and single guest node.
+    setDeviceEnabled(0, true);
+    setDeviceEnabled(1, true);
+    
+    EEPROM.put(EEPROM_MAGIC_ADDR, MAGIC);
 }
 
 void getHardwareVersion(Version &version)
@@ -229,22 +227,16 @@ void incrementBootFailures(byte device)
     setBootFailures(device, getBootFailures(device) + 1);
 }
 
-void setRelayBegin(byte port)
+byte getRelayState(byte port)
 {
     unsigned int addr = deviceRegion(port) + EEPROM_PORT_RELAY_JOURNAL;
-    EEPROM.write(addr, JOURNAL_ATTEMPT);
+    return EEPROM.read(addr);
 }
 
-void setRelayEnd(byte port)
+void setRelayState(byte port, byte state)
 {
     unsigned int addr = deviceRegion(port) + EEPROM_PORT_RELAY_JOURNAL;
-    EEPROM.write(addr, JOURNAL_SUCCESS);
-}
-
-bool relayFailed(byte port)
-{
-    unsigned int addr = deviceRegion(port) + EEPROM_PORT_RELAY_JOURNAL;
-    return EEPROM.read(addr) == JOURNAL_ATTEMPT;
+    EEPROM.write(addr, state);
 }
 
 int getFaultCurrent(byte port)

@@ -8,32 +8,11 @@
 static const byte LED_COUNT = 2;
 static const byte PORT_COUNT = 5;
 static const byte BOOT_SELECTOR_COUNT = 2;
-
-static const byte LED_PINS[LED_COUNT] = {
-    13, // L
-    9,  // L1
-};
-
-static const byte POWER_PINS[PORT_COUNT] = {
-    4,
-    6,
-    8,
-    10,
-    12,
-};
-
+static const byte LED_PINS[LED_COUNT] = {13, 9};
+static const byte POWER_PINS[PORT_COUNT] = {4, 6, 8, 10, 12};
 static const byte POWER_LATCH_0_PIN = 0;
-
-static const byte HEARTBEAT_PINS[PORT_COUNT] = {
-    5,
-    7, 
-    A4,
-    11,
-    A5,
-};
-
+static const byte HEARTBEAT_PINS[PORT_COUNT] = {5, 7, A4, 11, A5};
 static const byte THERMISTOR_0_PIN = A0;
-
 static const byte THERMISTOR_CHANNELS[] = {
     0,
     MCP342X::CHANNEL_0,
@@ -44,23 +23,27 @@ static const byte THERMISTOR_CHANNELS[] = {
 
 static const byte SYSTEM_CURRENT_ADDRESS = 0x60;
 
-static const byte PORT_CURRENT_ADDRESS[PORT_COUNT] = {
-    0x62,
-    0x68,
-    0x6A,
-    0x63,
-    0x6B,
-};
+static const byte PORT_CURRENT_ADDRESS[PORT_COUNT] = {0x62, 0x68, 0x6A, 0x63, 0x6B};
 
-static const byte BOOT_SELECTOR_PINS[BOOT_SELECTOR_COUNT] = {
-    1,
-    A3,
-};
+static const byte BOOT_SELECTOR_PINS[BOOT_SELECTOR_COUNT] = {1, A3};
 
 static HTU21D htu21d;
 static MCP342X mcp3428_1;
 
-static byte relayState[PORT_COUNT]; // don't really need this.
+static volatile byte heartbeatState[5] = {LOW, LOW, LOW, LOW, LOW};
+volatile byte heartbeatCounters[5] = {0, 0, 0, 0, 0};
+
+ISR(TIMER1_OVF_vect) {
+    for (byte i = 0; i < 5; i++) {
+        byte newState = digitalRead(HEARTBEAT_PINS[i]);
+        bool triggered = heartbeatState[i] != newState;
+        heartbeatState[i] = newState;
+
+        if (triggered) {
+            heartbeatCounters[i]++;
+        }
+    }
+}
 
 namespace Wagman
 {
@@ -101,9 +84,6 @@ void toggleLED(byte led)
 
 void init()
 {
-    Wire.begin();
-    delay(1000);
-    
     for (byte i = 0; i < LED_COUNT; i++) {
         pinMode(LED_PINS[i], OUTPUT);
     }
@@ -111,7 +91,9 @@ void init()
     for (byte i = 0; i < PORT_COUNT; i++) {
         pinMode(POWER_PINS[i], OUTPUT);
         pinMode(HEARTBEAT_PINS[i], INPUT);
-        relayState[i] = RELAY_UNKNOWN;
+
+        // clear the heartbeat counters
+        heartbeatCounters[i] = 0;
     }
 
     for (byte i = 0; i < BOOT_SELECTOR_COUNT; i++) {
@@ -119,16 +101,26 @@ void init()
     }
 
     pinMode(POWER_LATCH_0_PIN, OUTPUT);
-    
-    delay(500);
+
+    Wire.begin();
+    delay(200);
 
     mcp3428_1.init(MCP342X::H, MCP342X::H);
-    delay(500);
+    delay(200);
 
     htu21d.begin();
-    delay(500);
+    delay(200);
 
-    // check if RTC is ticking and if not keep track of this.
+    noInterrupts();
+
+    // schedule timer 1 to check on heartbeat signal. this is to ensure that
+    // we never miss a heartbeat check.
+    TCCR1A = 0;
+    TCCR1B = 0;
+    TIMSK1 = _BV(TOIE1); // only has interrupt enabled (no comparator or other features)
+    TCCR1B = _BV(CS11)| _BV(CS10); // about every 1/4 second
+
+    interrupts();
 }
 
 void setRelay(byte port, bool on)
@@ -138,28 +130,26 @@ void setRelay(byte port, bool on)
 
     if (port == 0) {
         digitalWrite(POWER_LATCH_0_PIN, LOW);
-        delay(10);
+        delay(50);
         digitalWrite(POWER_PINS[port], on ? HIGH : LOW);
-        delay(10);
+        delay(50);
         digitalWrite(POWER_LATCH_0_PIN, HIGH);
-        delay(10);
+        delay(50);
         digitalWrite(POWER_LATCH_0_PIN, LOW);
-        delay(10);
+        delay(50);
     } else {
         digitalWrite(POWER_PINS[port], on ? HIGH : LOW);
-        delay(10);
+        delay(50);
     }
-
-    relayState[port] = on ? RELAY_ON : RELAY_OFF; // possible to replace 
 }
 
 byte getRelay(byte port)
 {
     if (!validPort(port)) {
-        return RELAY_UNKNOWN;
+        return RELAY_OFF; // probably should indicate error state instead...
     }
 
-    return relayState[port];
+    return RELAY_OFF;
 }
 
 byte getHeartbeat(byte port)

@@ -19,15 +19,10 @@ struct SensorStatus
     Range range;
 };
 
-enum
-{
-    JOURNAL_UNKNOWN = 0,
-    JOURNAL_ATTEMPT = 0xAA,
-    JOURNAL_SUCCESS = 0x55,
-};
-
 namespace Record
 {
+    bool initialized();
+    
     void init();
 
     void getHardwareVersion(Version &version);
@@ -49,9 +44,8 @@ namespace Record
     void getDeviceBootTime(byte device, time_t &time);
     void setDeviceBootTime(byte device, const time_t &time);
 
-    void setRelayBegin(byte port);
-    void setRelayEnd(byte port);
-    bool relayFailed(byte port);
+    byte getRelayState(byte port);
+    void setRelayState(byte port, byte state);
 
     unsigned int getBootAttempts(byte device);
     void setBootAttempts(byte device, unsigned int attempts);

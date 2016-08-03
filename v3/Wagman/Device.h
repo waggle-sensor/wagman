@@ -86,8 +86,5 @@ class Device
         Timer stopMessageTimer;
         Timer heartbeatTimer;
         Timer steadyCurrentTimer;
-        
-        byte lastHeartbeat;
-
 };
 

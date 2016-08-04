@@ -8,11 +8,11 @@ const byte PORT_NC = 0;
 const byte PORT_GN = 1;
 const byte PORT_CORESENSE = 2;
 
-const unsigned long HEARTBEAT_TIMEOUT = (unsigned long)80000;
-const unsigned long FAULT_TIMEOUT = (unsigned long)2500;
+const unsigned long HEARTBEAT_TIMEOUT = (unsigned long)120000;
+const unsigned long FAULT_TIMEOUT = (unsigned long)10000;
 const unsigned long STOP_TIMEOUT = (unsigned long)60000;
 const unsigned long DETECT_CURRENT_TIMEOUT = (unsigned long)10000;
-const unsigned long STOP_MESSAGE_TIMEOUT = (unsigned long)5000;
+const unsigned long STOP_MESSAGE_TIMEOUT = (unsigned long)10000;
 
 void Device::init()
 {
@@ -33,7 +33,7 @@ bool Device::canStart() const
         return true;
     }
 
-    return Record::getDeviceEnabled(port) && Record::getRelayState(port) != RELAY_TURNING_ON && Record::getRelayState(port) != RELAY_TURNING_OFF;
+    return Record::getDeviceEnabled(port);
 }
 
 bool Device::started() const
@@ -281,12 +281,15 @@ void Device::updateStarted()
     }
 
     if (watchCurrent && !aboveFault && steadyCurrentTimer.exceeds(FAULT_TIMEOUT)) {
+        steadyCurrentTimer.reset();
+
         Logger::begin(name);
-        Logger::log("fault timeout");
+        Logger::log("current low warning");
         Logger::end();
 
-        Record::incrementBootFailures(port);
-        kill();
+// NOTE We're ignoring this mechanism on purpose now!
+//        Record::incrementBootFailures(port);
+//        kill();
     }
 }
 

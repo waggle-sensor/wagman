@@ -14,6 +14,12 @@
  * TODO Check that system current reading is correct.
  * TODO Move towards errors aware API.
  * TODO Go a little easier on faults / if gn locks up system, don't want to totally kill.
+ * TODO In the longer term, clean up the device abstraction. I wrote that initially before I realized
+ * that we'd have things like the coresense using a power port or different thermistors not related to
+ * a particular device. What we have now is ok, but should be improved for future clarity.
+ * TODO Double check the media is being output correctly.
+ * TODO Get a sense of power usage of the system.
+ * TODO Command for resetting PMEM.
  */
 
 static const byte DEVICE_COUNT = 5;
@@ -93,7 +99,7 @@ Command commands[] = {
 };
 
 void commandPing(byte argc, const char **argv)
-{    
+{
     for (byte i = 1; i < argc; i++) {
         byte index = atoi(argv[i]);
 
@@ -165,14 +171,14 @@ void commandEEDump(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) 
 {
     for (unsigned int i = 0; i < 1024; i++) {
         byte value = EEPROM.read(i);
-        
+
         Serial.print((value >> 4) & 0x0F, HEX);
         Serial.print(value & 0x0F, HEX);
         Serial.print(' ');
 
         if (i % 4 == 3)
             Serial.print(' ');
-        
+
         if (i % 32 == 31)
             Serial.println();
     }
@@ -205,7 +211,7 @@ void commandDate(byte argc, const char **argv)
         tm.Hour = (argc >= 5) ? atoi(argv[4]) : 0;
         tm.Minute = (argc >= 6) ? atoi(argv[5]) : 0;
         tm.Second = (argc >= 7) ? atoi(argv[6]) : 0;
-    
+
         RTC.set(makeTime(tm));
     }
 }
@@ -215,7 +221,7 @@ void commandCurrent(__attribute__ ((unused)) byte argc, __attribute__ ((unused))
     Serial.print(Wagman::getCurrent());
     Serial.print(" / ");
     Serial.println(baseSystemCurrent);
-    
+
     for (byte i = 0; i < DEVICE_COUNT; i++) {
         Serial.print(Wagman::getCurrent(i));
         Serial.print(" / ");
@@ -254,7 +260,7 @@ void commandEnvironment(__attribute__ ((unused)) byte argc, __attribute__ ((unus
 {
     Serial.print("temperature=");
     Serial.println(Wagman::getTemperature());
-    
+
     Serial.print("humidity=");
     Serial.println(Wagman::getHumidity());
 }
@@ -409,7 +415,7 @@ void processCommand()
 {
     byte argc = 0;
     const char *argv[MAX_ARGC];
-    
+
     char *s = buffer;
 
     while (argc < MAX_ARGC) {
@@ -464,7 +470,7 @@ void processCommands()
 
         if (bufferSize >= BUFFER_SIZE) { // exceeds buffer! dangerous!
             bufferSize = 0;
-            
+
             // flush remainder of line.
             while (Serial.available() > 0 && dataread < 240) {
                 if (Serial.read() == '\n')
@@ -483,12 +489,15 @@ void setup()
 {
     bootflags = MCUSR;
     MCUSR = 0;
-    
+
     wdt_enable(WDTO_8S);
     wdt_reset();
 
     Wagman::init();
 
+    wdt_reset();
+
+    // if we started from a power on or brown out
     if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
         // kill all of the devices onboard
         for (byte i = 0; i < 5; i++) {
@@ -499,7 +508,7 @@ void setup()
         // update our base current levels
         baseSystemCurrent = Wagman::getCurrent();
         delay(100);
-        
+
         for (byte i = 0; i < 5; i++) {
             baseCurrent[i] = Wagman::getCurrent(i);
             delay(100);
@@ -553,12 +562,12 @@ void setup()
     devices[2].port = 2;
     devices[2].watchHeartbeat = false;
     devices[2].watchCurrent = false;
-    
+
     devices[3].name = "unused1";
     devices[3].port = 3;
     devices[3].watchHeartbeat = false;
     devices[3].watchCurrent = false;
-    
+
     devices[4].name = "unused2";
     devices[4].port = 4;
     devices[4].watchHeartbeat = false;
@@ -571,7 +580,7 @@ void setup()
     // Wait to see if node controller heartbeat was detected.
     for (byte i = 0; i < 8; i++) {
         wdt_reset();
-        
+
         Wagman::setLED(0, true);
         delay(250);
         Wagman::setLED(1, true);
@@ -582,7 +591,7 @@ void setup()
         delay(250);
 
         if (heartbeatCounters[0] >= 4 || Wagman::getCurrent(0) > 120) {
-            // update what state we think the node controller relay is in.
+            // should update the state we think node controller is in.
             break;
         }
     }
@@ -597,7 +606,7 @@ void setup()
 
         if (bootflags & _BV(WDRF))
             Logger::log("wd ");
-        
+
         for (byte i = 0; i < 5; i++) {
             byte state = Record::getRelayState(i);
 
@@ -620,7 +629,7 @@ void setup()
 
         if (bootflags & _BV(BORF))
             Logger::log("borf ");
-        
+
         for (byte i = 0; i < 5; i++) {
             byte state = Record::getRelayState(i);
 
@@ -678,11 +687,39 @@ void startNextDevice()
     }
 }
 
+void loop()
+{
+    // ensure that the watchdog is always enabled (in case some anomaly disables it)
+    wdt_enable(WDTO_8S);
+    wdt_reset();
+
+    startNextDevice();
+
+    for (byte i = 0; i < DEVICE_COUNT; i++) {
+        devices[i].update();
+    }
+
+    wdt_reset();
+    processCommands();
+
+    if (statusTimer.exceeds(30000)) {
+        statusTimer.reset();
+        wdt_reset();
+        logStatus();
+    }
+
+    if (shouldResetSystem) {
+        resetSystem();
+    }
+
+    Wagman::toggleLED(0);
+}
+
 void resetSystem()
 {
     wdt_enable(WDTO_8S);
     wdt_reset();
-    
+
     // watchdog will reset in a few seconds.
     for (;;) {
         for (byte i = 0; i < 5; i++) {
@@ -747,7 +784,7 @@ void logStatus()
         Logger::log(Wagman::getCurrent(i));
         Logger::log(' ');
     }
-    
+
     Logger::end();
 
     delay(100);
@@ -758,7 +795,7 @@ void logStatus()
         Logger::log(Wagman::getThermistor(i));
         Logger::log(' ');
     }
-    
+
     Logger::end();
 
     delay(100);
@@ -769,7 +806,7 @@ void logStatus()
         Logger::log(Record::getBootFailures(i));
         Logger::log(' ');
     }
-    
+
     Logger::end();
 
     delay(100);
@@ -780,7 +817,7 @@ void logStatus()
         Logger::log(Record::getDeviceEnabled(i));
         Logger::log(' ');
     }
-    
+
     Logger::end();
 
     delay(100);
@@ -802,33 +839,5 @@ void logStatus()
     Logger::end();
 
     delay(100);
-}
-
-void loop()
-{
-    // ensure that the watchdog is always enabled (in case some anomaly disables it)
-    wdt_enable(WDTO_8S);
-    wdt_reset();
-
-    startNextDevice();
-
-    for (byte i = 0; i < DEVICE_COUNT; i++) {
-        devices[i].update();
-    }
-
-    wdt_reset();
-    processCommands();
-
-    if (statusTimer.exceeds(30000)) {
-        statusTimer.reset();
-        wdt_reset();
-        logStatus();
-    }
-
-    if (shouldResetSystem) {
-        resetSystem();
-    }
-
-    Wagman::toggleLED(0);
 }
 

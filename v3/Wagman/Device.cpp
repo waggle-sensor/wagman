@@ -19,6 +19,8 @@ void Device::init()
     shouldForceBootMedia = false;
     forceBootMedia = MEDIA_SD;
 
+    currentLevel = CURRENT_LOW;
+
     changeState(STATE_STOPPED);
 }
 
@@ -223,22 +225,25 @@ void Device::updateHeartbeat()
 void Device::updateFault()
 {
     unsigned int current = Wagman::getCurrent(port);
+    byte newCurrentLevel;
 
-    /* current sensor error */
-    if (current == 0xFFFF) {
+    // current sensor error
+    if (current == 0xFFFF)
         return;
+
+    if (current < 120) {
+        newCurrentLevel = CURRENT_LOW;
+    }  else if (current < 300) {
+        newCurrentLevel = CURRENT_NORMAL;
+    } else if (current < 850) {
+        newCurrentLevel = CURRENT_STRESSED;
+    } else {
+        newCurrentLevel = CURRENT_HIGH;
     }
-    
-    bool newAboveFault = current > Record::getFaultCurrent(port);
 
-    if (aboveFault != newAboveFault) {
-        aboveFault = newAboveFault;
-        steadyCurrentTimer.reset();
-
-        Logger::begin(name);
-        Logger::log("current ");
-        Logger::log(aboveFault ? "normal" : "low");
-        Logger::end();
+    if (newCurrentLevel != currentLevel) {
+        currentLevelTimer.reset();
+        currentLevel = newCurrentLevel;
     }
 }
 
@@ -259,13 +264,12 @@ void Device::updateState()
 
 void Device::updateStopped()
 {
-    /* if a device does seem to have power, then change state to started. */
-    if (watchCurrent && aboveFault && steadyCurrentTimer.exceeds(DETECT_CURRENT_TIMEOUT)) {
+    if (watchCurrent && currentLevel != CURRENT_LOW && currentLevelTimer.exceeds(10000)) {
         Logger::begin(name);
         Logger::log("current detected");
         Logger::end();
-        
-        start();
+
+        changeState(STATE_STARTED);
     }
 }
 
@@ -280,31 +284,42 @@ void Device::updateStarted()
         stop();
     }
 
-    if (watchCurrent && !aboveFault && steadyCurrentTimer.exceeds(FAULT_TIMEOUT)) {
-        steadyCurrentTimer.reset();
-
+    if (watchCurrent && currentLevelTimer.exceeds(10000)) {
         Logger::begin(name);
-        Logger::log("current low warning");
+
+        switch (currentLevel) {
+            case CURRENT_NORMAL:
+                Logger::log("current normal");
+                break;
+            case CURRENT_LOW:
+                Logger::log("current low");
+                break;
+            case CURRENT_HIGH:
+                Logger::log("current high");
+                break;
+            case CURRENT_STRESSED:
+                Logger::log("current stressed");
+                break;
+        }
+        
         Logger::end();
 
-// NOTE We're ignoring this mechanism on purpose now!
-//        Record::incrementBootFailures(port);
-//        kill();
+        currentLevelTimer.reset();
     }
 }
 
 void Device::updateStopping()
 {
-    /* periodically send a stop message to the device. */
+    // periodically send a stop message to the device.
     if (stopMessageTimer.exceeds(STOP_MESSAGE_TIMEOUT)) {
         stopMessageTimer.reset();
 
         Logger::begin(name);
-        Logger::log("wants stop");
+        Logger::log("stopping");
         Logger::end();
     }
 
-    /* device had sufficient time to shutdown, so kill it. */
+    // device had sufficient time to shutdown, so kill it.
     if (stateTimer.exceeds(STOP_TIMEOUT)) {
         Logger::begin(name);
         Logger::log("stop timeout");
@@ -320,7 +335,7 @@ void Device::changeState(byte newState)
     stateTimer.reset();
     stopMessageTimer.reset();
     heartbeatTimer.reset();
-    steadyCurrentTimer.reset();
+    currentLevelTimer.reset();
 
     state = newState;
 }

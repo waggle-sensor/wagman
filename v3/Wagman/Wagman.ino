@@ -447,8 +447,6 @@ void processCommand()
     }
 
     if (argc > 0) {
-        wdt_reset();
-
         // this sid case was suggested by wolfgang to help identify the source of certain messages.
         if (argv[0][0] == '@') {
             executeCommand(argv[0] + 1, argc - 1, argv + 1);
@@ -560,6 +558,8 @@ void setup()
 
     devices[2].name = "cs";
     devices[2].port = 2;
+    devices[2].primaryMedia = MEDIA_SD;
+    devices[2].secondaryMedia = MEDIA_EMMC;
     devices[2].watchHeartbeat = false;
     devices[2].watchCurrent = false;
 
@@ -704,6 +704,7 @@ void loop()
 
     if (statusTimer.exceeds(30000)) {
         statusTimer.reset();
+
         wdt_reset();
         logStatus();
     }
@@ -717,6 +718,8 @@ void loop()
 
 void resetSystem()
 {
+    // just to be safe, ensure that watchdog is set and long enough
+    // as to not leave the system in an infinite boot cycle
     wdt_enable(WDTO_8S);
     wdt_reset();
 
@@ -725,10 +728,10 @@ void resetSystem()
         for (byte i = 0; i < 5; i++) {
             Wagman::setLED(0, true);
             Wagman::setLED(1, true);
-            delay(50);
+            delay(80);
             Wagman::setLED(0, false);
             Wagman::setLED(1, false);
-            delay(50);
+            delay(80);
         }
 
         Wagman::setLED(0, true);

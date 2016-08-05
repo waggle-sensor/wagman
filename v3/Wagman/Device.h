@@ -16,11 +16,14 @@ class Timer
         unsigned long start;
 };
 
-enum {
-    STATE_STOPPED,
-    STATE_STARTED,
-    STATE_STOPPING,
-};
+const byte CURRENT_NORMAL = 0;
+const byte CURRENT_STRESSED = 1;
+const byte CURRENT_LOW = 2;
+const byte CURRENT_HIGH = 3;
+
+const byte STATE_STOPPED = 0;
+const byte STATE_STARTED = 1;
+const byte STATE_STOPPING = 2;
 
 class Device
 {
@@ -76,15 +79,14 @@ class Device
         bool managed;
 
         byte repeatedResetCount;
-
-        bool aboveFault;
-//        unsigned long faultModeStartTime;
         
         bool shouldRestart;
+
+        byte currentLevel;
+        Timer currentLevelTimer;
 
         Timer stateTimer;
         Timer stopMessageTimer;
         Timer heartbeatTimer;
-        Timer steadyCurrentTimer;
 };
 

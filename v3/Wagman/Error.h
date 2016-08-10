@@ -1,3 +1,7 @@
+const byte ERROR_INVALID_ACTION = 1;
+const byte ERROR_INVALID_ARGC = 2;
+const byte ERROR_INVALID_PORT = 3;
+
 const byte ERROR_ALREADY_DONE = 17;
 const byte ERROR_INVALID_ARGUMENT = 22;
 const byte ERROR_BAD_ADDRESS = 14;

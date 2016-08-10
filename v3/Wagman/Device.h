@@ -31,7 +31,7 @@ class Device
 
         void init();
         byte start();
-        void stop();
+        byte stop();
         void kill();
         void restart();
         void update();

@@ -4,6 +4,7 @@
 #include "Record.h"
 #include "Device.h"
 #include "Logger.h"
+#include "Error.h"
 #include "MCP79412RTC.h"
 
 /*
@@ -26,9 +27,6 @@ static const byte DEVICE_COUNT = 5;
 static const byte BUFFER_SIZE = 80;
 static const byte MAX_ARGC = 8;
 
-static unsigned int baseSystemCurrent = 0;
-static unsigned int baseCurrent[DEVICE_COUNT] = {0, 0, 0, 0, 0};
-
 byte bootflags = 0;
 bool shouldResetSystem = false;
 bool logging = true;
@@ -49,29 +47,29 @@ bool isgraph(char c);
 
 struct Command {
     const char *name;
-    void (*func)(byte, const char **);
+    byte (*func)(byte, const char **);
 };
 
-void commandStart(byte argc, const char **argv);
-void commandStop(byte argc, const char **argv);
-void commandKill(byte argc, const char **argv);
-void commandReset(byte argc, const char **argv);
-void commandPing(byte argc, const char **argv);
-void commandID(byte argc, const char **argv);
-void commandEEDump(byte argc, const char **argv);
-void commandDate(byte argc, const char **argv);
-void commandCurrent(byte argc, const char **argv);
-void commandHeartbeat(byte argc, const char **argv);
-void commandThermistor(byte argc, const char **argv);
-void commandEnvironment(byte argc, const char **argv);
-void commandBootMedia(byte argc, const char **argv);
-void commandFailCount(byte argc, const char **argv);
-void commandLog(byte argc, const char **argv);
-void commandBootFlags(byte argc, const char **argv);
-void commandUptime(byte argc, const char **argv);
-void commandHelp(byte argc, const char **argv);
-void commandEnable(byte argc, const char **argv);
-void commandWatch(byte argc, const char **argv);
+byte commandStart(byte argc, const char **argv);
+byte commandStop(byte argc, const char **argv);
+byte commandKill(byte argc, const char **argv);
+byte commandReset(byte argc, const char **argv);
+byte commandPing(byte argc, const char **argv);
+byte commandID(byte argc, const char **argv);
+byte commandEEDump(byte argc, const char **argv);
+byte commandDate(byte argc, const char **argv);
+byte commandCurrent(byte argc, const char **argv);
+byte commandHeartbeat(byte argc, const char **argv);
+byte commandThermistor(byte argc, const char **argv);
+byte commandEnvironment(byte argc, const char **argv);
+byte commandBootMedia(byte argc, const char **argv);
+byte commandFailCount(byte argc, const char **argv);
+byte commandLog(byte argc, const char **argv);
+byte commandBootFlags(byte argc, const char **argv);
+byte commandUptime(byte argc, const char **argv);
+byte commandEnable(byte argc, const char **argv);
+byte commandWatch(byte argc, const char **argv);
+byte commandResetEEPROM(byte argc, const char **argv);
 
 Command commands[] = {
     { "ping", commandPing },
@@ -89,71 +87,81 @@ Command commands[] = {
     { "eedump", commandEEDump },
     { "bf", commandBootFlags },
     { "fc", commandFailCount },
-//    { "uptime", commandUptime },
     { "up", commandUptime },
-//    { "help", commandHelp },
     { "en", commandEnable },
     { "watch", commandWatch },
     { "log", commandLog },
+    { "eereset", commandResetEEPROM },
     { NULL, NULL },
 };
 
-void commandPing(byte argc, const char **argv)
+byte commandPing(byte argc, const char **argv)
 {
-    for (byte i = 1; i < argc; i++) {
-        byte index = atoi(argv[i]);
+    if (argc != 2)
+        return ERROR_INVALID_ARGC;
 
-        if (Wagman::validPort(index)) {
-            devices[index].sendExternalHeartbeat();
-        }
-    }
+    byte port = atoi(argv[1]);
 
-    Serial.println("pong");
+    if (!Wagman::validPort(port))
+        return ERROR_INVALID_PORT;
+
+    devices[port].sendExternalHeartbeat();
+
+    return 0;
 }
 
-void commandStart(__attribute__ ((unused)) byte argc, const char **argv)
+byte commandStart(byte argc, const char **argv)
 {
-    byte index = atoi(argv[1]);
+    if (argc != 2)
+        return ERROR_INVALID_ARGC;
 
-    if (Wagman::validPort(index)) {
-        deviceWantsStart = index;
-    }
+    byte port = atoi(argv[1]);
+
+    if (!Wagman::validPort(port))
+        return ERROR_INVALID_PORT;
+
+    deviceWantsStart = port;
+
+    return 0;
 }
 
-void commandStop(byte argc, const char **argv)
+byte commandStop(byte argc, const char **argv)
 {
-    for (byte i = 1; i < argc; i++) {
-        byte index = atoi(argv[i]);
+    if (argc != 2)
+        return ERROR_INVALID_ARGC;
 
-        if (Wagman::validPort(index)) {
-            devices[index].stop();
-        } else {
-            Serial.println("invalid device");
-        }
+    byte port = atoi(argv[1]);
 
-        delay(500);
-    }
+    if (!Wagman::validPort(port))
+        return ERROR_INVALID_PORT;
+
+    devices[port].stop();
+
+    return 0;
 }
 
-void commandKill(byte argc, const char **argv)
+byte commandKill(byte argc, const char **argv)
 {
-    for (byte i = 1; i < argc; i++) {
-        byte index = atoi(argv[i]);
+    if (argc != 2)
+        return ERROR_INVALID_ARGC;
 
-        if (Wagman::validPort(index)) {
-            devices[index].kill();
-        } else {
-            Serial.println("invalid device");
-        }
-    }
+    byte port = atoi(argv[1]);
+
+    if (!Wagman::validPort(port))
+        return ERROR_INVALID_PORT;
+
+    devices[port].kill();
+
+    return 0;
 }
 
-void commandReset(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
+byte commandReset(byte argc, const char **argv)
 {
     shouldResetSystem = true;
+    return 0;
 }
 
-void commandID(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
+byte commandID(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     byte id[8];
 
@@ -165,9 +173,11 @@ void commandID(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) cons
     }
 
     Serial.println();
+
+    return 0;
 }
 
-void commandEEDump(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
+byte commandEEDump(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     for (unsigned int i = 0; i < 1024; i++) {
         byte value = EEPROM.read(i);
@@ -182,14 +192,20 @@ void commandEEDump(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) 
         if (i % 32 == 31)
             Serial.println();
     }
+
+    return 0;
 }
 
-void commandDate(byte argc, const char **argv)
+byte commandDate(byte argc, const char **argv)
 {
-    tmElements_t tm;
+    if (argc != 1 && argc != 7)
+        return ERROR_INVALID_ARGC;
 
     if (argc == 1) {
+        tmElements_t tm;
+
         RTC.read(tm);
+
         Serial.print(tm.Year + 1970);
         Serial.print(' ');
         Serial.print(tm.Month);
@@ -202,78 +218,83 @@ void commandDate(byte argc, const char **argv)
         Serial.print(' ');
         Serial.print(tm.Second);
         Serial.println();
-    } else {
+    } else if (argc == 7) {
         tmElements_t tm;
 
         tm.Year = atoi(argv[1]) - 1970;
-        tm.Month = (argc >= 3) ? atoi(argv[2]) : 0;
-        tm.Day = (argc >= 4) ? atoi(argv[3]) : 0;
-        tm.Hour = (argc >= 5) ? atoi(argv[4]) : 0;
-        tm.Minute = (argc >= 6) ? atoi(argv[5]) : 0;
-        tm.Second = (argc >= 7) ? atoi(argv[6]) : 0;
+        tm.Month = atoi(argv[2]);
+        tm.Day = atoi(argv[3]);
+        tm.Hour = atoi(argv[4]);
+        tm.Minute = atoi(argv[5]);
+        tm.Second = atoi(argv[6]);
 
         RTC.set(makeTime(tm));
     }
+
+    return 0;
 }
 
-void commandCurrent(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
+byte commandCurrent(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     Serial.print(Wagman::getCurrent());
-    Serial.print(" / ");
-    Serial.println(baseSystemCurrent);
 
     for (byte i = 0; i < DEVICE_COUNT; i++) {
+        Serial.print(' ');
         Serial.print(Wagman::getCurrent(i));
-        Serial.print(" / ");
-        Serial.println(baseCurrent[i]);
     }
+
+    Serial.println();
+
+    return 0;
 }
 
-void commandHeartbeat(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
+byte commandHeartbeat(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     for (byte i = 0; i < DEVICE_COUNT; i++) {
-        Serial.print(devices[i].timeSinceHeartbeat());
-
-        if (devices[i].watchHeartbeat) {
-            Serial.print(" *");
-        }
-
-        Serial.println();
+        Serial.println(devices[i].timeSinceHeartbeat());
     }
+
+    return 0;
 }
 
-void commandFailCount(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
+byte commandFailCount(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     for (byte i = 0; i < DEVICE_COUNT; i++) {
         Serial.println(Record::getBootFailures(i));
     }
+
+    return 0;
 }
 
-void commandThermistor(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
+byte commandThermistor(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     for (byte i = 0; i < DEVICE_COUNT; i++) {
         Serial.println(Wagman::getThermistor(i));
     }
+
+    return 0;
 }
 
-void commandEnvironment(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
+byte commandEnvironment(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
-    Serial.print("temperature=");
+    Serial.print("temperature ");
     Serial.println(Wagman::getTemperature());
 
-    Serial.print("humidity=");
+    Serial.print("humidity ");
     Serial.println(Wagman::getHumidity());
+
+    return 0;
 }
 
-void commandBootMedia(byte argc, const char **argv)
+byte commandBootMedia(byte argc, const char **argv)
 {
-    if (argc < 2)
-        return;
+    if (argc != 2 && argc != 3)
+        return ERROR_INVALID_ARGC;
 
     byte index = atoi(argv[1]);
 
     if (!Wagman::validPort(index))
-        return;
+        return ERROR_INVALID_PORT;
 
     if (argc == 3) {
         if (strcmp(argv[2], "sd") == 0) {
@@ -298,9 +319,11 @@ void commandBootMedia(byte argc, const char **argv)
             Serial.println("invalid media");
         }
     }
+
+    return 0;
 }
 
-void commandLog(byte argc, const char **argv)
+byte commandLog(byte argc, const char **argv)
 {
     if (argc == 2) {
         if (strcmp(argv[1], "on") == 0) {
@@ -309,9 +332,11 @@ void commandLog(byte argc, const char **argv)
             logging = false;
         }
     }
+
+    return 0;
 }
 
-void commandBootFlags(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
+byte commandBootFlags(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     if (bootflags & _BV(WDRF))
         Serial.println("WDRF");
@@ -321,23 +346,18 @@ void commandBootFlags(__attribute__ ((unused)) byte argc, __attribute__ ((unused
         Serial.println("EXTRF");
     if (bootflags & _BV(PORF))
         Serial.println("PORF");
+    return 0;
 }
 
-void commandUptime(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
+byte commandUptime(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     time_t time;
     Wagman::getTime(time);
     Serial.println(time - setupTime);
+    return 0;
 }
 
-void commandHelp(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
-{
-    for (byte i = 0; commands[i].name != NULL; i++) {
-        Serial.println(commands[i].name);
-    }
-}
-
-void commandEnable(byte argc, const char **argv)
+byte commandEnable(byte argc, const char **argv)
 {
     if (argc == 2) {
         byte index = atoi(argv[1]);
@@ -350,9 +370,11 @@ void commandEnable(byte argc, const char **argv)
             Record::setDeviceEnabled(index, strcmp(argv[2], "1") == 0);
         }
     }
+
+    return 0;
 }
 
-void commandWatch(byte argc, const char **argv)
+byte commandWatch(byte argc, const char **argv)
 {
 //    if (argc != 4)
 //        return ERROR_USAGE;
@@ -370,12 +392,13 @@ void commandWatch(byte argc, const char **argv)
         }
     }
 
-//    return ERROR_NONE;
+    return 0;
 }
 
 void executeCommand(const char *sid, byte argc, const char **argv)
 {
-    void (*func)(byte, const char **) = NULL;
+    byte error = 0;
+    byte (*func)(byte, const char **) = NULL;
 
     // search for command and execute if found
     for (byte i = 0; commands[i].name != NULL; i++) {
@@ -392,13 +415,19 @@ void executeCommand(const char *sid, byte argc, const char **argv)
     Serial.println(argv[0]);
 
     if (func != NULL) {
-        func(argc, argv);
+        error = func(argc, argv);
     } else {
         Serial.println("command not found");
     }
 
     // marks the end of a response packet.
     Serial.println("->>>");
+}
+
+byte commandResetEEPROM(byte argc, const char **argv)
+{
+    Record::init();
+    return 0;
 }
 
 // Assumes ASCII encoding.
@@ -502,15 +531,6 @@ void setup()
             Wagman::setRelay(i, false);
             delay(100);
         }
-
-        // update our base current levels
-        baseSystemCurrent = Wagman::getCurrent();
-        delay(100);
-
-        for (byte i = 0; i < 5; i++) {
-            baseCurrent[i] = Wagman::getCurrent(i);
-            delay(100);
-        }
     }
 
     wdt_reset();
@@ -535,10 +555,10 @@ void setup()
         Logger::begin("init");
         Logger::log("record init");
         Logger::end();
-    }
 
-    wdt_reset();
-    Record::init();
+        wdt_reset();
+        Record::init();
+    }
 
     devices[0].name = "nc";
     devices[0].port = 0;
@@ -563,17 +583,17 @@ void setup()
     devices[2].watchHeartbeat = false;
     devices[2].watchCurrent = false;
 
-    devices[3].name = "unused1";
+    devices[3].name = "x1";
     devices[3].port = 3;
     devices[3].watchHeartbeat = false;
     devices[3].watchCurrent = false;
 
-    devices[4].name = "unused2";
+    devices[4].name = "x2";
     devices[4].port = 4;
     devices[4].watchHeartbeat = false;
     devices[4].watchCurrent = false;
 
-    Wagman::getTime(setupTime); // used for uptime
+    Wagman::getTime(setupTime);
     Record::setLastBootTime(setupTime);
     Record::incrementBootCount();
 
@@ -591,30 +611,19 @@ void setup()
         delay(250);
 
         if (heartbeatCounters[0] >= 4 || Wagman::getCurrent(0) > 120) {
-            // should update the state we think node controller is in.
+            // actually change the device state to reflect what we think!
             break;
         }
     }
 
     wdt_reset();
 
-    if (bootflags & _BV(EXTRF) || bootflags & _BV(WDRF)) {
-        Logger::begin("init");
-
-        if (bootflags & _BV(EXTRF))
-            Logger::log("ext ");
-
-        if (bootflags & _BV(WDRF))
-            Logger::log("wd ");
-
+    if (bootflags & _BV(WDRF)) {
         for (byte i = 0; i < 5; i++) {
             byte state = Record::getRelayState(i);
 
             if (state == RELAY_TURNING_ON || state == RELAY_TURNING_OFF) {
                 Record::setRelayState(i, RELAY_OFF);
-                if (bootflags & _BV(WDRF))
-                    Logger::log(" relay fault ");
-                    Logger::log(i);
             }
         }
 
@@ -657,12 +666,10 @@ void setup()
 
     // set the node controller as starting device
     deviceWantsStart = 0;
-    startTimer.reset();
-    statusTimer.reset();
-
-    // reinitialize globals just in case...
     shouldResetSystem = false; // used to reset Wagman in main loop
     bufferSize = 0;
+    startTimer.reset();
+    statusTimer.reset();
 }
 
 void startNextDevice()
@@ -689,7 +696,7 @@ void startNextDevice()
 
 void loop()
 {
-    // ensure that the watchdog is always enabled (in case some anomaly disables it)
+    // ensure that the watchdog is always enabled
     wdt_enable(WDTO_8S);
     wdt_reset();
 
@@ -718,8 +725,7 @@ void loop()
 
 void resetSystem()
 {
-    // just to be safe, ensure that watchdog is set and long enough
-    // as to not leave the system in an infinite boot cycle
+    // ensure that watchdog is set!
     wdt_enable(WDTO_8S);
     wdt_reset();
 
@@ -757,7 +763,7 @@ void logStatus()
 
     Logger::end();
 
-    delay(100);
+    delay(50);
 
     tmElements_t tm;
     RTC.read(tm);
@@ -776,21 +782,20 @@ void logStatus()
     Logger::log(tm.Second);
     Logger::end();
 
-    delay(100);
+    delay(50);
 
     Logger::begin("cu");
 
     Logger::log(Wagman::getCurrent());
-    Logger::log(' ');
 
     for (byte i = 0; i < 5; i++) {
-        Logger::log(Wagman::getCurrent(i));
         Logger::log(' ');
+        Logger::log(Wagman::getCurrent(i));
     }
 
     Logger::end();
 
-    delay(100);
+    delay(50);
 
     Logger::begin("th");
 
@@ -801,7 +806,15 @@ void logStatus()
 
     Logger::end();
 
-    delay(100);
+    delay(50);
+
+    Logger::begin("env");
+    Logger::log(Wagman::getTemperature());
+    Logger::log(' ');
+    Logger::log(Wagman::getHumidity());
+    Logger::end();
+
+    delay(50);
 
     Logger::begin("fails");
 
@@ -812,7 +825,7 @@ void logStatus()
 
     Logger::end();
 
-    delay(100);
+    delay(50);
 
     Logger::begin("enabled");
 
@@ -823,7 +836,7 @@ void logStatus()
 
     Logger::end();
 
-    delay(100);
+    delay(50);
 
     Logger::begin("media");
 
@@ -840,7 +853,4 @@ void logStatus()
     }
 
     Logger::end();
-
-    delay(100);
 }
-

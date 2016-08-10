@@ -81,19 +81,11 @@ byte Device::getBootMedia() const
 
 byte Device::start()
 {
-    if (state == STATE_STARTED) {
-        Logger::begin(name);
-        Logger::log("already started");
-        Logger::end();
-        return ERROR_ALREADY_DONE;
-    }
+    if (state == STATE_STARTED)
+        return ERROR_INVALID_ACTION;
 
-    if (state == STATE_STOPPING) {
-        Logger::begin(name);
-        Logger::log("busy stopping");
-        Logger::end();
-        return ERROR_BUSY;
-    }
+    if (state == STATE_STOPPING)
+        return ERROR_INVALID_ACTION;
 
     if (port != PORT_NC && !Record::getDeviceEnabled(port)) {
         Logger::begin(name);
@@ -138,28 +130,17 @@ byte Device::start()
     return 0;
 }
 
-void Device::stop()
+byte Device::stop()
 {
-    if (state == STATE_STOPPED) {
-        Logger::begin(name);
-        Logger::log("already stopped");
-        Logger::end();
-        return;
-    }
+    if (state == STATE_STOPPED)
+        return ERROR_INVALID_ACTION;
 
-    if (state == STATE_STOPPING) {
-        Logger::begin(name);
-        Logger::log("busy stopping");
-        Logger::end();
-        return;
-    }
+    if (state == STATE_STOPPING)
+        return ERROR_INVALID_ACTION;
 
-    if (port == PORT_NC) {
-        Logger::begin(name);
-        Logger::log("cannot stop");
-        Logger::end();
-        return;
-    }
+    // stopping is not supported on the node controller
+    if (port == PORT_NC)
+        return ERROR_INVALID_ACTION;
     
     Logger::begin(name);
     Logger::log("stopping");
@@ -168,6 +149,8 @@ void Device::stop()
     shouldRestart = false;
 
     changeState(STATE_STOPPING);
+    
+    return 0;
 }
 
 void Device::restart()

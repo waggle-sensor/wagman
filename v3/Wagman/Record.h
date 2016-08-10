@@ -22,7 +22,7 @@ struct SensorStatus
 namespace Record
 {
     bool initialized();
-    
+
     void init();
 
     void getHardwareVersion(Version &version);
@@ -50,7 +50,7 @@ namespace Record
     unsigned int getBootAttempts(byte device);
     void setBootAttempts(byte device, unsigned int attempts);
     void incrementBootAttempts(byte device);
-    
+
     unsigned int getBootFailures(byte device);
     void setBootFailures(byte device, unsigned int failures);
     void incrementBootFailures(byte device);
@@ -62,5 +62,8 @@ namespace Record
     unsigned long getHeartbeatTimeout(byte device);
     unsigned long getUnmanagedChangeTime(byte device);
     unsigned long getStopTimeout(byte device);
-};
 
+    void logDeviceBootTime(byte device, const time_t &bootTime);
+    unsigned long getDeviceBootTime(byte device, byte index);
+    byte getDeviceBootTimeCount(byte device);
+};

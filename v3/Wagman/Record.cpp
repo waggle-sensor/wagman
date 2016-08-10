@@ -8,6 +8,8 @@ static const byte DEVICE_COUNT = 5;
 
 // Config EEPROM Spec
 
+static const byte BOOT_LOG_CAPACITY = 4;
+
 static const unsigned int
     EEPROM_MAGIC_ADDR = 0,
     EEPROM_HARDWARE_VERSION = 4,
@@ -42,25 +44,30 @@ static const unsigned int
     EEPROM_PORT_MANAGED = 1,
 
     EEPROM_PORT_BOOT_SELECT = 2,
-    
+
     EEPROM_PORT_LAST_BOOT_TIME = 3,
     EEPROM_PORT_BOOT_ATTEMPTS = 7,
     EEPROM_PORT_BOOT_FAILURES = 11,
-    
+
     EEPROM_PORT_THERM_HEALTH = 15,
     EEPROM_PORT_THREM_MIN = 16,
     EEPROM_PORT_THREM_MAX = 18,
-    
+
     EEPROM_PORT_CURRENT_HEALTH = 20,
     EEPROM_PORT_CURRENT_MIN = 21,
     EEPROM_PORT_CURRENT_MAX = 23,
     EEPROM_PORT_CURRENT_FAULT_LEVEL = 25,
-    
-    EEPROM_PORT_CURRENT_FAULT_TIMEOUT = 27,
-    EEPROM_PORT_CURRENT_HEARTBEAT_TIMEOUT = 31,
+    EEPROM_PORT_CURRENT_LEVEL_LOW = 21,
+    EEPROM_PORT_CURRENT_LEVEL_NORMAL = 23,
+    EEPROM_PORT_CURRENT_LEVEL_STRESSED = 25,
+    EEPROM_PORT_CURRENT_LEVEL_HIGH = 27,
 
-    EEPROM_PORT_RELAY_HEALTH = 35,
-    EEPROM_PORT_RELAY_JOURNAL = 36;
+    EEPROM_PORT_CURRENT_FAULT_TIMEOUT = 29,
+    EEPROM_PORT_CURRENT_HEARTBEAT_TIMEOUT = 33,
+
+    EEPROM_PORT_RELAY_HEALTH = 37,
+    EEPROM_PORT_RELAY_JOURNAL = 38,
+    EEPROM_PORT_BOOT_LOG = 64;
 
 namespace Record
 {
@@ -79,13 +86,10 @@ bool initialized()
 
 void init()
 {
-    if (initialized())
-        return;
+    Version version;
 
     Record::setBootCount(0);
     Record::setLastBootTime(0);
-
-    Version version;
 
     version.major = 3;
     version.minor = 1;
@@ -107,7 +111,7 @@ void init()
     setDeviceEnabled(2, true);
     setDeviceEnabled(3, false);
     setDeviceEnabled(4, false);
-    
+
     EEPROM.put(EEPROM_MAGIC_ADDR, MAGIC);
 }
 
@@ -144,7 +148,7 @@ void setBootCount(const unsigned long &count)
 void incrementBootCount()
 {
     unsigned long count;
-    
+
     getBootCount(count);
     count++;
     setBootCount(count);
@@ -269,5 +273,48 @@ unsigned long getStopTimeout(byte device)
     return (unsigned long)60000; // 60 seconds
 }
 
+void logDeviceBootTime(byte device, const time_t &bootTime)
+{
+    unsigned int addr = deviceRegion(device) + EEPROM_PORT_BOOT_LOG;
+}
+
+unsigned long getDeviceBootTime(byte device, byte index)
+{
+    unsigned int addr = deviceRegion(device) + EEPROM_PORT_BOOT_LOG;
+    byte start = EEPROM.read(addr + 0);
+    byte count = EEPROM.read(addr + 1);
+
+    if (index >= count) // error
+        return 0;
+
+    byte clampedIndex = (start + index) % BOOT_LOG_CAPACITY;
+
+    unsigned long bootTime;
+    EEPROM.get(addr + 2 + sizeof(unsigned long) * clampedIndex, bootTime);
+    return bootTime;
+}
+
+byte getDeviceBootTimeCount(byte device)
+{
+    unsigned int addr = deviceRegion(device) + EEPROM_PORT_BOOT_LOG;
+    byte count = EEPROM.read(addr + 1);
+    return count;
+}
+
+class BootLog
+{
+public:
+
+    BootLog(unsigned int theAddress, byte theCapacity)
+    {
+        address = theAddress;
+        capacity = theCapacity;
+    }
+
+private:
+
+    unsigned int address;
+    byte capacity;
 };
 
+};

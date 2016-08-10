@@ -20,5 +20,11 @@ namespace Logger
             Serial.print(value, HEX);
         }
     }
+
+    void logID();
+    void logDate();
+    void logCurrent();
+    void logHeartbeat();
+    void logThermistors();
 };
 

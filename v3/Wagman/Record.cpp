@@ -72,6 +72,14 @@ static const unsigned int
 namespace Record
 {
 
+static BootLog bootLogs[5] = {
+    BootLog(256 + 0 * 128 + 64),
+    BootLog(256 + 1 * 128 + 64),
+    BootLog(256 + 2 * 128 + 64),
+    BootLog(256 + 3 * 128 + 64),
+    BootLog(256 + 4 * 128 + 64),
+};
+
 unsigned int deviceRegion(byte device)
 {
     return EEPROM_PORT_REGIONS_START + device * EEPROM_PORT_REGIONS_SIZE;
@@ -103,6 +111,8 @@ void init()
         setBootAttempts(i, 0);
         setBootFailures(i, 0);
         setRelayState(i, RELAY_OFF);
+
+        bootLogs[i].init();
     }
 
     // default setup is just node controller and single guest node.
@@ -113,6 +123,11 @@ void init()
     setDeviceEnabled(4, false);
 
     EEPROM.put(EEPROM_MAGIC_ADDR, MAGIC);
+}
+
+void clearMagic()
+{
+    EEPROM.put(EEPROM_MAGIC_ADDR, (unsigned long)0);
 }
 
 void getHardwareVersion(Version &version)
@@ -301,20 +316,73 @@ byte getDeviceBootTimeCount(byte device)
     return count;
 }
 
-class BootLog
-{
-public:
+};
 
-    BootLog(unsigned int theAddress, byte theCapacity)
-    {
-        address = theAddress;
-        capacity = theCapacity;
+BootLog::BootLog(unsigned int addr)
+{
+    address = addr;
+}
+
+void BootLog::init()
+{
+    setStart(0);
+    setCount(0);
+}
+
+void BootLog::addEntry(time_t time)
+{
+    byte start = getStart();
+    byte count = getCount();
+    byte index = (start + count) % capacity;
+
+    EEPROM.put(address + 2 + sizeof(time_t) * index, time);
+
+    // if there's no more space, overwrite the oldest entry
+    if (count == capacity) {
+        setStart(start + 1);
+    } else {
+        setCount(count + 1);
+    }
+}
+
+time_t BootLog::getEntry(byte i)
+{
+    byte start = getStart();
+    byte count = getCount();
+
+    if (i >= count) {
+        return; // error
     }
 
-private:
+    byte index = (start + i) % capacity;
 
-    unsigned int address;
-    byte capacity;
-};
+    time_t time;
+    EEPROM.get(address + 2 + sizeof(time_t) * index, time);
+    return time;
+}
 
-};
+byte BootLog::getStart() const
+{
+    return EEPROM.read(address + 0);
+}
+
+void BootLog::setStart(byte start)
+{
+    EEPROM.write(address + 0, start);
+}
+
+byte BootLog::getCount() const
+{
+    return EEPROM.read(address + 1);
+}
+
+void BootLog::setCount(byte count)
+{
+    EEPROM.write(address + 1, count);
+}
+
+byte BootLog::getCapacity() const
+{
+    return capacity;
+}
+

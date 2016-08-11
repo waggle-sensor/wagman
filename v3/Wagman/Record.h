@@ -19,11 +19,39 @@ struct SensorStatus
     Range range;
 };
 
+class BootLog
+{
+public:
+
+    BootLog(unsigned int addr);
+    void init();
+    
+    void addEntry(time_t time);
+    time_t getEntry(byte i);
+    
+    byte getCount() const;
+    byte getCapacity() const;
+
+private:
+
+    byte getStart() const;
+    void setStart(byte start);
+    
+    void setCount(byte count);
+
+    unsigned int address;
+    const byte capacity = 8;
+};
+
 namespace Record
 {
+    extern BootLog bootLogs[5];
+
     bool initialized();
 
     void init();
+
+    void clearMagic();
 
     void getHardwareVersion(Version &version);
     void setHardwareVersion(const Version &version);

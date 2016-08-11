@@ -62,6 +62,8 @@ class Device
         bool watchHeartbeat;
         bool watchCurrent;
 
+        void setStartDelay(unsigned long t);
+
     private:
 
         byte state;
@@ -88,5 +90,7 @@ class Device
         Timer stateTimer;
         Timer stopMessageTimer;
         Timer heartbeatTimer;
+
+        unsigned long startDelay;
 };
 

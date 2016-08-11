@@ -35,6 +35,10 @@ bool Device::canStart() const
         return true;
     }
 
+    if (startDelay != 0 && !stateTimer.exceeds(startDelay)) {
+        return false;
+    }
+
     return Record::getDeviceEnabled(port);
 }
 
@@ -117,6 +121,10 @@ byte Device::start()
     Logger::end();
 
     Record::incrementBootAttempts(port);
+
+    time_t bootTime;
+    Wagman::getTime(bootTime);
+    Record::bootLogs[port].addEntry(bootTime);
 
     Record::setRelayState(port, RELAY_TURNING_ON);
     delay(10);
@@ -332,6 +340,10 @@ void Device::sendExternalHeartbeat()
     Logger::end();
 }
 
+void Device::setStartDelay(unsigned long t)
+{
+    startDelay = t;
+}
 
 void Timer::reset()
 {

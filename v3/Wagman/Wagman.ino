@@ -426,7 +426,7 @@ void executeCommand(const char *sid, byte argc, const char **argv)
 
 byte commandResetEEPROM(byte argc, const char **argv)
 {
-    Record::init();
+    Record::clearMagic();
     return 0;
 }
 
@@ -524,7 +524,8 @@ void setup()
 
     wdt_reset();
 
-    // if we started from a power on or brown out
+    // if we started from a power on or brown out, these devices should have
+    // either browned out or died in this case.
     if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
         // kill all of the devices onboard
         for (byte i = 0; i < 5; i++) {
@@ -552,6 +553,17 @@ void setup()
     delay(2000);
 
     if (!Record::initialized()) {
+        for (byte i = 0; i < 20; i++) {
+            Wagman::setLED(0, true);
+            delay(20);
+            Wagman::setLED(1, true);
+            delay(20);
+            Wagman::setLED(0, false);
+            delay(20);
+            Wagman::setLED(1, false);
+            delay(20);
+        }
+        
         Logger::begin("init");
         Logger::log("record init");
         Logger::end();
@@ -596,6 +608,15 @@ void setup()
     Wagman::getTime(setupTime);
     Record::setLastBootTime(setupTime);
     Record::incrementBootCount();
+
+    byte count = Record::bootLogs[0].getCount();
+
+//    if (count >= 2) {
+//        if (Record::bootLogs[0].getEntry(count - 1) - Record::bootLogs[0].getEntry(count - 2) < ...) {
+//            // then wait a bit longer to start this device.
+//            // devices[0].canStartDelay = (unsigned long)60000;
+//        }
+//    }
 
     // Wait to see if node controller heartbeat was detected.
     for (byte i = 0; i < 8; i++) {
@@ -711,7 +732,6 @@ void loop()
 
     if (statusTimer.exceeds(30000)) {
         statusTimer.reset();
-
         wdt_reset();
         logStatus();
     }
@@ -840,7 +860,7 @@ void logStatus()
 
     Logger::begin("media");
 
-    for (byte i = 0; i < 5; i++) {
+    for (byte i = 0; i < 2; i++) {
         byte bootMedia = devices[i].getBootMedia();
 
         if (bootMedia == MEDIA_SD) {
@@ -854,3 +874,4 @@ void logStatus()
 
     Logger::end();
 }
+

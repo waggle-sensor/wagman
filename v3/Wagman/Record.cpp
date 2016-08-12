@@ -68,7 +68,7 @@ static const unsigned int
 namespace Record
 {
 
-static BootLog bootLogs[5] = {
+BootLog bootLogs[5] = {
     BootLog(256 + 0 * 128 + 64),
     BootLog(256 + 1 * 128 + 64),
     BootLog(256 + 2 * 128 + 64),
@@ -339,7 +339,7 @@ time_t BootLog::getEntry(byte i)
     byte count = getCount();
 
     if (i >= count) {
-        return; // error
+        return 0;
     }
 
     byte index = (start + i) % capacity;

@@ -6,11 +6,10 @@
 #include "Logger.h"
 #include "Error.h"
 #include "MCP79412RTC.h"
+#include "commands.h"
+#include "Timer.h"
 
 /*
- * TODO Speedup communications. Not bad now, but could be faster?
- * TODO Add error detection to communications. Can still easily write a front end to talk using protocol.
- * TODO Cleanup, really think about communication pathway. Does this allow us to reduce anything from the core?
  * TODO Add persistant event logging on using system hardware so we can trace what happened during a device failure.
  * TODO Check that system current reading is correct.
  * TODO Move towards errors aware API.
@@ -42,35 +41,6 @@ static byte bufferSize = 0;
 
 time_t setupTime;
 
-bool isspace(char c);
-bool isgraph(char c);
-
-struct Command {
-    const char *name;
-    byte (*func)(byte, const char **);
-};
-
-byte commandStart(byte argc, const char **argv);
-byte commandStop(byte argc, const char **argv);
-byte commandKill(byte argc, const char **argv);
-byte commandReset(byte argc, const char **argv);
-byte commandPing(byte argc, const char **argv);
-byte commandID(byte argc, const char **argv);
-byte commandEEDump(byte argc, const char **argv);
-byte commandDate(byte argc, const char **argv);
-byte commandCurrent(byte argc, const char **argv);
-byte commandHeartbeat(byte argc, const char **argv);
-byte commandThermistor(byte argc, const char **argv);
-byte commandEnvironment(byte argc, const char **argv);
-byte commandBootMedia(byte argc, const char **argv);
-byte commandFailCount(byte argc, const char **argv);
-byte commandLog(byte argc, const char **argv);
-byte commandBootFlags(byte argc, const char **argv);
-byte commandUptime(byte argc, const char **argv);
-byte commandEnable(byte argc, const char **argv);
-byte commandWatch(byte argc, const char **argv);
-byte commandResetEEPROM(byte argc, const char **argv);
-
 Command commands[] = {
     { "ping", commandPing },
     { "start", commandStart },
@@ -88,7 +58,8 @@ Command commands[] = {
     { "bf", commandBootFlags },
     { "fc", commandFailCount },
     { "up", commandUptime },
-    { "en", commandEnable },
+    { "enable", commandEnable },
+    { "disable", commandDisable },
     { "watch", commandWatch },
     { "log", commandLog },
     { "eereset", commandResetEEPROM },
@@ -359,17 +330,30 @@ byte commandUptime(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) 
 
 byte commandEnable(byte argc, const char **argv)
 {
-    if (argc == 2) {
-        byte index = atoi(argv[1]);
-        if (Wagman::validPort(index)) {
-            Serial.println(Record::getDeviceEnabled(index));
-        }
-    } else if (argc == 3) {
-        byte index = atoi(argv[1]);
-        if (Wagman::validPort(index)) {
-            Record::setDeviceEnabled(index, strcmp(argv[2], "1") == 0);
-        }
-    }
+    if (argc != 2)
+        return ERROR_INVALID_ARGC;
+
+    byte port = atoi(argv[1]);
+
+    if (!Wagman::validPort(port))
+        return ERROR_INVALID_PORT;
+
+    devices[port].enable();
+
+    return 0;
+}
+
+byte commandDisable(byte argc, const char **argv)
+{
+    if (argc != 2)
+        return ERROR_INVALID_ARGC;
+
+    byte port = atoi(argv[1]);
+
+    if (!Wagman::validPort(port))
+        return ERROR_INVALID_PORT;
+
+    devices[port].disable();
 
     return 0;
 }
@@ -397,7 +381,6 @@ byte commandWatch(byte argc, const char **argv)
 
 void executeCommand(const char *sid, byte argc, const char **argv)
 {
-    byte error = 0;
     byte (*func)(byte, const char **) = NULL;
 
     // search for command and execute if found
@@ -415,7 +398,7 @@ void executeCommand(const char *sid, byte argc, const char **argv)
     Serial.println(argv[0]);
 
     if (func != NULL) {
-        error = func(argc, argv);
+        func(argc, argv);
     } else {
         Serial.println("command not found");
     }
@@ -522,20 +505,20 @@ void setup()
 
     Wagman::init();
 
+    // If we boot from a poweron or brownout, then we immediately stop the node controller.
+    // NOTE This doesn't even seem to matter now... I'm not sure what changed here.
+    
+    // ...this seems pointless now...i'm not sure if i can even detect this...
+//    if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
+//        for (byte i = 0; i < 5; i++) {
+//            Wagman::setRelay(i, false);
+//            delay(100);
+//        }
+//    }
+
     wdt_reset();
 
-    // if we started from a power on or brown out, these devices should have
-    // either browned out or died in this case.
-    if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
-        // kill all of the devices onboard
-        for (byte i = 0; i < 5; i++) {
-            Wagman::setRelay(i, false);
-            delay(100);
-        }
-    }
-
-    wdt_reset();
-
+    // show init light sequence
     for (byte i = 0; i < 8; i++) {
         Wagman::setLED(0, true);
         delay(100);
@@ -563,7 +546,7 @@ void setup()
             Wagman::setLED(1, false);
             delay(20);
         }
-        
+
         Logger::begin("init");
         Logger::log("record init");
         Logger::end();
@@ -609,15 +592,6 @@ void setup()
     Record::setLastBootTime(setupTime);
     Record::incrementBootCount();
 
-    byte count = Record::bootLogs[0].getCount();
-
-//    if (count >= 2) {
-//        if (Record::bootLogs[0].getEntry(count - 1) - Record::bootLogs[0].getEntry(count - 2) < ...) {
-//            // then wait a bit longer to start this device.
-//            // devices[0].canStartDelay = (unsigned long)60000;
-//        }
-//    }
-
     // Wait to see if node controller heartbeat was detected.
     for (byte i = 0; i < 8; i++) {
         wdt_reset();
@@ -631,54 +605,51 @@ void setup()
         Wagman::setLED(0, false);
         delay(250);
 
-        if (heartbeatCounters[0] >= 4 || Wagman::getCurrent(0) > 120) {
-            // actually change the device state to reflect what we think!
+        if (heartbeatCounters[0] >= 4) {
+            // ...so, now we think that the node controller is alive...
+            // ...what should we do now...?
             break;
         }
     }
 
     wdt_reset();
 
-    if (bootflags & _BV(WDRF)) {
-        for (byte i = 0; i < 5; i++) {
-            byte state = Record::getRelayState(i);
+    // Check for any incomplete relays which may have killed the system.
+    // An assumption here is that if one of these devices killed the system
+    // when starting, then there should only be one incomplete relay state.
+    for (byte i = 0; i < 5; i++) {
+        byte state = Record::getRelayState(i);
 
-            if (state == RELAY_TURNING_ON || state == RELAY_TURNING_OFF) {
-                Record::setRelayState(i, RELAY_OFF);
-            }
-        }
+        if (state == RELAY_TURNING_ON || state == RELAY_TURNING_OFF) {
+            Record::setRelayState(i, RELAY_OFF);
 
-        Logger::end();
-    }
-
-    if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
-        Logger::begin("init");
-
-        if (bootflags & _BV(PORF))
-            Logger::log("porf ");
-
-        if (bootflags & _BV(BORF))
-            Logger::log("borf ");
-
-        for (byte i = 0; i < 5; i++) {
-            byte state = Record::getRelayState(i);
-
-            if (state == RELAY_TURNING_ON || state == RELAY_TURNING_OFF) {
+            // Plausible that power off was caused by toggling this relay.
+            if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
                 Record::setDeviceEnabled(i, false);
-                Record::setRelayState(i, RELAY_OFF);
-
-                Logger::log(" relay fault ");
-                Logger::log(i);
             }
         }
-
-        Logger::end();
     }
 
-    if (bootflags == 0) {
-        Logger::begin("init");
-        Logger::log("ok");
-        Logger::end();
+    if (bootflags & _BV(PORF)) {
+        // Check for current sensor failures
+        for (byte i = 0; i < 5; i++) {
+            Record::setPortCurrentSensorHealth(i, Record::getPortCurrentSensorHealth(i) + 1);
+            delay(20);
+            Wagman::getCurrent(i);
+            delay(50);
+            Record::setPortCurrentSensorHealth(i, Record::getPortCurrentSensorHealth(i) - 1);
+            delay(20);
+        }
+
+        // Check for thermistor sensor failures
+        for (byte i = 0; i < 5; i++) {
+            Record::setThermistorSensorHealth(i, Record::getThermistorSensorHealth(i) + 1);
+            delay(20);
+            Wagman::getThermistor(i);
+            delay(50);
+            Record::setThermistorSensorHealth(i, Record::getThermistorSensorHealth(i) - 1);
+            delay(20);
+        }
     }
 
     for (byte i = 0; i < DEVICE_COUNT; i++) {
@@ -704,10 +675,9 @@ void startNextDevice()
     }
 
     if (startTimer.exceeds(30000)) {
-        startTimer.reset();
-
         for (byte i = 0; i < DEVICE_COUNT; i++) {
             if (devices[i].canStart()) { // include !started in canStart() call.
+                startTimer.reset();
                 devices[i].start();
                 break;
             }
@@ -874,4 +844,3 @@ void logStatus()
 
     Logger::end();
 }
-

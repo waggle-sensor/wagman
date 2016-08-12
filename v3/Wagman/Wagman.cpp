@@ -91,8 +91,6 @@ void init()
     for (byte i = 0; i < PORT_COUNT; i++) {
         pinMode(POWER_PINS[i], OUTPUT);
         pinMode(HEARTBEAT_PINS[i], INPUT);
-
-        // clear the heartbeat counters
         heartbeatCounters[i] = 0;
     }
 

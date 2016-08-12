@@ -24,16 +24,13 @@ static const unsigned int WAGMAN_REGION_START = 128;
 static const unsigned int WAGMAN_LAST_BOOT_TIME = 0;
 
 static const unsigned int WAGMAN_HTU21D_HEALTH = 4;
-static const unsigned int WAGMAN_HTU21D_MIN = 5;
-static const unsigned int WAGMAN_HTU21D_MAX = 7;
+static const unsigned int WAGMAN_HTU21D_RANGE = 5;
 
 static const unsigned int WAGMAN_HIH4030_HEALTH = 9;
-static const unsigned int WAGMAN_HIH4030_MIN = 10;
-static const unsigned int WAGMAN_HIH4030_MAX = 12;
+static const unsigned int WAGMAN_HIH4030_RANGE = 10;
 
 static const unsigned int WAGMAN_CURRENT_HEALTH = 14;
-static const unsigned int WAGMAN_CURRENT_MIN = 15;
-static const unsigned int WAGMAN_CURRENT_MAX = 17;
+static const unsigned int WAGMAN_CURRENT_RANGE = 15;
 
 // Device EEPROM Spec
 
@@ -49,14 +46,13 @@ static const unsigned int
     EEPROM_PORT_BOOT_ATTEMPTS = 7,
     EEPROM_PORT_BOOT_FAILURES = 11,
 
-    EEPROM_PORT_THERM_HEALTH = 15,
-    EEPROM_PORT_THREM_MIN = 16,
-    EEPROM_PORT_THREM_MAX = 18,
+    EEPROM_PORT_THERMISTOR_HEALTH = 15,
+    EEPROM_PORT_THERMISTOR_RANGE = 16,
 
     EEPROM_PORT_CURRENT_HEALTH = 20,
-    EEPROM_PORT_CURRENT_MIN = 21,
-    EEPROM_PORT_CURRENT_MAX = 23,
+    EEPROM_PORT_CURRENT_RANGE = 21,
     EEPROM_PORT_CURRENT_FAULT_LEVEL = 25,
+
     EEPROM_PORT_CURRENT_LEVEL_LOW = 21,
     EEPROM_PORT_CURRENT_LEVEL_NORMAL = 23,
     EEPROM_PORT_CURRENT_LEVEL_STRESSED = 25,
@@ -111,6 +107,9 @@ void init()
         setBootAttempts(i, 0);
         setBootFailures(i, 0);
         setRelayState(i, RELAY_OFF);
+        
+        setPortCurrentSensorHealth(i, 0);
+        setThermistorSensorHealth(i, 0);
 
         bootLogs[i].init();
     }
@@ -163,7 +162,6 @@ void setBootCount(const unsigned long &count)
 void incrementBootCount()
 {
     unsigned long count;
-
     getBootCount(count);
     count++;
     setBootCount(count);
@@ -252,6 +250,26 @@ void setRelayState(byte port, byte state)
     EEPROM.write(deviceRegion(port) + EEPROM_PORT_RELAY_JOURNAL, state);
 }
 
+byte getPortCurrentSensorHealth(byte port)
+{
+    return EEPROM.read(deviceRegion(port) + EEPROM_PORT_CURRENT_HEALTH);
+}
+
+void setPortCurrentSensorHealth(byte port, byte health)
+{
+    EEPROM.write(deviceRegion(port) + EEPROM_PORT_CURRENT_HEALTH, health);
+}
+
+byte getThermistorSensorHealth(byte port)
+{
+    return EEPROM.read(deviceRegion(port) + EEPROM_PORT_THERMISTOR_HEALTH);
+}
+
+void setThermistorSensorHealth(byte port, byte health)
+{
+    EEPROM.write(deviceRegion(port) + EEPROM_PORT_THERMISTOR_HEALTH, health);
+}
+
 int getFaultCurrent(byte port)
 {
     // these are hardcoded for now to be "sensible" levels.
@@ -287,36 +305,6 @@ unsigned long getStopTimeout(byte device)
 {
     return (unsigned long)60000; // 60 seconds
 }
-
-void logDeviceBootTime(byte device, const time_t &bootTime)
-{
-    unsigned int addr = deviceRegion(device) + EEPROM_PORT_BOOT_LOG;
-}
-
-unsigned long getDeviceBootTime(byte device, byte index)
-{
-    unsigned int addr = deviceRegion(device) + EEPROM_PORT_BOOT_LOG;
-    byte start = EEPROM.read(addr + 0);
-    byte count = EEPROM.read(addr + 1);
-
-    if (index >= count) // error
-        return 0;
-
-    byte clampedIndex = (start + index) % BOOT_LOG_CAPACITY;
-
-    unsigned long bootTime;
-    EEPROM.get(addr + 2 + sizeof(unsigned long) * clampedIndex, bootTime);
-    return bootTime;
-}
-
-byte getDeviceBootTimeCount(byte device)
-{
-    unsigned int addr = deviceRegion(device) + EEPROM_PORT_BOOT_LOG;
-    byte count = EEPROM.read(addr + 1);
-    return count;
-}
-
-};
 
 BootLog::BootLog(unsigned int addr)
 {
@@ -385,4 +373,6 @@ byte BootLog::getCapacity() const
 {
     return capacity;
 }
+
+};
 

@@ -21,25 +21,18 @@ void Device::init()
 
     currentLevel = CURRENT_LOW;
 
-    changeState(STATE_STOPPED);
+    startDelay = 0;
+
+    if (Record::getDeviceEnabled(port)) {
+        changeState(STATE_STOPPED);
+    } else {
+        disable();
+    }
 }
 
 bool Device::canStart() const
 {
-    if (state != STATE_STOPPED) {
-        return false;
-    }
-
-    // node controller always allowed to start
-    if (port == 0) {
-        return true;
-    }
-
-    if (startDelay != 0 && !stateTimer.exceeds(startDelay)) {
-        return false;
-    }
-
-    return Record::getDeviceEnabled(port);
+    return state == STATE_STOPPED && stateTimer.exceeds(startDelay);
 }
 
 bool Device::started() const
@@ -85,10 +78,7 @@ byte Device::getBootMedia() const
 
 byte Device::start()
 {
-    if (state == STATE_STARTED)
-        return ERROR_INVALID_ACTION;
-
-    if (state == STATE_STOPPING)
+    if (state != STATE_STOPPED)
         return ERROR_INVALID_ACTION;
 
     if (port != PORT_NC && !Record::getDeviceEnabled(port)) {
@@ -129,7 +119,7 @@ byte Device::start()
     Record::setRelayState(port, RELAY_TURNING_ON);
     delay(10);
     Wagman::setRelay(port, true);
-    delay(100);
+    delay(500);
     Record::setRelayState(port, RELAY_ON);
     delay(10);
 
@@ -154,25 +144,9 @@ byte Device::stop()
     Logger::log("stopping");
     Logger::end();
 
-    shouldRestart = false;
-
     changeState(STATE_STOPPING);
     
     return 0;
-}
-
-void Device::restart()
-{
-    // simulated restart...but really should ask device to restart itself.
-    if (state == STATE_STARTED) {
-        stop();
-
-        Logger::begin(name);
-        Logger::log("will restart");
-        Logger::end();
-    }
-
-    shouldRestart = true;
 }
 
 void Device::kill()
@@ -184,32 +158,43 @@ void Device::kill()
     Record::setRelayState(port, RELAY_TURNING_OFF);
     delay(10);
     Wagman::setRelay(port, false);
-    delay(100);
+    delay(500);
     Record::setRelayState(port, RELAY_OFF);
     delay(10);
 
     changeState(STATE_STOPPED);
 }
 
+void Device::enable()
+{
+    Record::setDeviceEnabled(port, true);
+    changeState(STATE_STOPPED);
+}
+
+void Device::disable()
+{
+    if (port == 0) {
+        kill();
+    } else {
+        Record::setDeviceEnabled(port, false);
+        kill();
+        changeState(STATE_DISABLED);
+    }
+}
+
 void Device::update()
 {
-    if (Record::getDeviceEnabled(port)) { // maybe cache all these device enables.
-        updateHeartbeat();
-        updateFault();
-        updateState();
-    }
+    updateHeartbeat();
+    updateFault();
+    updateState();
 }
 
 void Device::updateHeartbeat()
 {
-    if (heartbeatCounters[port] >= 5) {
+    // ...this is probably all we'd like exposed from the outside...not this combination...
+    if (heartbeatCounters[port] >= 8) {
         heartbeatCounters[port] = 0;
-        
-        heartbeatTimer.reset();
-
-        Logger::begin(name);
-        Logger::log("heartbeat");
-        Logger::end();
+        onHeartbeat();
     }
 }
 
@@ -241,8 +226,14 @@ void Device::updateFault()
 void Device::updateState()
 {
     switch (state) {
+        case STATE_DISABLED:
+            updateDisabled();
+            break;
         case STATE_STOPPED:
             updateStopped();
+            break;
+        case STATE_STARTING:
+            updateStarting();
             break;
         case STATE_STARTED:
             updateStarted();
@@ -253,14 +244,27 @@ void Device::updateState()
     }
 }
 
+void Device::updateDisabled()
+{
+    // never allow node controller to remain in this state for more than a minute.
+    if (port == 0 && stateTimer.exceeds(60000)) {
+        enable();
+    }
+}
+
 void Device::updateStopped()
 {
-    if (watchCurrent && currentLevel != CURRENT_LOW && currentLevelTimer.exceeds(10000)) {
+}
+
+void Device::updateStarting()
+{
+    if (stateTimer.exceeds(300000)) {
         Logger::begin(name);
-        Logger::log("current detected");
+        Logger::log("starting timeout");
         Logger::end();
 
-        changeState(STATE_STARTED);
+        Record::incrementBootFailures(port);
+        kill();
     }
 }
 
@@ -333,11 +337,7 @@ void Device::changeState(byte newState)
 
 void Device::sendExternalHeartbeat()
 {
-    heartbeatTimer.reset();
-
-    Logger::begin(name);
-    Logger::log("external heartbeat");
-    Logger::end();
+    onHeartbeat();
 }
 
 void Device::setStartDelay(unsigned long t)
@@ -345,18 +345,23 @@ void Device::setStartDelay(unsigned long t)
     startDelay = t;
 }
 
-void Timer::reset()
-{
-    start = millis();
-}
 
-unsigned long Timer::elapsed() const
+void Device::onHeartbeat()
 {
-    return millis() - start;
-}
+    heartbeatTimer.reset();
 
-bool Timer::exceeds(unsigned long time) const
-{
-    return (millis() - start) > time;
+    Logger::begin(name);
+    Logger::log("heartbeat");
+    Logger::end();
+
+    switch (state) {
+        case STATE_DISABLED:
+            disable(); // repeat disable kill until no more heartbeat, just in case...
+            break;
+        case STATE_STOPPED:
+        case STATE_STARTING:
+            changeState(STATE_STARTED);
+            break;
+    }
 }
 

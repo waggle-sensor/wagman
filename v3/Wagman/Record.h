@@ -19,32 +19,32 @@ struct SensorStatus
     Range range;
 };
 
-class BootLog
-{
-public:
-
-    BootLog(unsigned int addr);
-    void init();
-    
-    void addEntry(time_t time);
-    time_t getEntry(byte i);
-    
-    byte getCount() const;
-    byte getCapacity() const;
-
-private:
-
-    byte getStart() const;
-    void setStart(byte start);
-    
-    void setCount(byte count);
-
-    unsigned int address;
-    const byte capacity = 8;
-};
-
 namespace Record
 {
+    class BootLog
+    {
+    public:
+    
+        BootLog(unsigned int addr);
+        void init();
+        
+        void addEntry(time_t time);
+        time_t getEntry(byte i);
+        
+        byte getCount() const;
+        byte getCapacity() const;
+    
+    private:
+    
+        byte getStart() const;
+        void setStart(byte start);
+        
+        void setCount(byte count);
+    
+        unsigned int address;
+        const byte capacity = 8;
+    };
+    
     extern BootLog bootLogs[5];
 
     bool initialized();
@@ -91,7 +91,10 @@ namespace Record
     unsigned long getUnmanagedChangeTime(byte device);
     unsigned long getStopTimeout(byte device);
 
-    void logDeviceBootTime(byte device, const time_t &bootTime);
-    unsigned long getDeviceBootTime(byte device, byte index);
-    byte getDeviceBootTimeCount(byte device);
+    byte getPortCurrentSensorHealth(byte port);
+    void setPortCurrentSensorHealth(byte port, byte health);
+
+    byte getThermistorSensorHealth(byte port);
+    void setThermistorSensorHealth(byte port, byte health);
 };
+

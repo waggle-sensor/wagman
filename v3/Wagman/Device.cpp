@@ -120,14 +120,7 @@ byte Device::start()
 
 byte Device::stop()
 {
-    if (state == STATE_STOPPED)
-        return ERROR_INVALID_ACTION;
-
-    if (state == STATE_STOPPING)
-        return ERROR_INVALID_ACTION;
-
-    // stopping is not supported on the node controller
-    if (port == PORT_NC)
+    if (state != STATE_STARTED)
         return ERROR_INVALID_ACTION;
 
     Logger::begin(name);
@@ -267,9 +260,7 @@ void Device::updateStarted()
 
         Record::incrementBootFailures(port);
         stop();
-    }
-
-    if (watchCurrent && currentLevelTimer.exceeds(10000)) {
+    } else if (watchCurrent && currentLevelTimer.exceeds(10000)) {
         Logger::begin(name);
 
         switch (currentLevel) {

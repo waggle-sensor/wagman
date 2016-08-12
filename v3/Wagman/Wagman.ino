@@ -22,6 +22,11 @@
  * TODO Command for resetting PMEM.
  */
 
+void setupDevices();
+void checkSensors();
+void checkCurrentSensors();
+void checkThermistors();
+
 static const byte DEVICE_COUNT = 5;
 static const byte BUFFER_SIZE = 80;
 static const byte MAX_ARGC = 8;
@@ -400,7 +405,7 @@ void executeCommand(const char *sid, byte argc, const char **argv)
     if (func != NULL) {
         func(argc, argv);
     } else {
-        Serial.println("command not found");
+        Serial.println("invalid command");
     }
 
     // marks the end of a response packet.
@@ -411,16 +416,6 @@ byte commandResetEEPROM(byte argc, const char **argv)
 {
     Record::clearMagic();
     return 0;
-}
-
-// Assumes ASCII encoding.
-bool isspace(char c) {
-    return c == ' ' || c == '\t';
-}
-
-// Assumes ASCII encoding.
-bool isgraph(char c) {
-    return '!' <= c && c <= '~';
 }
 
 void processCommand()
@@ -501,22 +496,9 @@ void setup()
     MCUSR = 0;
 
     wdt_enable(WDTO_8S);
-    wdt_reset();
-
-    Wagman::init();
-
-    // If we boot from a poweron or brownout, then we immediately stop the node controller.
-    // NOTE This doesn't even seem to matter now... I'm not sure what changed here.
-    
-    // ...this seems pointless now...i'm not sure if i can even detect this...
-//    if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
-//        for (byte i = 0; i < 5; i++) {
-//            Wagman::setRelay(i, false);
-//            delay(100);
-//        }
-//    }
 
     wdt_reset();
+    Serial.begin(57600);
 
     // show init light sequence
     for (byte i = 0; i < 8; i++) {
@@ -531,12 +513,13 @@ void setup()
     }
 
     wdt_reset();
-    Serial.begin(57600);
+    Wagman::init();
 
-    delay(2000);
-
+    wdt_reset();
     if (!Record::initialized()) {
-        for (byte i = 0; i < 20; i++) {
+        Record::init();
+
+        for (byte i = 0; i < 16; i++) {
             Wagman::setLED(0, true);
             delay(20);
             Wagman::setLED(1, true);
@@ -546,15 +529,27 @@ void setup()
             Wagman::setLED(1, false);
             delay(20);
         }
-
-        Logger::begin("init");
-        Logger::log("record init");
-        Logger::end();
-
-        wdt_reset();
-        Record::init();
     }
 
+    Wagman::getTime(setupTime);
+    Record::setLastBootTime(setupTime);
+    Record::incrementBootCount();
+
+    if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
+        checkSensors();
+    }
+
+    setupDevices();
+
+    deviceWantsStart = 0;
+    shouldResetSystem = false;
+    bufferSize = 0;
+    startTimer.reset();
+    statusTimer.reset();
+}
+
+void setupDevices()
+{
     devices[0].name = "nc";
     devices[0].port = 0;
     devices[0].bootSelector = 0;
@@ -588,36 +583,14 @@ void setup()
     devices[4].watchHeartbeat = false;
     devices[4].watchCurrent = false;
 
-    Wagman::getTime(setupTime);
-    Record::setLastBootTime(setupTime);
-    Record::incrementBootCount();
-
-    // Wait to see if node controller heartbeat was detected.
-    for (byte i = 0; i < 8; i++) {
-        wdt_reset();
-
-        Wagman::setLED(0, true);
-        delay(250);
-        Wagman::setLED(1, true);
-        delay(250);
-        Wagman::setLED(1, false);
-        delay(250);
-        Wagman::setLED(0, false);
-        delay(250);
-
-        if (heartbeatCounters[0] >= 4) {
-            // ...so, now we think that the node controller is alive...
-            // ...what should we do now...?
-            break;
-        }
+    for (byte i = 0; i < DEVICE_COUNT; i++) {
+        devices[i].init();
     }
-
-    wdt_reset();
 
     // Check for any incomplete relays which may have killed the system.
     // An assumption here is that if one of these devices killed the system
     // when starting, then there should only be one incomplete relay state.
-    for (byte i = 0; i < 5; i++) {
+    for (byte i = 0; i < DEVICE_COUNT; i++) {
         byte state = Record::getRelayState(i);
 
         if (state == RELAY_TURNING_ON || state == RELAY_TURNING_OFF) {
@@ -625,43 +598,88 @@ void setup()
 
             // Plausible that power off was caused by toggling this relay.
             if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
-                Record::setDeviceEnabled(i, false);
+                devices[i].disable();
             }
         }
     }
+}
 
-    if (bootflags & _BV(PORF)) {
-        // Check for current sensor failures
-        for (byte i = 0; i < 5; i++) {
+void checkSensors()
+{
+    checkCurrentSensors();
+    checkThermistors();
+}
+
+void checkCurrentSensors()
+{
+    for (byte i = 0; i < DEVICE_COUNT; i++) {
+        byte attempt;
+
+        if (Record::getPortCurrentSensorHealth(i) >= 5) {
+            Logger::begin("post");
+            Logger::log("current sensor ");
+            Logger::log(i);
+            Logger::log(" too many faults");
+            Logger::end();
+            continue;
+        }
+
+        for (attempt = 0; attempt < 3; attempt++) {
             Record::setPortCurrentSensorHealth(i, Record::getPortCurrentSensorHealth(i) + 1);
             delay(20);
-            Wagman::getCurrent(i);
+            unsigned int value = Wagman::getCurrent(i);
             delay(50);
             Record::setPortCurrentSensorHealth(i, Record::getPortCurrentSensorHealth(i) - 1);
             delay(20);
+
+            if (value <= 5000)
+                break;
         }
 
-        // Check for thermistor sensor failures
-        for (byte i = 0; i < 5; i++) {
+        if (attempt == 3) {
+            Logger::begin("post");
+            Logger::log("current sensor ");
+            Logger::log(i);
+            Logger::log(" out of range.");
+            Logger::end();
+        }
+    }
+}
+
+void checkThermistors()
+{
+    for (byte i = 0; i < DEVICE_COUNT; i++) {
+        byte attempt;
+
+        if (Record::getThermistorSensorHealth(i) >= 5) {
+            Logger::begin("post");
+            Logger::log("thermistor ");
+            Logger::log(i);
+            Logger::log(" too many faults");
+            Logger::end();
+            continue;
+        }
+
+        for (attempt = 0; attempt < 3; attempt++) {
             Record::setThermistorSensorHealth(i, Record::getThermistorSensorHealth(i) + 1);
             delay(20);
-            Wagman::getThermistor(i);
+            unsigned int value = Wagman::getThermistor(i);
             delay(50);
             Record::setThermistorSensorHealth(i, Record::getThermistorSensorHealth(i) - 1);
             delay(20);
+
+            if (value <= 10000)
+                break;
+        }
+
+        if (attempt == 3) {
+            Logger::begin("post");
+            Logger::log("thermistor ");
+            Logger::log(i);
+            Logger::log(" out of range.");
+            Logger::end();
         }
     }
-
-    for (byte i = 0; i < DEVICE_COUNT; i++) {
-        devices[i].init();
-    }
-
-    // set the node controller as starting device
-    deviceWantsStart = 0;
-    shouldResetSystem = false; // used to reset Wagman in main loop
-    bufferSize = 0;
-    startTimer.reset();
-    statusTimer.reset();
 }
 
 void startNextDevice()

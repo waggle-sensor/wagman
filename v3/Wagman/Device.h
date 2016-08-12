@@ -28,10 +28,7 @@ class Device
         void update();
 
         bool canStart() const;
-        
-        bool started() const;
-        bool stopped() const;
-        
+
         bool warning() const;
 
         byte getBootMedia() const;
@@ -77,7 +74,7 @@ class Device
         bool managed;
 
         byte repeatedResetCount;
-        
+
         bool shouldRestart;
 
         byte currentLevel;
@@ -89,4 +86,3 @@ class Device
 
         unsigned long startDelay;
 };
-

@@ -1,6 +1,7 @@
 #include <EEPROM.h>
 #include "Record.h"
 #include "Wagman.h"
+#include "commands.h"
 
 static const unsigned long MAGIC = 0xADA1ADA1;
 
@@ -107,7 +108,7 @@ void init()
         setBootAttempts(i, 0);
         setBootFailures(i, 0);
         setRelayState(i, RELAY_OFF);
-        
+
         setPortCurrentSensorHealth(i, 0);
         setThermistorSensorHealth(i, 0);
 
@@ -375,4 +376,3 @@ byte BootLog::getCapacity() const
 }
 
 };
-

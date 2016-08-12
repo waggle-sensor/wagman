@@ -27,3 +27,6 @@ uint8_t commandDisable(uint8_t argc, const char **argv);
 uint8_t commandWatch(uint8_t argc, const char **argv);
 uint8_t commandResetEEPROM(uint8_t argc, const char **argv);
 
+
+// bool isspace(char c);
+// bool isgraph(char c);

@@ -26,23 +26,13 @@ void Device::init()
     if (Record::getDeviceEnabled(port)) {
         changeState(STATE_STOPPED);
     } else {
-        disable();
+        changeState(STATE_DISABLED);
     }
 }
 
 bool Device::canStart() const
 {
     return state == STATE_STOPPED && stateTimer.exceeds(startDelay);
-}
-
-bool Device::started() const
-{
-    return state == STATE_STARTED;
-}
-
-bool Device::stopped() const
-{
-    return state == STATE_STOPPED;
 }
 
 unsigned long Device::timeSinceHeartbeat() const
@@ -99,10 +89,10 @@ byte Device::start()
 
     /* note: depends on force boot media flag. don't change the order! */
     byte bootMedia = getBootMedia();
-    
+
     /* override boot media only applies to next boot! */
     shouldForceBootMedia = false;
-    
+
     Wagman::setBootMedia(bootSelector, bootMedia);
 
     Logger::begin(name);
@@ -139,13 +129,13 @@ byte Device::stop()
     // stopping is not supported on the node controller
     if (port == PORT_NC)
         return ERROR_INVALID_ACTION;
-    
+
     Logger::begin(name);
     Logger::log("stopping");
     Logger::end();
 
     changeState(STATE_STOPPING);
-    
+
     return 0;
 }
 
@@ -296,7 +286,7 @@ void Device::updateStarted()
                 Logger::log("current stressed");
                 break;
         }
-        
+
         Logger::end();
 
         currentLevelTimer.reset();
@@ -319,7 +309,7 @@ void Device::updateStopping()
         Logger::begin(name);
         Logger::log("stop timeout");
         Logger::end();
-        
+
         kill();
     }
 }
@@ -364,4 +354,3 @@ void Device::onHeartbeat()
             break;
     }
 }
-

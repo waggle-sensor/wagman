@@ -20,12 +20,14 @@ class Device
     public:
 
         void init();
+        void update();
+
+        // device commands
         byte start();
         byte stop();
-        void kill();
-        void enable();
-        void disable();
-        void update();
+        byte kill();
+        byte enable();
+        byte disable();
 
         bool canStart() const;
 

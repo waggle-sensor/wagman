@@ -118,8 +118,11 @@ byte Device::stop()
     return 0;
 }
 
-void Device::kill()
+byte Device::kill()
 {
+    if (state == STATE_DISABLED)
+        return ERROR_INVALID_ACTION;
+
     Logger::begin(name);
     Logger::log("killing");
     Logger::end();
@@ -132,23 +135,27 @@ void Device::kill()
     delay(10);
 
     changeState(STATE_STOPPED);
+    return 0;
 }
 
-void Device::enable()
+byte Device::enable()
 {
     Record::setDeviceEnabled(port, true);
     changeState(STATE_STOPPED);
+    return 0;
 }
 
-void Device::disable()
+byte Device::disable()
 {
-    if (port == 0) {
-        kill();
-    } else {
+    if (port != 0)
         Record::setDeviceEnabled(port, false);
-        kill();
+
+    kill();
+
+    if (port != 0)
         changeState(STATE_DISABLED);
-    }
+
+    return 0;
 }
 
 void Device::update()

@@ -684,6 +684,25 @@ void checkThermistors()
     }
 }
 
+void showBootLog(const Record::BootLog &bootLog)
+{
+    Logger::begin("bootlog");
+    for (byte i = 0; i < bootLog.getCount(); i++) {
+        Logger::log(" ");
+        Logger::log(bootLog.getEntry(i));
+    }
+    Logger::end();
+
+    if (bootLog.getCount() > 1) {
+        Logger::begin("bootdeltas");
+        for (byte i = 1; i < bootLog.getCount(); i++) {
+            Logger::log(" ");
+            Logger::log(bootLog.getEntry(i) - bootLog.getEntry(i-1));
+        }
+        Logger::end();
+    }
+}
+
 void startNextDevice()
 {
     // if we've asked for a specific device, start that device.
@@ -699,6 +718,7 @@ void startNextDevice()
             if (devices[i].canStart()) { // include !started in canStart() call.
                 startTimer.reset();
                 devices[i].start();
+                showBootLog(Record::bootLogs[i]);
                 break;
             }
         }

@@ -18,8 +18,6 @@ static const unsigned int
     EEPROM_BOOT_COUNT = 8,
     EEPROM_LAST_BOOT_TIME = 12;
 
-// Wagman EEPROM Spec
-
 static const unsigned int WAGMAN_REGION_START = 128;
 
 static const unsigned int WAGMAN_LAST_BOOT_TIME = 0;
@@ -334,7 +332,7 @@ void BootLog::addEntry(time_t time)
     }
 }
 
-time_t BootLog::getEntry(byte i)
+time_t BootLog::getEntry(byte i) const
 {
     byte start = getStart();
     byte count = getCount();

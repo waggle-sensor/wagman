@@ -24,27 +24,26 @@ namespace Record
     class BootLog
     {
     public:
-    
+
         BootLog(unsigned int addr);
         void init();
-        
+
         void addEntry(time_t time);
-        time_t getEntry(byte i);
-        
+        time_t getEntry(byte i) const;
+
         byte getCount() const;
         byte getCapacity() const;
-    
+
     private:
-    
+
         byte getStart() const;
         void setStart(byte start);
-        
         void setCount(byte count);
-    
+
         unsigned int address;
         const byte capacity = 8;
     };
-    
+
     extern BootLog bootLogs[5];
 
     bool initialized();
@@ -97,4 +96,3 @@ namespace Record
     byte getThermistorSensorHealth(byte port);
     void setThermistorSensorHealth(byte port, byte health);
 };
-

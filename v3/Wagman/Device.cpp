@@ -71,20 +71,6 @@ byte Device::start()
     if (state != STATE_STOPPED)
         return ERROR_INVALID_ACTION;
 
-    if (port != PORT_NC && !Record::getDeviceEnabled(port)) {
-        Logger::begin(name);
-        Logger::log("not enabled");
-        Logger::end();
-        return ERROR_DISABLED;
-    }
-
-    if (port != PORT_NC && (Record::getRelayState(port) == RELAY_TURNING_ON || Record::getRelayState(port) == RELAY_TURNING_OFF)) {
-        Logger::begin(name);
-        Logger::log("relay failed");
-        Logger::end();
-        return ERROR_DISABLED;
-    }
-
     managed = Record::getBootFailures(port) < 30;
 
     /* note: depends on force boot media flag. don't change the order! */

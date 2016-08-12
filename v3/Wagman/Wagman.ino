@@ -599,6 +599,8 @@ void setupDevices()
             // Plausible that power off was caused by toggling this relay.
             if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
                 devices[i].disable();
+            } else {
+                devices[i].kill();
             }
         }
     }

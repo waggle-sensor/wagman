@@ -514,6 +514,9 @@ void setup()
     wdt_reset();
     Serial.begin(57600);
 
+    wdt_reset();
+    Wagman::init();
+
     // show init light sequence
     for (byte i = 0; i < 8; i++) {
         Wagman::setLED(0, true);
@@ -525,9 +528,6 @@ void setup()
         Wagman::setLED(1, false);
         delay(100);
     }
-
-    wdt_reset();
-    Wagman::init();
 
     wdt_reset();
     if (!Record::initialized()) {

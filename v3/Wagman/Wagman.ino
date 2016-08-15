@@ -59,7 +59,7 @@ Command commands[] = {
     { "log", commandLog },
     { "eereset", commandResetEEPROM },
     { "boots", commandBoots },
-    { "version", commandVersion },
+    { "ver", commandVersion },
     { NULL, NULL },
 };
 

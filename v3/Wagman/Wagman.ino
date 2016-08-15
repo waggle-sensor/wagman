@@ -378,7 +378,9 @@ byte commandWatch(byte argc, const char **argv)
 
 byte commandBoots(byte argc, const char **argv)
 {
-    // Serial.println(Record::getBootCount());
+    unsigned long count;
+    Record::getBootCount(count);
+    Serial.println(count);
     return 0;
 }
 

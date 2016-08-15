@@ -390,7 +390,7 @@ byte commandVersion(byte argc, const char **argv)
 
     Serial.print(WAGMAN_KERNEL_MAJ);
     Serial.print('.');
-    Serial.println(WAGMAN_KERNEL_MIN);
+    Serial.print(WAGMAN_KERNEL_MIN);
     Serial.print('.');
     Serial.println(WAGMAN_KERNEL_SUB);
 

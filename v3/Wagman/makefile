@@ -1,4 +1,4 @@
-ARD_HOME = /Applications/Arduino.app/Contents/MacOS
+ARD_HOME = $(ARDUINO_DIR)
 TARGET = Wagman
 PACKAGE = arduino
 ARCH = avr

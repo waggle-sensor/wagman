@@ -8,6 +8,8 @@
 #include "MCP79412RTC.h"
 #include "commands.h"
 #include "Timer.h"
+#include "verinfo.cpp"
+#include "buildinfo.cpp"
 
 /*
  * TODO Add persistant event logging on using system hardware so we can trace what happened during a device failure.

@@ -2,31 +2,30 @@
 
 struct Command {
     const char *name;
-    uint8_t (*func)(uint8_t, const char **);
+    byte (*func)(byte, const char **);
 };
 
-uint8_t commandStart(uint8_t argc, const char **argv);
-uint8_t commandStop(uint8_t argc, const char **argv);
-uint8_t commandKill(uint8_t argc, const char **argv);
-uint8_t commandReset(uint8_t argc, const char **argv);
-uint8_t commandPing(uint8_t argc, const char **argv);
-uint8_t commandID(uint8_t argc, const char **argv);
-uint8_t commandEEDump(uint8_t argc, const char **argv);
-uint8_t commandDate(uint8_t argc, const char **argv);
-uint8_t commandCurrent(uint8_t argc, const char **argv);
-uint8_t commandHeartbeat(uint8_t argc, const char **argv);
-uint8_t commandThermistor(uint8_t argc, const char **argv);
-uint8_t commandEnvironment(uint8_t argc, const char **argv);
-uint8_t commandBootMedia(uint8_t argc, const char **argv);
-uint8_t commandFailCount(uint8_t argc, const char **argv);
-uint8_t commandLog(uint8_t argc, const char **argv);
-uint8_t commandBootFlags(uint8_t argc, const char **argv);
-uint8_t commandUptime(uint8_t argc, const char **argv);
-uint8_t commandEnable(uint8_t argc, const char **argv);
-uint8_t commandDisable(uint8_t argc, const char **argv);
-uint8_t commandWatch(uint8_t argc, const char **argv);
-uint8_t commandResetEEPROM(uint8_t argc, const char **argv);
-
-
-// bool isspace(char c);
-// bool isgraph(char c);
+byte commandStart(byte argc, const char **argv);
+byte commandStop(byte argc, const char **argv);
+byte commandKill(byte argc, const char **argv);
+byte commandReset(byte argc, const char **argv);
+byte commandPing(byte argc, const char **argv);
+byte commandID(byte argc, const char **argv);
+byte commandEEDump(byte argc, const char **argv);
+byte commandDate(byte argc, const char **argv);
+byte commandCurrent(byte argc, const char **argv);
+byte commandHeartbeat(byte argc, const char **argv);
+byte commandThermistor(byte argc, const char **argv);
+byte commandEnvironment(byte argc, const char **argv);
+byte commandBootMedia(byte argc, const char **argv);
+byte commandFailCount(byte argc, const char **argv);
+byte commandLog(byte argc, const char **argv);
+byte commandBootFlags(byte argc, const char **argv);
+byte commandUptime(byte argc, const char **argv);
+byte commandEnable(byte argc, const char **argv);
+byte commandDisable(byte argc, const char **argv);
+byte commandWatch(byte argc, const char **argv);
+byte commandResetEEPROM(byte argc, const char **argv);
+byte commandWatch(byte argc, const char **argv);
+byte commandBoots(byte argc, const char **argv);
+byte commandVersion(byte argc, const char **argv);

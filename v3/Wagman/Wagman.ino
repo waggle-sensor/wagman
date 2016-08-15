@@ -384,17 +384,22 @@ byte commandBoots(byte argc, const char **argv)
 
 byte commandVersion(byte argc, const char **argv)
 {
+    Serial.print("hw ");
     Serial.print(WAGMAN_HW_VER_MAJ);
     Serial.print('.');
     Serial.println(WAGMAN_HW_VER_MAJ);
 
+    Serial.print("ker ");
     Serial.print(WAGMAN_KERNEL_MAJ);
     Serial.print('.');
     Serial.print(WAGMAN_KERNEL_MIN);
     Serial.print('.');
     Serial.println(WAGMAN_KERNEL_SUB);
 
+    Serial.print("time ");
     Serial.println(BUILD_TIME);
+
+    Serial.print("git ");
     Serial.println(BUILD_GIT);
 
     return 0;

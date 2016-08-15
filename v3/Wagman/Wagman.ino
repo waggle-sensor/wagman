@@ -803,6 +803,8 @@ void loop()
     }
 
     Wagman::toggleLED(0);
+
+    delay(100);
 }
 
 void resetSystem()

@@ -27,7 +27,6 @@ all: clean	$(TARGET)
 $(TARGET): $(TARGET).ino
 	./setbuildtime.sh
 	$(CC) --board $(BOARD_FLASH) $(CFLAGS) --pref build.path=$(BUILD_DIR) $(TARGET).ino
-	mkdir ./bin/
 	$(BUILD_COMPLETE)
 
 clean:

@@ -1,2 +1,2 @@
-#define BUILD_TIME 1471282196
-#define BUILD_GIT 434b
+#define BUILD_TIME 1471286790
+#define BUILD_GIT dd68

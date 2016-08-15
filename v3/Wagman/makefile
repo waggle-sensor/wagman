@@ -1,4 +1,4 @@
-ARD_HOME = $(ARDUINO_DIR)
+ARD_HOME = /Applications/Arduino.app/Contents/MacOS
 TARGET = Wagman
 PACKAGE = arduino
 ARCH = avr
@@ -27,6 +27,10 @@ all: clean	$(TARGET)
 $(TARGET): $(TARGET).ino
 	./setbuildtime.sh
 	$(CC) --board $(BOARD_FLASH) $(CFLAGS) --pref build.path=$(BUILD_DIR) $(TARGET).ino
+<<<<<<< HEAD
+=======
+	mkdir -p bin
+>>>>>>> 14390dcd955ff96bf183f9bbd0d9abec8357512d
 	$(BUILD_COMPLETE)
 
 clean:
@@ -62,4 +66,3 @@ connect:
 
 test:	program
 	make connect
-

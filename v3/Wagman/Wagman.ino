@@ -6,23 +6,10 @@
 #include "Logger.h"
 #include "Error.h"
 #include "MCP79412RTC.h"
-#include "commands.h"
 #include "Timer.h"
+#include "commands.h"
 #include "verinfo.cpp"
 #include "buildinfo.cpp"
-
-/*
- * TODO Add persistant event logging on using system hardware so we can trace what happened during a device failure.
- * TODO Check that system current reading is correct.
- * TODO Move towards errors aware API.
- * TODO Go a little easier on faults / if gn locks up system, don't want to totally kill.
- * TODO In the longer term, clean up the device abstraction. I wrote that initially before I realized
- * that we'd have things like the coresense using a power port or different thermistors not related to
- * a particular device. What we have now is ok, but should be improved for future clarity.
- * TODO Double check the media is being output correctly.
- * TODO Get a sense of power usage of the system.
- * TODO Command for resetting PMEM.
- */
 
 void setupDevices();
 void checkSensors();
@@ -71,6 +58,8 @@ Command commands[] = {
     { "watch", commandWatch },
     { "log", commandLog },
     { "eereset", commandResetEEPROM },
+    { "boots", commandBoots },
+    { "ver", commandVersion },
     { NULL, NULL },
 };
 
@@ -383,6 +372,37 @@ byte commandWatch(byte argc, const char **argv)
             }
         }
     }
+
+    return 0;
+}
+
+byte commandBoots(byte argc, const char **argv)
+{
+    unsigned long count;
+    Record::getBootCount(count);
+    Serial.println(count);
+    return 0;
+}
+
+byte commandVersion(byte argc, const char **argv)
+{
+    Serial.print("hw ");
+    Serial.print(WAGMAN_HW_VER_MAJ);
+    Serial.print('.');
+    Serial.println(WAGMAN_HW_VER_MAJ);
+
+    Serial.print("ker ");
+    Serial.print(WAGMAN_KERNEL_MAJ);
+    Serial.print('.');
+    Serial.print(WAGMAN_KERNEL_MIN);
+    Serial.print('.');
+    Serial.println(WAGMAN_KERNEL_SUB);
+
+    Serial.print("time ");
+    Serial.println(BUILD_TIME);
+
+    Serial.print("git ");
+    Serial.println(BUILD_GIT);
 
     return 0;
 }

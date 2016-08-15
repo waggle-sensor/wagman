@@ -8,7 +8,7 @@ const byte PORT_NC = 0;
 const byte PORT_GN = 1;
 const byte PORT_CORESENSE = 2;
 
-const unsigned long HEARTBEAT_TIMEOUT = (unsigned long)120000;
+const unsigned long HEARTBEAT_TIMEOUT = (unsigned long)300000;
 const unsigned long FAULT_TIMEOUT = (unsigned long)10000;
 const unsigned long STOP_TIMEOUT = (unsigned long)60000;
 const unsigned long DETECT_CURRENT_TIMEOUT = (unsigned long)10000;
@@ -312,6 +312,11 @@ void Device::changeState(byte newState)
 void Device::sendExternalHeartbeat()
 {
     onHeartbeat();
+}
+
+unsigned long Device::getStartDelay() const
+{
+    return startDelay;
 }
 
 void Device::setStartDelay(unsigned long t)

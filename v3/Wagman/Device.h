@@ -1,3 +1,6 @@
+#ifndef __H_DEVICE__
+#define __H_DEVICE__
+
 #include <Arduino.h>
 #include "Timer.h"
 
@@ -52,6 +55,7 @@ class Device
         bool watchHeartbeat;
         bool watchCurrent;
 
+        unsigned long getStartDelay() const;
         void setStartDelay(unsigned long t);
 
     private:
@@ -88,3 +92,5 @@ class Device
 
         unsigned long startDelay;
 };
+
+#endif

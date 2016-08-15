@@ -26,6 +26,7 @@ void setupDevices();
 void checkSensors();
 void checkCurrentSensors();
 void checkThermistors();
+unsigned long meanBootDelta(const Record::BootLog &bootLog, byte maxSamples);
 
 static const byte DEVICE_COUNT = 5;
 static const byte BUFFER_SIZE = 80;
@@ -490,6 +491,17 @@ void processCommands()
     }
 }
 
+void deviceKilled(Device &device)
+{
+    if (meanBootDelta(Record::bootLogs[device.port], 3) < 240) {
+        device.setStartDelay(300000);
+        Logger::begin("backoff");
+        Logger::log("backing off of ");
+        Logger::log(device.name);
+        Logger::end();
+    }
+}
+
 void setup()
 {
     bootflags = MCUSR;
@@ -684,6 +696,18 @@ void checkThermistors()
     }
 }
 
+unsigned long meanBootDelta(const Record::BootLog &bootLog, byte maxSamples)
+{
+    byte count = min(maxSamples, bootLog.getCount());
+    unsigned long total = 0;
+
+    for (byte i = 1; i < count; i++) {
+        total += bootLog.getEntry(i) - bootLog.getEntry(i-1);
+    }
+
+    return total / count;
+}
+
 void showBootLog(const Record::BootLog &bootLog)
 {
     Logger::begin("bootlog");
@@ -694,11 +718,17 @@ void showBootLog(const Record::BootLog &bootLog)
     Logger::end();
 
     if (bootLog.getCount() > 1) {
-        Logger::begin("bootdeltas");
-        for (byte i = 1; i < bootLog.getCount(); i++) {
+        Logger::begin("bootdt");
+        for (byte i = 1; i < min(4, bootLog.getCount()); i++) {
+            unsigned long bootdt = bootLog.getEntry(i) - bootLog.getEntry(i-1);
             Logger::log(" ");
-            Logger::log(bootLog.getEntry(i) - bootLog.getEntry(i-1));
+            Logger::log(bootdt);
         }
+
+        if (meanBootDelta(bootLog, 3) < 200) {
+            Logger::log(" !");
+        }
+
         Logger::end();
     }
 }

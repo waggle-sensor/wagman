@@ -1,4 +1,8 @@
+#ifndef __H_WAGMAN__
+#define __H_WAGMAN__
+
 #include "Time.h"
+#include "Device.h"
 
 const byte MEDIA_SD = 0;
 const byte MEDIA_EMMC = 1;
@@ -14,22 +18,22 @@ extern volatile byte heartbeatCounters[5]; // BAD! Clean this up!
 namespace Wagman
 {
     void init();
-    
+
     void setRelay(byte port, bool on);
     byte getRelay(byte port);
 
     byte getHeartbeat(byte port);
-    
+
     unsigned int getCurrent();
     unsigned int getCurrent(byte port);
     unsigned int getAddressCurrent(byte addr);
 
     unsigned int getThermistor(byte port);
-    
+
     void setLED(byte led, bool on);
     bool getLED(byte led);
     void toggleLED(byte led);
-    
+
     float getHumidity();
     float getTemperature();
 
@@ -43,5 +47,8 @@ namespace Wagman
 
     void getTime(time_t &time);
     void setTime(byte year, byte month, byte day, byte hour, byte minute, byte second);
+
+    void deviceKilled(Device &device);
 };
 
+#endif

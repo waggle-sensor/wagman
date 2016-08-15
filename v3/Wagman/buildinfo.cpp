@@ -1,2 +1,0 @@
-#define BUILD_TIME 1471288993
-#define BUILD_GIT "536b"

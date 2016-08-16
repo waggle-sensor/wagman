@@ -153,7 +153,7 @@ byte commandID(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) cons
 
     for (byte i = 0; i < 8; i++) {
         Serial.print(id[i] & 0x0F, HEX);
-        Serial.print(id[i] >> 8, HEX);
+        Serial.print(id[i] >> 4, HEX);
     }
 
     Serial.println();
@@ -855,7 +855,7 @@ void logStatus()
 
     for (byte i = 0; i < 8; i++) {
         Logger::logHex(id[i] & 0x0F);
-        Logger::logHex(id[i] >> 8);
+        Logger::logHex(id[i] >> 4);
     }
 
     Logger::end();

@@ -266,18 +266,16 @@ byte commandBootMedia(byte argc, const char **argv)
 
     if (argc == 3) {
         if (strcmp(argv[2], "sd") == 0) {
-            devices[index].shouldForceBootMedia = true;
-            devices[index].forceBootMedia = MEDIA_SD;
+            devices[index].setNextBootMedia(MEDIA_SD);
             Serial.println("set sd");
         } else if (strcmp(argv[2], "emmc") == 0) {
-            devices[index].shouldForceBootMedia = true;
-            devices[index].forceBootMedia = MEDIA_EMMC;
+            devices[index].setNextBootMedia(MEDIA_EMMC);
             Serial.println("set emmc");
         } else {
             Serial.println("invalid media");
         }
     } else if (argc == 2) {
-        byte bootMedia = devices[index].getBootMedia();
+        byte bootMedia = devices[index].getNextBootMedia();
 
         if (bootMedia == MEDIA_SD) {
             Serial.println("sd");
@@ -925,7 +923,7 @@ void logStatus()
     Logger::begin("media");
 
     for (byte i = 0; i < 2; i++) {
-        byte bootMedia = devices[i].getBootMedia();
+        byte bootMedia = devices[i].getNextBootMedia();
 
         if (bootMedia == MEDIA_SD) {
             Logger::log("sd ");

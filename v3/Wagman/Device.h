@@ -36,7 +36,8 @@ class Device
 
         bool warning() const;
 
-        byte getBootMedia() const;
+        byte getNextBootMedia() const;
+        void setNextBootMedia(byte media);
 
         void sendExternalHeartbeat();
 
@@ -49,9 +50,6 @@ class Device
         byte primaryMedia;
         byte secondaryMedia;
 
-        bool shouldForceBootMedia;
-        byte forceBootMedia;
-
         bool watchHeartbeat;
         bool watchCurrent;
 
@@ -59,6 +57,9 @@ class Device
         void setStartDelay(unsigned long t);
 
     private:
+
+        bool shouldForceBootMedia;
+        byte forceBootMedia;
 
         byte state;
 
@@ -72,7 +73,11 @@ class Device
         void updateDisabled();
         void updateStopped();
         void updateStarting();
+
         void updateStarted();
+        void updateStartedManaged();
+        void updateStartedUnmanaged();
+
         void updateStopping();
 
         void onHeartbeat();

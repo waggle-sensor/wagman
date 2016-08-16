@@ -36,7 +36,7 @@ volatile byte heartbeatCounters[5] = {0, 0, 0, 0, 0};
 ISR(TIMER1_OVF_vect) {
     for (byte i = 0; i < 5; i++) {
         byte newState = digitalRead(HEARTBEAT_PINS[i]);
-        bool triggered = heartbeatState[i] != newState;
+        bool triggered = (heartbeatState[i] != newState);
         heartbeatState[i] = newState;
 
         if (triggered) {
@@ -52,7 +52,7 @@ unsigned int getThermistor(byte port)
 {
     if (!validPort(port))
         return 0;
-    
+
     if (port == 0) {
         return analogRead(THERMISTOR_0_PIN);
     } else {
@@ -65,7 +65,7 @@ void setLED(byte led, bool on)
 {
     if (!validLED(led))
         return;
-    
+
     digitalWrite(LED_PINS[led], on ? HIGH : LOW);
 }
 
@@ -73,7 +73,7 @@ bool getLED(byte led)
 {
     if (!validLED(led))
         return false;
-        
+
     return digitalRead(LED_PINS[led]) == HIGH;
 }
 
@@ -275,7 +275,7 @@ unsigned int getAddressCurrent(byte addr)
         /* retry on error */
         if (timeout >= 100)
             continue;
-        
+
         Wire.read();
         csb = Wire.read() & 0x01;
         lsb = Wire.read();
@@ -301,7 +301,7 @@ void getTime(time_t &time)
 void setTime(byte year, byte month, byte day, byte hour, byte minute, byte second)
 {
     tmElements_t tm;
-    
+
     tm.Year = year - 1970;
     tm.Month = month;
     tm.Day = day;
@@ -313,4 +313,3 @@ void setTime(byte year, byte month, byte day, byte hour, byte minute, byte secon
 }
 
 };
-

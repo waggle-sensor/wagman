@@ -45,7 +45,7 @@ unsigned long Device::lastHeartbeatTime() const
     return heartbeatTimer.elapsed();
 }
 
-byte Device::getBootMedia() const
+byte Device::getNextBootMedia() const
 {
     if (shouldForceBootMedia) {
         return forceBootMedia;
@@ -66,6 +66,12 @@ byte Device::getBootMedia() const
     }
 }
 
+void Device::setNextBootMedia(byte media)
+{
+    shouldForceBootMedia = true;
+    forceBootMedia = media;
+}
+
 byte Device::start()
 {
     if (state != STATE_STOPPED)
@@ -74,7 +80,7 @@ byte Device::start()
     managed = Record::getBootFailures(port) < 30;
 
     /* note: depends on force boot media flag. don't change the order! */
-    byte bootMedia = getBootMedia();
+    byte bootMedia = getNextBootMedia();
 
     /* override boot media only applies to next boot! */
     shouldForceBootMedia = false;
@@ -246,6 +252,15 @@ void Device::updateStarting()
 
 void Device::updateStarted()
 {
+    if (managed) {
+        updateStartedManaged();
+    } else {
+        updateStartedUnmanaged();
+    }
+}
+
+void Device::updateStartedManaged()
+{
     if (watchHeartbeat && heartbeatTimer.exceeds(HEARTBEAT_TIMEOUT)) {
         Logger::begin(name);
         Logger::log("heartbeat timeout");
@@ -253,7 +268,9 @@ void Device::updateStarted()
 
         Record::incrementBootFailures(port);
         stop();
-    } else if (watchCurrent && currentLevelTimer.exceeds(10000)) {
+    }
+
+    if (watchCurrent && currentLevelTimer.exceeds(10000)) {
         Logger::begin(name);
 
         switch (currentLevel) {
@@ -274,6 +291,18 @@ void Device::updateStarted()
         Logger::end();
 
         currentLevelTimer.reset();
+    }
+}
+
+void Device::updateStartedUnmanaged()
+{
+    if (stateTimer.exceeds(14400000)) {
+        Logger::begin(name);
+        Logger::log("unmanaged switch");
+        Logger::end();
+
+        setNextBootMedia((getNextBootMedia() == MEDIA_SD) ? MEDIA_EMMC : MEDIA_SD);
+        stop();
     }
 }
 

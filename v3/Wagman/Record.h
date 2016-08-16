@@ -1,6 +1,9 @@
 #include <Arduino.h>
 #include "Time.h"
 
+#define CLEANSLATE 0x01
+
+
 struct Version
 {
     byte major;

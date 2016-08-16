@@ -84,7 +84,11 @@ bool initialized()
 {
     unsigned long magic;
     EEPROM.get(EEPROM_MAGIC_ADDR, magic);
+    #ifdef CLEANSLATE 
+    return false;
+    #else
     return magic == MAGIC;
+    #endif
 }
 
 void init()

@@ -36,12 +36,20 @@ volatile byte heartbeatCounters[5] = {0, 0, 0, 0, 0};
 ISR(TIMER1_OVF_vect) {
     for (byte i = 0; i < 5; i++) {
         byte newState = digitalRead(HEARTBEAT_PINS[i]);
-        bool triggered = heartbeatState[i] != newState;
-        heartbeatState[i] = newState;
+
+        bool triggered = (heartbeatState[i] != newState);
+        
 
         if (triggered) {
+	    Serial.print("\rP");
+	    Serial.println(heartbeatState[i]);
+	    Serial.print("\rC");
+	    Serial.println(newState);
+	    Serial.println(triggered);
             heartbeatCounters[i]++;
         }
+        
+        heartbeatState[i] = newState;
     }
 }
 
@@ -90,7 +98,7 @@ void init()
 
     for (byte i = 0; i < PORT_COUNT; i++) {
         pinMode(POWER_PINS[i], OUTPUT);
-        pinMode(HEARTBEAT_PINS[i], INPUT);
+        pinMode(HEARTBEAT_PINS[i], INPUT_PULLUP);
         heartbeatCounters[i] = 0;
     }
 

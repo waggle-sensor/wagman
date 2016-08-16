@@ -528,7 +528,8 @@ void setup()
 {
     bootflags = MCUSR;
     MCUSR = 0;
-
+    wdt_disable();
+    delay(4000);
     wdt_enable(WDTO_8S);
 
     wdt_reset();

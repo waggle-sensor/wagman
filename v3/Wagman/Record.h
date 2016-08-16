@@ -61,8 +61,8 @@ namespace Record
     bool getWireEnabled();
     void setWireEnabled(bool enabled);
 
-    bool getBootloaderNodeController();
-    void setBootloaderNodeController(bool enabled);
+    void getBootloaderNodeController(bool &enabled, byte &media);
+    void setBootloaderNodeController(bool enabled, byte media);
 
     void getHardwareVersion(Version &version);
     void setHardwareVersion(const Version &version);

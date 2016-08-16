@@ -146,14 +146,36 @@ void setWireEnabled(bool enabled)
     EEPROM.write(EEPROM_WIRE_ENABLED, enabled);
 }
 
-bool getBootloaderNodeController()
+void getBootloaderNodeController(bool &enabled, byte &media)
 {
-    return EEPROM.read(EEPROM_BOOTLOADER_NODE_CONTROLLER);
+    byte flag = EEPROM.read(EEPROM_BOOTLOADER_NODE_CONTROLLER);
+
+    if (flag & 0x0F) {
+        enabled = true;
+    } else {
+        enabled = false;
+    }
+
+    if ((flag & 0xF0) == 0xF0) {
+        media = MEDIA_EMMC;
+    } else {
+        media = MEDIA_SD;
+    }
 }
 
-void setBootloaderNodeController(bool enabled)
+void setBootloaderNodeController(bool enabled, byte media)
 {
-    EEPROM.write(EEPROM_BOOTLOADER_NODE_CONTROLLER, enabled);
+    byte flag = 0;
+
+    if (enabled) {
+        flag |= 0x0F;
+    }
+
+    if (media == MEDIA_EMMC) {
+        flag |= 0xF0;
+    }
+
+    EEPROM.write(EEPROM_BOOTLOADER_NODE_CONTROLLER, flag);
 }
 
 void getHardwareVersion(Version &version)

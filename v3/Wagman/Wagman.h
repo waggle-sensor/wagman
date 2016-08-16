@@ -15,6 +15,16 @@ const byte RELAY_TURNING_OFF = 3;
 
 extern volatile byte heartbeatCounters[5]; // BAD! Clean this up!
 
+struct DateTime
+{
+    uint16_t year;
+    uint8_t month;
+    uint8_t day;
+    uint8_t hour;
+    uint8_t minute;
+    uint8_t second;
+};
+
 namespace Wagman
 {
     void init();
@@ -41,14 +51,22 @@ namespace Wagman
     void setBootMedia(byte selector, byte media);
     void toggleBootMedia(byte selector);
 
+    void getID(byte id[8]);
+
     bool validPort(byte port);
     bool validLED(byte led);
     bool validBootSelector(byte selector);
 
     void getTime(time_t &time);
-    void setTime(byte year, byte month, byte day, byte hour, byte minute, byte second);
+    void setTime(const time_t &time);
+
+    void getDateTime(DateTime &dt);
+    void setDateTime(const DateTime &dt);
 
     void deviceKilled(Device &device);
+
+    void setWireEnabled(bool enabled);
+    bool getWireEnabled();
 };
 
 #endif

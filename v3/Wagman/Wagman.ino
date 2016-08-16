@@ -5,7 +5,6 @@
 #include "Device.h"
 #include "Logger.h"
 #include "Error.h"
-#include "MCP79412RTC.h"
 #include "Timer.h"
 #include "commands.h"
 #include "verinfo.cpp"
@@ -16,6 +15,9 @@ void checkSensors();
 void checkCurrentSensors();
 void checkThermistors();
 unsigned long meanBootDelta(const Record::BootLog &bootLog, byte maxSamples);
+
+void printDate(const DateTime &dt);
+void printID(byte mac[8]);
 
 static const byte DEVICE_COUNT = 5;
 static const byte BUFFER_SIZE = 80;
@@ -62,6 +64,29 @@ Command commands[] = {
     { "ver", commandVersion },
     { NULL, NULL },
 };
+
+void printDate(const DateTime &dt)
+{
+    Serial.print(dt.year);
+    Serial.print(' ');
+    Serial.print(dt.month);
+    Serial.print(' ');
+    Serial.print(dt.day);
+    Serial.print(' ');
+    Serial.print(dt.hour);
+    Serial.print(' ');
+    Serial.print(dt.minute);
+    Serial.print(' ');
+    Serial.print(dt.second);
+}
+
+void printID(byte id[8])
+{
+    for (byte i = 0; i < 8; i++) {
+        Serial.print(id[i] & 0x0F, HEX);
+        Serial.print(id[i] >> 4, HEX);
+    }
+}
 
 byte commandPing(byte argc, const char **argv)
 {
@@ -133,13 +158,9 @@ byte commandID(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) cons
 {
     byte id[8];
 
-    RTC.idRead(id);
+    Wagman::getID(id);
 
-    for (byte i = 0; i < 8; i++) {
-        Serial.print(id[i] & 0x0F, HEX);
-        Serial.print(id[i] >> 8, HEX);
-    }
-
+    printID(id);
     Serial.println();
 
     return 0;
@@ -170,33 +191,21 @@ byte commandDate(byte argc, const char **argv)
         return ERROR_INVALID_ARGC;
 
     if (argc == 1) {
-        tmElements_t tm;
-
-        RTC.read(tm);
-
-        Serial.print(tm.Year + 1970);
-        Serial.print(' ');
-        Serial.print(tm.Month);
-        Serial.print(' ');
-        Serial.print(tm.Day);
-        Serial.print(' ');
-        Serial.print(tm.Hour);
-        Serial.print(' ');
-        Serial.print(tm.Minute);
-        Serial.print(' ');
-        Serial.print(tm.Second);
+        DateTime dt;
+        Wagman::getDateTime(dt);
+        printDate(dt);
         Serial.println();
     } else if (argc == 7) {
-        tmElements_t tm;
+        DateTime dt;
 
-        tm.Year = atoi(argv[1]) - 1970;
-        tm.Month = atoi(argv[2]);
-        tm.Day = atoi(argv[3]);
-        tm.Hour = atoi(argv[4]);
-        tm.Minute = atoi(argv[5]);
-        tm.Second = atoi(argv[6]);
+        dt.year = atoi(argv[1]);
+        dt.month = atoi(argv[2]);
+        dt.day = atoi(argv[3]);
+        dt.hour = atoi(argv[4]);
+        dt.minute = atoi(argv[5]);
+        dt.second = atoi(argv[6]);
 
-        RTC.set(makeTime(tm));
+        Wagman::setDateTime(dt);
     }
 
     return 0;
@@ -533,9 +542,6 @@ void setup()
     wdt_reset();
     Serial.begin(57600);
 
-    wdt_reset();
-    Wagman::init();
-
     // show init light sequence
     for (byte i = 0; i < 8; i++) {
         Wagman::setLED(0, true);
@@ -549,8 +555,10 @@ void setup()
     }
 
     wdt_reset();
+
     if (!Record::initialized()) {
         Record::init();
+        Wagman::init();
 
         for (byte i = 0; i < 16; i++) {
             Wagman::setLED(0, true);
@@ -562,6 +570,8 @@ void setup()
             Wagman::setLED(1, false);
             delay(20);
         }
+    } else {
+        Wagman::init();
     }
 
     Wagman::getTime(setupTime);
@@ -835,35 +845,20 @@ void resetSystem()
 void logStatus()
 {
     byte id[8];
-    RTC.idRead(id);
+    Wagman::getID(id);
 
     Logger::begin("id");
-
-    for (byte i = 0; i < 8; i++) {
-        Logger::logHex(id[i] & 0x0F);
-        Logger::logHex(id[i] >> 8);
-    }
-
+    printID(id);
     Logger::end();
 
     delay(50);
 
-    tmElements_t tm;
-    RTC.read(tm);
+    DateTime dt;
+    Wagman::getDateTime(dt);
 
     Logger::begin("date");
-    Logger::log(tm.Year + 1970);
-    Logger::log(' ');
-    Logger::log(tm.Month);
-    Logger::log(' ');
-    Logger::log(tm.Day);
-    Logger::log(' ');
-    Logger::log(tm.Hour);
-    Logger::log(' ');
-    Logger::log(tm.Minute);
-    Logger::log(' ');
-    Logger::log(tm.Second);
-    Logger::end();
+    printDate(dt);
+    Serial.println();
 
     delay(50);
 

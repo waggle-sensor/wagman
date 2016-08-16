@@ -16,7 +16,9 @@ static const unsigned int
     EEPROM_HARDWARE_VERSION = 4,
     EEPROM_FIRMWARE_VERSION = 6,
     EEPROM_BOOT_COUNT = 8,
-    EEPROM_LAST_BOOT_TIME = 12;
+    EEPROM_LAST_BOOT_TIME = 12,
+    EEPROM_WIRE_ENABLED = 32,
+    EEPROM_BOOTLOADER_NODE_CONTROLLER = 64;
 
 static const unsigned int WAGMAN_REGION_START = 128;
 
@@ -84,7 +86,7 @@ bool initialized()
 {
     unsigned long magic;
     EEPROM.get(EEPROM_MAGIC_ADDR, magic);
-    #ifdef CLEANSLATE 
+    #ifdef CLEANSLATE
     return false;
     #else
     return magic == MAGIC;
@@ -105,6 +107,8 @@ void init()
     version.major = 1;
     version.minor = 0;
     Record::setFirmwareVersion(version);
+
+    setWireEnabled(true);
 
     for (byte i = 0; i < DEVICE_COUNT; i++) {
         setBootAttempts(i, 0);
@@ -130,6 +134,48 @@ void init()
 void clearMagic()
 {
     EEPROM.put(EEPROM_MAGIC_ADDR, (unsigned long)0);
+}
+
+bool getWireEnabled()
+{
+    return EEPROM.read(EEPROM_WIRE_ENABLED);
+}
+
+void setWireEnabled(bool enabled)
+{
+    EEPROM.write(EEPROM_WIRE_ENABLED, enabled);
+}
+
+void getBootloaderNodeController(bool &enabled, byte &media)
+{
+    byte flag = EEPROM.read(EEPROM_BOOTLOADER_NODE_CONTROLLER);
+
+    if (flag & 0x0F) {
+        enabled = true;
+    } else {
+        enabled = false;
+    }
+
+    if ((flag & 0xF0) == 0xF0) {
+        media = MEDIA_EMMC;
+    } else {
+        media = MEDIA_SD;
+    }
+}
+
+void setBootloaderNodeController(bool enabled, byte media)
+{
+    byte flag = 0;
+
+    if (enabled) {
+        flag |= 0x0F;
+    }
+
+    if (media == MEDIA_EMMC) {
+        flag |= 0xF0;
+    }
+
+    EEPROM.write(EEPROM_BOOTLOADER_NODE_CONTROLLER, flag);
 }
 
 void getHardwareVersion(Version &version)

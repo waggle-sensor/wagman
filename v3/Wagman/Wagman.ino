@@ -5,7 +5,6 @@
 #include "Device.h"
 #include "Logger.h"
 #include "Error.h"
-#include "MCP79412RTC.h"
 #include "Timer.h"
 #include "commands.h"
 #include "verinfo.cpp"
@@ -15,8 +14,10 @@ void setupDevices();
 void checkSensors();
 void checkCurrentSensors();
 void checkThermistors();
-void printDate(const DateTime &dt);
 unsigned long meanBootDelta(const Record::BootLog &bootLog, byte maxSamples);
+
+void printDate(const DateTime &dt);
+void printID(byte mac[8]);
 
 static const byte DEVICE_COUNT = 5;
 static const byte BUFFER_SIZE = 80;
@@ -77,6 +78,14 @@ void printDate(const DateTime &dt)
     Serial.print(dt.minute);
     Serial.print(' ');
     Serial.print(dt.second);
+}
+
+void printID(byte id[8])
+{
+    for (byte i = 0; i < 8; i++) {
+        Serial.print(id[i] & 0x0F, HEX);
+        Serial.print(id[i] >> 4, HEX);
+    }
 }
 
 byte commandPing(byte argc, const char **argv)
@@ -149,13 +158,9 @@ byte commandID(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) cons
 {
     byte id[8];
 
-    RTC.idRead(id);
+    Wagman::getID(id);
 
-    for (byte i = 0; i < 8; i++) {
-        Serial.print(id[i] & 0x0F, HEX);
-        Serial.print(id[i] >> 4, HEX);
-    }
-
+    printID(id);
     Serial.println();
 
     return 0;
@@ -842,22 +847,10 @@ void resetSystem()
 void logStatus()
 {
     byte id[8];
-
-    if (Wagman::getWireEnabled()) {
-        RTC.idRead(id);
-    } else {
-        for (byte i = 0; i < 8; i++) {
-            id[i] = 0xFF;
-        }
-    }
+    Wagman::getID(id);
 
     Logger::begin("id");
-
-    for (byte i = 0; i < 8; i++) {
-        Logger::logHex(id[i] & 0x0F);
-        Logger::logHex(id[i] >> 4);
-    }
-
+    printID(id);
     Logger::end();
 
     delay(50);

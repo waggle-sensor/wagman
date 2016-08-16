@@ -51,6 +51,8 @@ namespace Wagman
     void setBootMedia(byte selector, byte media);
     void toggleBootMedia(byte selector);
 
+    void getID(byte id[8]);
+
     bool validPort(byte port);
     bool validLED(byte led);
     bool validBootSelector(byte selector);

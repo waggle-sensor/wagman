@@ -383,4 +383,15 @@ bool getWireEnabled()
     return wireEnabled;
 }
 
+void getID(byte id[8])
+{
+    if (getWireEnabled()) {
+        RTC.idRead(id);
+    } else {
+        for (byte i = 0; i < 8; i++) {
+            id[i] = 0xFF;
+        }
+    }
+}
+
 };

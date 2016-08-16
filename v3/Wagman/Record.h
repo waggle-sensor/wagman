@@ -1,3 +1,6 @@
+#ifndef __H_RECORD__
+#define __H_RECORD__
+
 #include <Arduino.h>
 #include "Time.h"
 
@@ -55,6 +58,12 @@ namespace Record
 
     void clearMagic();
 
+    bool getWireEnabled();
+    void setWireEnabled(bool enabled);
+
+    bool getBootloaderNodeController();
+    void setBootloaderNodeController(bool enabled);
+
     void getHardwareVersion(Version &version);
     void setHardwareVersion(const Version &version);
 
@@ -99,3 +108,5 @@ namespace Record
     byte getThermistorSensorHealth(byte port);
     void setThermistorSensorHealth(byte port, byte health);
 };
+
+#endif

@@ -49,6 +49,9 @@ namespace Wagman
     void setTime(byte year, byte month, byte day, byte hour, byte minute, byte second);
 
     void deviceKilled(Device &device);
+
+    void setWireEnabled(bool enabled);
+    bool getWireEnabled();
 };
 
 #endif

@@ -567,18 +567,18 @@ void setup()
     Wagman::getTime(setupTime);
     Record::setLastBootTime(setupTime);
     Record::incrementBootCount();
-
+    wdt_reset();
     if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
         checkSensors();
     }
 
     setupDevices();
-
     deviceWantsStart = 0;
     shouldResetSystem = false;
     bufferSize = 0;
     startTimer.reset();
     statusTimer.reset();
+    Serial.println("Done with setup");
 }
 
 void setupDevices()
@@ -779,7 +779,7 @@ void startNextDevice()
 void loop()
 {
     // ensure that the watchdog is always enabled
-    wdt_enable(WDTO_8S);
+//     wdt_enable(WDTO_8S);
     wdt_reset();
 
     startNextDevice();

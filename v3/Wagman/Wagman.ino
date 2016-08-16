@@ -584,8 +584,6 @@ void setup()
 
     setupDevices();
 
-    Wagman::setWireEnabled(false);
-
     deviceWantsStart = 0;
     shouldResetSystem = false;
     bufferSize = 0;

@@ -269,9 +269,8 @@ unsigned int getAddressCurrent(byte addr)
     byte attempts;
     byte timeout;
 
-    if (!getWireEnabled()) {
+    if (!getWireEnabled())
         return 0xFFFF;
-    }
 
     for (attempts = 0; attempts < 10; attempts++) {
 
@@ -323,22 +322,54 @@ void getTime(time_t &time)
     if (getWireEnabled()) {
         time = RTC.get();
     } else {
-        time = 0xFFFFFFFF;
+        time = 0;
     }
 }
 
-void setTime(byte year, byte month, byte day, byte hour, byte minute, byte second)
+void setTime(const time_t &time)
 {
-    tmElements_t tm;
+    if (getWireEnabled()) {
+        RTC.set(time);
+    }
+}
 
-    tm.Year = year - 1970;
-    tm.Month = month;
-    tm.Day = day;
-    tm.Hour = hour;
-    tm.Minute = minute;
-    tm.Second = second;
+void getDateTime(DateTime &dt)
+{
+    if (getWireEnabled()) {
+        tmElements_t tm;
 
-    RTC.set(makeTime(tm));
+        RTC.read(tm);
+
+        dt.year = tm.Year + 1970;
+        dt.month = tm.Month;
+        dt.day = tm.Day;
+        dt.hour = tm.Hour;
+        dt.minute = tm.Minute;
+        dt.second = tm.Second;
+    } else {
+        dt.year = 0;
+        dt.month = 0;
+        dt.day = 0;
+        dt.hour = 0;
+        dt.minute = 0;
+        dt.second = 0;
+    }
+}
+
+void setDateTime(const DateTime &dt)
+{
+    if (getWireEnabled()) {
+        tmElements_t tm;
+
+        tm.Year = dt.year - 1970;
+        tm.Month = dt.month;
+        tm.Day = dt.day;
+        tm.Hour = dt.hour;
+        tm.Minute = dt.minute;
+        tm.Second = dt.second;
+
+        RTC.set(makeTime(tm));
+    }
 }
 
 void setWireEnabled(bool enabled)

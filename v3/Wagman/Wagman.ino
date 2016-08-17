@@ -419,26 +419,27 @@ byte commandVersion(byte argc, const char **argv)
 byte commandBLFlag(byte argc, const char **argv)
 {
     if (argc == 1) {
-        bool enabled;
-        byte media;
-        Record::getBootloaderNodeController(enabled, media);
+        byte mode = Record::getBootloaderNodeController();
 
-        Serial.print(enabled);
-        Serial.print(' ');
-        Serial.println(media == MEDIA_SD ? "sd" : "emmc");
-    } else if (argc == 3) {
-        bool enabled = (atoi(argv[1]) == 1);
-        byte media;
-
-        if (strcmp(argv[2], "sd") == 0) {
-            media = MEDIA_SD;
-        } else if (strcmp(argv[2], "emmc") == 0) {
-            media = MEDIA_EMMC;
+        if (mode == 0) {
+            Serial.println("off");
+        } else if (mode == 1) {
+            Serial.println("sd");
+        } else if (mode == 2) {
+            Serial.println("emmc");
         } else {
-            return 1;
+            Serial.println("?");
         }
-
-        Record::setBootloaderNodeController(enabled, media);
+    } else if (argc == 2) {
+        if (strcmp(argv[1], "off") == 0) {
+            Record::setBootloaderNodeController(0);
+        } else if (strcmp(argv[1], "sd") == 0) {
+            Record::setBootloaderNodeController(1);
+        } else if (strcmp(argv[1], "emmc") == 0) {
+            Record::setBootloaderNodeController(2);
+        } else {
+            Serial.println("invalid mode");
+        }
     }
 
     return 0;
@@ -864,7 +865,6 @@ void resetSystem()
     wdt_enable(WDTO_8S);
     wdt_reset();
 
-    // watchdog will reset in a few seconds.
     for (;;) {
         for (byte i = 0; i < 5; i++) {
             Wagman::setLED(0, true);

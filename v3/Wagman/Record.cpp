@@ -146,64 +146,19 @@ void setWireEnabled(bool enabled)
     EEPROM.write(EEPROM_WIRE_ENABLED, enabled);
 }
 
-void getBootloaderNodeController(bool &enabled, byte &media)
+byte getBootloaderNodeController()
 {
-    byte flag = EEPROM.read(EEPROM_BOOTLOADER_NODE_CONTROLLER);
-
-//     if (flag & 0x0F) {
-//         enabled = true;
-//     } else {
-//         enabled = false;
-//     }
-// 
-//     if ((flag & 0xF0) == 0xF0) {
-//         media = MEDIA_EMMC;
-//     } else {
-//         media = MEDIA_SD;
-//     }
-
-    enabled = false;
-    
-    if (flag == 0x01) 
-    {
-        enabled = true;
-        media = MEDIA_SD;
-    }
-    
-    else  if (flag == 0x02) 
-    {
-        enabled = true;
-        media = MEDIA_EMMC;
-    }
+    return EEPROM.read(EEPROM_BOOTLOADER_NODE_CONTROLLER);
 }
 
-void setBootloaderNodeController(bool enabled, byte media)
+void setBootloaderNodeController(byte mode)
 {
-    byte flag = 0x00;
-/*
-    if (enabled) {
-        flag |= 0x0F;
+    // in case some wacky thing happens, set nc to safe mode.
+    if (mode > 2) {
+        mode = 1;
     }
 
-    if (media == MEDIA_EMMC) {
-        flag |= 0xF0;
-    }*/
-
-
-    if (enabled) 
-    {
-      if (media == MEDIA_EMMC) 
-      {
-	flag = 0x02;
-      }
-  
-      else if (media == MEDIA_SD)
-      {
-	flag = 0x01;
-      }
-    }
-
-    EEPROM.write(EEPROM_BOOTLOADER_NODE_CONTROLLER, flag);
+    EEPROM.write(EEPROM_BOOTLOADER_NODE_CONTROLLER, mode);
 }
 
 void getHardwareVersion(Version &version)

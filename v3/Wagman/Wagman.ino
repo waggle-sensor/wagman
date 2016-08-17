@@ -565,8 +565,8 @@ void setup()
 {
     bootflags = MCUSR;
     MCUSR = 0;
-    // wdt_disable();
-    // delay(4000);
+    wdt_disable();
+    delay(4000);
     wdt_enable(WDTO_8S);
     wdt_reset();
 
@@ -825,7 +825,12 @@ void startNextDevice()
 void loop()
 {
     // ensure that the watchdog is always enabled
-    startNextDevice();
+
+    // don't bother starting any new devices once we've decided to reset
+    if (!shouldResetSystem) {
+        startNextDevice();
+    }
+
     for (byte i = 0; i < DEVICE_COUNT; i++) {
         devices[i].update();
     }
@@ -844,6 +849,11 @@ void loop()
     }
 
     Wagman::toggleLED(0);
+
+    if (shouldResetSystem) {
+        Wagman::setLED(1, Wagman::getLED(0));
+    }
+
     wdt_reset();
     delay(200);
 }

@@ -128,6 +128,8 @@ void init()
     setDeviceEnabled(3, false);
     setDeviceEnabled(4, false);
 
+    setBootloaderNodeController(0);
+
     EEPROM.put(EEPROM_MAGIC_ADDR, MAGIC);
 }
 

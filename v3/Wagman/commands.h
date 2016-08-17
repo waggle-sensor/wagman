@@ -7,7 +7,7 @@ struct Command {
 
 byte commandStart(byte argc, const char **argv);
 byte commandStop(byte argc, const char **argv);
-byte commandKill(byte argc, const char **argv);
+// byte commandKill(byte argc, const char **argv);
 byte commandReset(byte argc, const char **argv);
 byte commandPing(byte argc, const char **argv);
 byte commandID(byte argc, const char **argv);

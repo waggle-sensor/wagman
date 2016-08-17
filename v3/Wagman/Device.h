@@ -41,6 +41,9 @@ class Device
 
         void sendExternalHeartbeat();
 
+        unsigned long getStopTimeout() const;
+        void setStopTimeout(unsigned long timeout);
+
         unsigned long timeSinceHeartbeat() const;
         unsigned long lastHeartbeatTime() const;
 
@@ -96,6 +99,8 @@ class Device
         Timer heartbeatTimer;
 
         unsigned long startDelay;
+
+        unsigned long stopTimeout;
 };
 
 #endif

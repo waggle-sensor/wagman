@@ -10,7 +10,6 @@ const byte PORT_CORESENSE = 2;
 
 const unsigned long HEARTBEAT_TIMEOUT = (unsigned long)300000;
 const unsigned long FAULT_TIMEOUT = (unsigned long)10000;
-const unsigned long STOP_TIMEOUT = (unsigned long)60000;
 const unsigned long DETECT_CURRENT_TIMEOUT = (unsigned long)10000;
 const unsigned long STOP_MESSAGE_TIMEOUT = (unsigned long)10000;
 
@@ -22,6 +21,8 @@ void Device::init()
     currentLevel = CURRENT_LOW;
 
     startDelay = 0;
+
+    setStopTimeout(60000);
 
     if (Record::getDeviceEnabled(port)) {
         changeState(STATE_STOPPED);
@@ -162,6 +163,16 @@ byte Device::disable()
         changeState(STATE_DISABLED);
 
     return 0;
+}
+
+unsigned long Device::getStopTimeout() const
+{
+    return stopTimeout;
+}
+
+void Device::setStopTimeout(unsigned long timeout)
+{
+    stopTimeout = timeout;
 }
 
 void Device::update()
@@ -318,7 +329,9 @@ void Device::updateStopping()
     }
 
     // device had sufficient time to shutdown, so kill it.
-    if (stateTimer.exceeds(STOP_TIMEOUT)) {
+    if (stateTimer.exceeds(getStopTimeout())) {
+        setStopTimeout(60000); // hack for now...
+
         Logger::begin(name);
         Logger::log("stop timeout");
         Logger::end();

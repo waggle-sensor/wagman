@@ -25,6 +25,8 @@ static const byte MAX_ARGC = 8;
 
 byte bootflags = 0;
 bool shouldResetSystem = false;
+unsigned long shouldResetTimeout = 0;
+Timer shouldResetTimer;
 bool logging = true;
 byte deviceWantsStart = 255;
 
@@ -42,7 +44,7 @@ Command commands[] = {
     { "ping", commandPing },
     { "start", commandStart },
     { "stop", commandStop },
-    { "stop!", commandKill },
+    // { "stop!", commandKill },
     { "reset", commandReset },
     { "id", commandID },
     { "cu", commandCurrent },
@@ -121,7 +123,7 @@ byte commandStart(byte argc, const char **argv)
 
 byte commandStop(byte argc, const char **argv)
 {
-    if (argc != 2)
+    if (argc <= 1)
         return ERROR_INVALID_ARGC;
 
     byte port = atoi(argv[1]);
@@ -129,22 +131,13 @@ byte commandStop(byte argc, const char **argv)
     if (!Wagman::validPort(port))
         return ERROR_INVALID_PORT;
 
-    devices[port].stop();
-
-    return 0;
-}
-
-byte commandKill(byte argc, const char **argv)
-{
-    if (argc != 2)
-        return ERROR_INVALID_ARGC;
-
-    byte port = atoi(argv[1]);
-
-    if (!Wagman::validPort(port))
-        return ERROR_INVALID_PORT;
-
-    devices[port].kill();
+    if (argc == 2) {
+        devices[port].setStopTimeout(60000);
+        devices[port].stop();
+    } else if (argc == 3) {
+        devices[port].setStopTimeout((unsigned long)atoi(argv[2]) * 1000);
+        devices[port].stop();
+    }
 
     return 0;
 }
@@ -152,6 +145,14 @@ byte commandKill(byte argc, const char **argv)
 byte commandReset(byte argc, const char **argv)
 {
     shouldResetSystem = true;
+    shouldResetTimer.reset();
+
+    if (argc == 1) {
+        shouldResetTimeout = 0;
+    } else if (argc == 2) {
+        shouldResetTimeout = (unsigned long)atoi(argv[1]) * 1000;
+    }
+
     return 0;
 }
 
@@ -564,11 +565,11 @@ void setup()
 {
     bootflags = MCUSR;
     MCUSR = 0;
-    wdt_disable();
-    delay(4000);
+    // wdt_disable();
+    // delay(4000);
     wdt_enable(WDTO_8S);
-
     wdt_reset();
+
     Serial.begin(57600);
 
     // show init light sequence
@@ -606,23 +607,24 @@ void setup()
     Wagman::getTime(setupTime);
     Record::setLastBootTime(setupTime);
     Record::incrementBootCount();
+
     wdt_reset();
+
     if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
         checkSensors();
     }
 
     setupDevices();
     deviceWantsStart = 0;
-    shouldResetSystem = false;
+
     bufferSize = 0;
     startTimer.reset();
     statusTimer.reset();
 
-    Record::setBootloaderNodeController(false, MEDIA_EMMC);
-    delay(1000);
+    shouldResetSystem = false;
+    shouldResetTimeout = 0;
 
-    Serial.println(EEPROM.read(0x40), HEX);
-    while(1);
+    wdt_reset();
 }
 
 void setupDevices()
@@ -837,7 +839,7 @@ void loop()
         logStatus();
     }
 
-    if (shouldResetSystem) {
+    if (shouldResetSystem && shouldResetTimer.exceeds(shouldResetTimeout)) {
         resetSystem();
     }
 

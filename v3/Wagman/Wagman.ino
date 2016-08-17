@@ -62,6 +62,7 @@ Command commands[] = {
     { "eereset", commandResetEEPROM },
     { "boots", commandBoots },
     { "ver", commandVersion },
+    { "blf", commandBLFlag },
     { NULL, NULL },
 };
 
@@ -414,6 +415,34 @@ byte commandVersion(byte argc, const char **argv)
     return 0;
 }
 
+byte commandBLFlag(byte argc, const char **argv)
+{
+    if (argc == 1) {
+        bool enabled;
+        byte media;
+        Record::getBootloaderNodeController(enabled, media);
+
+        Serial.print(enabled);
+        Serial.print(' ');
+        Serial.println(media == MEDIA_SD ? "sd" : "emmc");
+    } else if (argc == 3) {
+        bool enabled = (atoi(argv[1]) == 1);
+        byte media;
+
+        if (strcmp(argv[2], "sd") == 0) {
+            media = MEDIA_SD;
+        } else if (strcmp(argv[2], "emmc") == 0) {
+            media = MEDIA_EMMC;
+        } else {
+            return 1;
+        }
+
+        Record::setBootloaderNodeController(enabled, media);
+    }
+
+    return 0;
+}
+
 void executeCommand(const char *sid, byte argc, const char **argv)
 {
     byte (*func)(byte, const char **) = NULL;
@@ -588,10 +617,10 @@ void setup()
     bufferSize = 0;
     startTimer.reset();
     statusTimer.reset();
-    
+
     Record::setBootloaderNodeController(false, MEDIA_EMMC);
     delay(1000);
-    
+
     Serial.println(EEPROM.read(0x40), HEX);
     while(1);
 }

@@ -29,3 +29,4 @@ byte commandResetEEPROM(byte argc, const char **argv);
 byte commandWatch(byte argc, const char **argv);
 byte commandBoots(byte argc, const char **argv);
 byte commandVersion(byte argc, const char **argv);
+byte commandBLFlag(byte argc, const char **argv);

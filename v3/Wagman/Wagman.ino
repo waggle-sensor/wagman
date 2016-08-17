@@ -588,7 +588,12 @@ void setup()
     bufferSize = 0;
     startTimer.reset();
     statusTimer.reset();
-    Serial.println("Done with setup");
+    
+    Record::setBootloaderNodeController(false, MEDIA_EMMC);
+    delay(1000);
+    
+    Serial.println(EEPROM.read(0x40), HEX);
+    while(1);
 }
 
 void setupDevices()
@@ -789,11 +794,7 @@ void startNextDevice()
 void loop()
 {
     // ensure that the watchdog is always enabled
-//     wdt_enable(WDTO_8S);
-    wdt_reset();
-
     startNextDevice();
-
     for (byte i = 0; i < DEVICE_COUNT; i++) {
         devices[i].update();
     }
@@ -812,7 +813,7 @@ void loop()
     }
 
     Wagman::toggleLED(0);
-
+    wdt_reset();
     delay(200);
 }
 

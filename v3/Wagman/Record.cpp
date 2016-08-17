@@ -18,7 +18,7 @@ static const unsigned int
     EEPROM_BOOT_COUNT = 8,
     EEPROM_LAST_BOOT_TIME = 12,
     EEPROM_WIRE_ENABLED = 32,
-    EEPROM_BOOTLOADER_NODE_CONTROLLER = 64;
+    EEPROM_BOOTLOADER_NODE_CONTROLLER = 0x40;
 
 static const unsigned int WAGMAN_REGION_START = 128;
 
@@ -150,29 +150,57 @@ void getBootloaderNodeController(bool &enabled, byte &media)
 {
     byte flag = EEPROM.read(EEPROM_BOOTLOADER_NODE_CONTROLLER);
 
-    if (flag & 0x0F) {
-        enabled = true;
-    } else {
-        enabled = false;
-    }
+//     if (flag & 0x0F) {
+//         enabled = true;
+//     } else {
+//         enabled = false;
+//     }
+// 
+//     if ((flag & 0xF0) == 0xF0) {
+//         media = MEDIA_EMMC;
+//     } else {
+//         media = MEDIA_SD;
+//     }
 
-    if ((flag & 0xF0) == 0xF0) {
-        media = MEDIA_EMMC;
-    } else {
+    enabled = false;
+    
+    if (flag == 0x01) 
+    {
+        enabled = true;
         media = MEDIA_SD;
+    }
+    
+    else  if (flag == 0x02) 
+    {
+        enabled = true;
+        media = MEDIA_EMMC;
     }
 }
 
 void setBootloaderNodeController(bool enabled, byte media)
 {
-    byte flag = 0;
-
+    byte flag = 0x00;
+/*
     if (enabled) {
         flag |= 0x0F;
     }
 
     if (media == MEDIA_EMMC) {
         flag |= 0xF0;
+    }*/
+
+
+    if (enabled) 
+    {
+      if (media == MEDIA_EMMC) 
+      {
+	flag = 0x02;
+      }
+  
+      else if (media == MEDIA_SD)
+      {
+	flag = 0x01;
+      }
     }
 
     EEPROM.write(EEPROM_BOOTLOADER_NODE_CONTROLLER, flag);

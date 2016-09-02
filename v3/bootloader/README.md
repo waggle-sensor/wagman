@@ -81,7 +81,7 @@ on a x86-64 Ubuntu machine have been included in the [LUFA-111009](https://githu
 and [src](https://github.com/waggle-sensor/wagman/blob/master/v3/bootloader/src/caterina/) directories. 
 The current binary bootloader can be found in the [bin](https://github.com/waggle-sensor/wagman/tree/master/v3/bootloader/bin) directory.
 
-# Flashing the bootloader: 
+# Flashing the Bootloader: 
 
 The currently suggested bootloader flashing process involves the Arduino IDE and AVRISP mkII programmers. On Linux systems, the bootloader firmware 
 named **Caterina-Micro.hex** found under the *arduino-1.6.7/hardware/arduino/avr/bootloaders/caterina/* folder is used by the IDE for Arduino-Micro class 

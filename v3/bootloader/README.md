@@ -71,6 +71,22 @@ the Node-controller, the bootloader does not have the abilities to sense the sit
 and try alternate boot-media. The limited bootloader space prevents further expansion 
 of the bootloader features. 
 
+# Compiling Bootloader: 
 
+The bootloader compilation process [requires several software packages] 
+(http://www.leonardomiliani.com/en/2013/accorciamo-i-tempi-del-bootloader-della-leonardomicroesplora/) including [LUFA](https://github.com/abcminiuser/lufa), 
+and avr-gcc toolchain. The LUFA packages and the appropriate [MakeFile]
+(https://github.com/waggle-sensor/wagman/blob/master/v3/bootloader/src/caterina/Makefile) used to compile the code  
+on a x86-64 Ubuntu machine have been included in the [LUFA-111009](https://github.com/waggle-sensor/wagman/tree/master/v3/bootloader/LUFA-111009) 
+and [src](https://github.com/waggle-sensor/wagman/blob/master/v3/bootloader/src/caterina/) directories. 
+The current binary bootloader can be found in the [bin](https://github.com/waggle-sensor/wagman/tree/master/v3/bootloader/bin) directory.
+
+# Flashing the bootloader: 
+
+The currently suggested bootloader flashing process involves the Arduino IDE and AVRISP mkII programmers. On Linux systems, the bootloader firmware 
+named **Caterina-Micro.hex** found under the *arduino-1.6.7/hardware/arduino/avr/bootloaders/caterina/* folder is used by the IDE for Arduino-Micro class 
+of devices, including the Wagman. A suggested method is to move this file to a safe location, and create a symbolic link to the bootloader binary 
+provided in the bin folder *Caterina-Micro.hex -> wagman/v3/bootloader/bin/Wagman_bootloader.hex*. The IDE can now be used to flash the bootloader 
+following the steps in the [Wagman Initialization](https://github.com/waggle-sensor/wagman/tree/master/v3/qa_testing/Wagman_Initialization) page. 
 
 

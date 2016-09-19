@@ -73,12 +73,8 @@ of the bootloader features.
 
 # Compiling Bootloader: 
 
-The bootloader compilation process [requires several software packages] 
-(http://www.leonardomiliani.com/en/2013/accorciamo-i-tempi-del-bootloader-della-leonardomicroesplora/) including [LUFA](https://github.com/abcminiuser/lufa), 
-and avr-gcc toolchain. The LUFA packages and the appropriate [MakeFile]
-(https://github.com/waggle-sensor/wagman/blob/master/v3/bootloader/src/caterina/Makefile) used to compile the code  
-on a x86-64 Ubuntu machine have been included in the [LUFA-111009](https://github.com/waggle-sensor/wagman/tree/master/v3/bootloader/LUFA-111009) 
-and [src](https://github.com/waggle-sensor/wagman/blob/master/v3/bootloader/src/caterina/) directories. 
+The bootloader compilation process [requires several software packages] (http://www.leonardomiliani.com/en/2013/accorciamo-i-tempi-del-bootloader-della-leonardomicroesplora/) including [LUFA](https://github.com/abcminiuser/lufa), and avr-gcc toolchain. The LUFA packages and the appropriate [MakeFile]
+(https://github.com/waggle-sensor/wagman/blob/master/v3/bootloader/src/caterina/Makefile) used to compile the code  on an x86-64 Ubuntu machine have been included in the [LUFA-111009](https://github.com/waggle-sensor/wagman/tree/master/v3/bootloader/LUFA-111009) and [src](https://github.com/waggle-sensor/wagman/blob/master/v3/bootloader/src/caterina/) directories. 
 The current binary bootloader can be found in the [bin](https://github.com/waggle-sensor/wagman/tree/master/v3/bootloader/bin) directory.
 
 # Flashing the Bootloader: 

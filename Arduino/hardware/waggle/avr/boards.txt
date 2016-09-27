@@ -1,0 +1,57 @@
+wagman.name=Wagman
+
+wagman.vid.0=0x2341
+wagman.pid.0=0x0037
+wagman.vid.1=0x2341
+wagman.pid.1=0x8037
+wagman.vid.2=0x2A03
+wagman.pid.2=0x0037
+wagman.vid.3=0x2A03
+wagman.pid.3=0x8037
+
+wagman.vid.4=0x2341
+wagman.pid.4=0x0237
+# If the board is a 2341:0237 use 2341:8237 for build and set
+# other parameters as well
+wagman.vid.4.build.vid=0x2341
+wagman.vid.4.build.pid=0x8237
+wagman.vid.4.build.usb_product="Genuino Micro"
+wagman.vid.4.bootloader.file=caterina/Caterina-Wagman.hex
+
+wagman.vid.5=0x2341
+wagman.pid.5=0x8237
+# If the board is a 2341:8237 use 2341:8237 for build and set
+# other parameters as well
+wagman.vid.5.build.vid=0x2341
+wagman.vid.5.build.pid=0x8237
+wagman.vid.5.build.usb_product="Genuino Micro"
+wagman.vid.5.bootloader.file=caterina/Caterina-Wagman.hex
+
+wagman.upload.tool=avrdude
+wagman.upload.protocol=avr109
+wagman.upload.maximum_size=28672
+wagman.upload.maximum_data_size=2560
+wagman.upload.speed=57600
+wagman.upload.disable_flushing=true
+wagman.upload.use_1200bps_touch=true
+wagman.upload.wait_for_upload_port=true
+
+wagman.bootloader.tool=avrdude
+wagman.bootloader.low_fuses=0xff
+wagman.bootloader.high_fuses=0xd8
+wagman.bootloader.extended_fuses=0xcb
+wagman.bootloader.file=caterina/Caterina-Wagman.hex
+# wagman.bootloader.unlock_bits=0x3F # this was from micro
+wagman.bootloader.unlock_bits=0xFF
+# wagman.bootloader.lock_bits=0x2F # this was from micro
+wagman.bootloader.lock_bits=0xEF
+
+wagman.build.mcu=atmega32u4
+wagman.build.f_cpu=16000000L
+wagman.build.vid=0x2341
+wagman.build.pid=0x8037
+wagman.build.usb_product="Arduino Micro"
+wagman.build.board=AVR_MICRO
+wagman.build.core=arduino
+wagman.build.variant=micro
+wagman.build.extra_flags={build.usb_flags}

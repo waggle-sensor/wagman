@@ -12,7 +12,7 @@ Once reset to the bootloader state where the Wagman stays for a duration of time
 
 #Wagman Firmware Upgrade Risk:
 
-During the upgrade process the Node-controller is kept alive by the latched power supply and Wagman has no firmware beyond a working bootloader (until the new firmware is completely committed to the memory). A power failure at this point leads to a Wagman restricted to only the bootloader state and Node-controller that is permanently turned off, with **no scope for recovery** without physical access to the node, essentially a dead node.
+During the upgrade process the Node-controller is kept alive by the latched power supply and Wagman has no firmware beyond a working bootloader (until the new firmware is completely committed to the memory). A power failure at this point leads to a Wagman restricted to only the bootloader state and Node-controller that is permanently turned off. With **no scope for recovery** without physical access to the node, we are essentially left with a dead node.
 
 #Wagman Firmware Upgrade with Node-controller Power-ON in Boot-loader State:
 

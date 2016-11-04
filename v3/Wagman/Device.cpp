@@ -71,6 +71,9 @@ void Device::setNextBootMedia(byte media)
 {
     shouldForceBootMedia = true;
     forceBootMedia = media;
+
+    // This will allow the device to reboot itself into another media.
+    Wagman::setBootMedia(bootSelector, media);
 }
 
 byte Device::start()

@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include "Time.h"
 
-#define CLEANSLATE 0x01
+// #define CLEANSLATE 0x01
 
 
 struct Version

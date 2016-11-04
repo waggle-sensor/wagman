@@ -53,7 +53,6 @@ Command commands[] = {
     { "bs", commandBootMedia },
     { "th", commandThermistor },
     { "date", commandDate },
-    { "eedump", commandEEDump },
     { "bf", commandBootFlags },
     { "fc", commandFailCount },
     { "up", commandUptime },
@@ -161,28 +160,8 @@ byte commandID(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) cons
     byte id[8];
 
     Wagman::getID(id);
-
     printID(id);
     Serial.println();
-
-    return 0;
-}
-
-byte commandEEDump(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
-{
-    for (unsigned int i = 0; i < 1024; i++) {
-        byte value = EEPROM.read(i);
-
-        Serial.print((value >> 4) & 0x0F, HEX);
-        Serial.print(value & 0x0F, HEX);
-        Serial.print(' ');
-
-        if (i % 4 == 3)
-            Serial.print(' ');
-
-        if (i % 32 == 31)
-            Serial.println();
-    }
 
     return 0;
 }
@@ -256,11 +235,13 @@ byte commandThermistor(__attribute__ ((unused)) byte argc, __attribute__ ((unuse
 
 byte commandEnvironment(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
-    Serial.print("temperature ");
+    Serial.print("temperature=");
     Serial.println(Wagman::getTemperature());
 
-    Serial.print("humidity ");
+    Serial.print("humidity=");
     Serial.println(Wagman::getHumidity());
+
+    // Serial.print('\0');
 
     return 0;
 }
@@ -336,30 +317,30 @@ byte commandUptime(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) 
 
 byte commandEnable(byte argc, const char **argv)
 {
-    if (argc != 2)
-        return ERROR_INVALID_ARGC;
+    for (byte i = 1; i < argc; i++) {
+        byte port = atoi(argv[i]);
 
-    byte port = atoi(argv[1]);
+        if (!Wagman::validPort(port)) {
+            continue;
+        }
 
-    if (!Wagman::validPort(port))
-        return ERROR_INVALID_PORT;
-
-    devices[port].enable();
+        devices[port].enable();
+    }
 
     return 0;
 }
 
 byte commandDisable(byte argc, const char **argv)
 {
-    if (argc != 2)
-        return ERROR_INVALID_ARGC;
+    for (byte i = 1; i < argc; i++) {
+        byte port = atoi(argv[i]);
 
-    byte port = atoi(argv[1]);
+        if (!Wagman::validPort(port)) {
+            continue;
+        }
 
-    if (!Wagman::validPort(port))
-        return ERROR_INVALID_PORT;
-
-    devices[port].disable();
+        devices[port].disable();
+    }
 
     return 0;
 }
@@ -698,6 +679,7 @@ void checkCurrentSensors()
         byte attempt;
 
         if (Record::getPortCurrentSensorHealth(i) >= 5) {
+            // Printf("post: current sensor %d too many faults\n", i);
             Logger::begin("post");
             Logger::log("current sensor ");
             Logger::log(i);
@@ -888,6 +870,22 @@ void logStatus()
 {
     byte id[8];
     Wagman::getID(id);
+
+    // assume we'll always miss the first message.
+
+    // cmd
+    // sid
+    // ...
+    // \0
+
+    // log
+    // id.heartbeat
+    // 2032
+    // 123
+    // 1234
+    // 1111
+    // 3221
+    // \0
 
     Logger::begin("id");
     printID(id);

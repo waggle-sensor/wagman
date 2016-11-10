@@ -120,7 +120,11 @@ void init()
     htu21d.begin();
     delay(200);
 
-    acs764.init();
+    acs764.init(SYSTEM_CURRENT_ADDRESS);
+    for (byte i = 0; i < PORT_COUNT; i++)
+    {
+        acs764.init(PORT_CURRENT_ADDRESS[i]);
+    }
     delay(200);
 
     noInterrupts();

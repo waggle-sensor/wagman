@@ -203,11 +203,11 @@ void Device::updateFault()
     if (current == 0xFFFF)
         return;
 
-    if (current < 120) {
+    if (current < 235) { // 15 LSB * 15.66 mA/LSB = 234.90 mA
         newCurrentLevel = CURRENT_LOW;
-    }  else if (current < 300) {
+    }  else if (current < 600) {
         newCurrentLevel = CURRENT_NORMAL;
-    } else if (current < 850) {
+    } else if (current < 1500) {
         newCurrentLevel = CURRENT_STRESSED;
     } else {
         newCurrentLevel = CURRENT_HIGH;

@@ -9,7 +9,7 @@ public:
 	static const byte GAIN_RANGE = 0x02; // 15.66 mA per LSB
 	static const byte FAULT_LVL  = 0x00;
 
-	void init(byte address, byte avg_points, byte gain_range, byte fault_lvl);
+	void init(byte address);
 	void write_reg(byte address, byte reg_add, byte data);
 	unsigned int getCurrent(byte addr);
 private:
@@ -21,6 +21,6 @@ private:
 
 	// mA per LSB
 	static const unsigned int MILLIAMPS_PER_STEP = 15.66;
-	static const unsigned int MIN_STEP = 0;
+	static const unsigned int MIN_STEP = 15;
 };
 #endif

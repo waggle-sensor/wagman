@@ -1,7 +1,7 @@
 #include "ACS764.h"
 #include <Wire.h>
 
-void ACS764::init(byte address, byte avg_points, byte gain_range, byte fault_lvl)
+void ACS764::init(byte address)
 {
 	write_reg(address, ADDR_AVG_POINTS, AVG_POINTS & 0xFF);
 	write_reg(address, ADDR_GAIN_RANGE, GAIN_RANGE & 0x03);

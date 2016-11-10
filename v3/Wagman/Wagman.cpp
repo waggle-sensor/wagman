@@ -3,6 +3,7 @@
 #include "HTU21D.h"
 #include "MCP342X.h"
 #include "MCP79412RTC.h"
+#include "ACS764.h"
 #include "Wagman.h"
 #include "Record.h"
 
@@ -30,6 +31,7 @@ static const byte BOOT_SELECTOR_PINS[BOOT_SELECTOR_COUNT] = {1, A3};
 
 static HTU21D htu21d;
 static MCP342X mcp3428_1;
+static ACS764 acs764;
 
 static bool wireEnabled = true;
 
@@ -116,6 +118,9 @@ void init()
     delay(200);
 
     htu21d.begin();
+    delay(200);
+
+    acs764.init();
     delay(200);
 
     noInterrupts();
@@ -264,57 +269,7 @@ bool validBootSelector(byte selector)
 
 unsigned int getAddressCurrent(byte addr)
 {
-    static const unsigned int MILLIAMPS_PER_STEP = 16;
-    byte csb, lsb;
-    byte attempts;
-    byte timeout;
-
-    if (!getWireEnabled())
-        return 0xFFFF;
-
-    for (attempts = 0; attempts < 10; attempts++) {
-
-        /* request data from sensor */
-        Wire.beginTransmission(addr);
-        delay(5);
-        Wire.write(0);
-        delay(5);
-
-        /* retry on error */
-        if (Wire.endTransmission(0) != 0)
-            continue;
-
-        delay(5);
-
-        /* read data from sensor */
-        if (Wire.requestFrom(addr, 3) != 3)
-            continue;
-
-        delay(5);
-
-        for (timeout = 0; timeout < 100 && Wire.available() < 3; timeout++) {
-            delay(5);
-        }
-
-        /* retry on error */
-        if (timeout >= 100)
-            continue;
-
-        Wire.read();
-        csb = Wire.read() & 0x01;
-        lsb = Wire.read();
-
-        /* retry on error */
-        if (Wire.endTransmission(1) != 0)
-            continue;
-
-        delay(5);
-
-        /* return milliamps from raw sensor data. */
-        return ((csb << 8) | lsb) * MILLIAMPS_PER_STEP;
-    }
-
-    return 0xFFFF; /* return error value */
+    return acs764.getCurrent(addr);
 }
 
 void getTime(time_t &time)

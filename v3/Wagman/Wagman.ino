@@ -550,7 +550,7 @@ void setup()
     wdt_disable();
     delay(4000);
     wdt_enable(WDTO_8S);
-    wdt_reset();
+    wdt_reset(); // watchdog reset in setup after power up.  
 
     Serial.begin(57600);
 
@@ -566,7 +566,7 @@ void setup()
         delay(100);
     }
 
-    wdt_reset();
+    wdt_reset(); // Watchdog reset in setup after light sequence.
 
     if (!Record::initialized()) {
         Record::init();
@@ -590,7 +590,7 @@ void setup()
     Record::setLastBootTime(setupTime);
     Record::incrementBootCount();
 
-    wdt_reset();
+    wdt_reset(); // Watchdog reset in setup after incrementing boot count.
 
     if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
         checkSensors();
@@ -606,7 +606,7 @@ void setup()
     shouldResetSystem = false;
     shouldResetTimeout = 0;
 
-    wdt_reset();
+    wdt_reset(); // Watchdog reset in setup, right at exit.
 }
 
 void setupDevices()
@@ -816,14 +816,14 @@ void loop()
 
     for (byte i = 0; i < DEVICE_COUNT; i++) {
         devices[i].update();
+        wdt_reset(); // Watchdog reset in loop, device update loop. 
     }
 
-    wdt_reset();
     processCommands();
 
     if (statusTimer.exceeds(30000)) {
         statusTimer.reset();
-        wdt_reset();
+        wdt_reset(); // Watchdog reset in loop, logstatus. 
         logStatus();
     }
 
@@ -837,7 +837,7 @@ void loop()
         Wagman::setLED(1, Wagman::getLED(0));
     }
 
-    wdt_reset();
+    wdt_reset(); // Watchdog reset in loop, at the end of the loop.  
     delay(200);
 }
 
@@ -845,7 +845,7 @@ void resetSystem()
 {
     // ensure that watchdog is set!
     wdt_enable(WDTO_8S);
-    wdt_reset();
+    wdt_reset(); // Watchdog reset in resetSystem. 
 
     for (;;) {
         for (byte i = 0; i < 5; i++) {

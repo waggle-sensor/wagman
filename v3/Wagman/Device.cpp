@@ -145,6 +145,7 @@ byte Device::kill()
     delay(10);
 
     changeState(STATE_STOPPED);
+    
     return 0;
 }
 

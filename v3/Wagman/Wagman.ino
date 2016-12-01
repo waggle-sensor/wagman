@@ -32,7 +32,7 @@ byte deviceWantsStart = 255;
 
 Device devices[DEVICE_COUNT];
 
-static Timer startTimer;
+Timer startTimer;
 static Timer statusTimer;
 
 static char buffer[BUFFER_SIZE];
@@ -821,7 +821,7 @@ void loop()
 
     processCommands();
 
-    if (statusTimer.exceeds(30000)) {
+    if (statusTimer.exceeds(60000)) {
         statusTimer.reset();
         wdt_reset(); // Watchdog reset in loop, logstatus. 
         logStatus();

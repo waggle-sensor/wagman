@@ -14,6 +14,7 @@ const byte RELAY_TURNING_ON = 2;
 const byte RELAY_TURNING_OFF = 3;
 
 extern volatile byte heartbeatCounters[5]; // BAD! Clean this up!
+extern Timer startTimer;
 
 struct DateTime
 {

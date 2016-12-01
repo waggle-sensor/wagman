@@ -145,7 +145,9 @@ byte Device::kill()
     delay(10);
 
     changeState(STATE_STOPPED);
-    
+
+    startTimer.reset();
+
     return 0;
 }
 

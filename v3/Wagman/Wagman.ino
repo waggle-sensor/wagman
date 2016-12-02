@@ -543,11 +543,12 @@ void deviceKilled(Device &device)
     }
 }
 
+// #pragma optimize( "", off )
 void setup()
 {
-    bootflags = MCUSR;
     MCUSR = 0;
     wdt_disable();
+    bootflags = EEPROM.read(0x41);
     delay(4000);
     wdt_enable(WDTO_8S);
     wdt_reset(); // watchdog reset in setup after power up.  
@@ -608,6 +609,8 @@ void setup()
 
     wdt_reset(); // Watchdog reset in setup, right at exit.
 }
+// #pragma optimize( "", on )
+
 
 void setupDevices()
 {

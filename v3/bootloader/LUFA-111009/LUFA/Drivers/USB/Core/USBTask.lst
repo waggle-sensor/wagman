@@ -619,7 +619,7 @@
   59               	.L3:
   60               	.LBB31:
   61               	.LBB32:
- 330:../../LUFA-111009/LUFA/Drivers/USB/Core/AVR8/../AVR8/Endpoint_AVR8.h **** 					UENUM = EndpointNumber;
+ 330:../../LUFA-111009/LUFA/Drivers/USB/Core/AVR8/../AVR8/Endpoint_AVR8.h **** 				#endif
   62               		.loc 2 330 0
   63 001c C093 E900 		sts 233,r28
   64               	.LVL2:
@@ -630,7 +630,7 @@
   69               	.LBE24:
   70               	.LBE23:
   71               	.LBE22:
-  58:../../LUFA-111009/LUFA/Drivers/USB/Core/USBTask.c **** }
+  58:../../LUFA-111009/LUFA/Drivers/USB/Core/USBTask.c **** 
   72               		.loc 1 58 0
   73 0020 CF91      		pop r28
   74 0022 0895      		ret
@@ -646,12 +646,12 @@
   85               		.file 6 "../../LUFA-111009/LUFA/Drivers/USB/Core/AVR8/../DeviceStandardReq.h"
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 USBTask.c
-     /tmp/cch47v1s.s:2      *ABS*:000000000000003e __SP_H__
-     /tmp/cch47v1s.s:3      *ABS*:000000000000003d __SP_L__
-     /tmp/cch47v1s.s:4      *ABS*:000000000000003f __SREG__
-     /tmp/cch47v1s.s:5      *ABS*:0000000000000000 __tmp_reg__
-     /tmp/cch47v1s.s:6      *ABS*:0000000000000001 __zero_reg__
-     /tmp/cch47v1s.s:13     .text.USB_USBTask:0000000000000000 USB_USBTask
+     /tmp/ccVQzy86.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccVQzy86.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccVQzy86.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccVQzy86.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccVQzy86.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccVQzy86.s:13     .text.USB_USBTask:0000000000000000 USB_USBTask
                             *COM*:0000000000000008 USB_ControlRequest
                             *COM*:0000000000000001 USB_IsInitialized
 

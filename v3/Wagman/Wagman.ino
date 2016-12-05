@@ -84,7 +84,7 @@ void printDate(const DateTime &dt)
 
 void printID(byte id[8])
 {
-    for (byte i = 0; i < 8; i++) {
+    for (byte i = 2; i < 8; i++) {
         Serial.print(id[i] >> 4, HEX);
         Serial.print(id[i] & 0x0F, HEX);
     }

@@ -85,8 +85,8 @@ void printDate(const DateTime &dt)
 void printID(byte id[8])
 {
     for (byte i = 0; i < 8; i++) {
-        Serial.print(id[i] & 0x0F, HEX);
         Serial.print(id[i] >> 4, HEX);
+        Serial.print(id[i] & 0x0F, HEX);
     }
 }
 
@@ -551,7 +551,7 @@ void setup()
     bootflags = EEPROM.read(0x41);
     delay(4000);
     wdt_enable(WDTO_8S);
-    wdt_reset(); // watchdog reset in setup after power up.  
+    wdt_reset(); // watchdog reset in setup after power up.
 
     Serial.begin(57600);
 
@@ -819,14 +819,14 @@ void loop()
 
     for (byte i = 0; i < DEVICE_COUNT; i++) {
         devices[i].update();
-        wdt_reset(); // Watchdog reset in loop, device update loop. 
+        wdt_reset(); // Watchdog reset in loop, device update loop.
     }
 
     processCommands();
 
     if (statusTimer.exceeds(60000)) {
         statusTimer.reset();
-        wdt_reset(); // Watchdog reset in loop, logstatus. 
+        wdt_reset(); // Watchdog reset in loop, logstatus.
         logStatus();
     }
 
@@ -840,7 +840,7 @@ void loop()
         Wagman::setLED(1, Wagman::getLED(0));
     }
 
-    wdt_reset(); // Watchdog reset in loop, at the end of the loop.  
+    wdt_reset(); // Watchdog reset in loop, at the end of the loop.
     delay(200);
 }
 
@@ -848,7 +848,7 @@ void resetSystem()
 {
     // ensure that watchdog is set!
     wdt_enable(WDTO_8S);
-    wdt_reset(); // Watchdog reset in resetSystem. 
+    wdt_reset(); // Watchdog reset in resetSystem.
 
     for (;;) {
         for (byte i = 0; i < 5; i++) {

@@ -9,6 +9,7 @@
 #include "commands.h"
 #include "verinfo.cpp"
 #include "buildinfo.cpp"
+#include "MCP79412RTC.h"
 
 void setupDevices();
 void checkSensors();
@@ -41,6 +42,7 @@ static byte bufferSize = 0;
 time_t setupTime;
 
 Command commands[] = {
+    { "rtc", commandRTC },
     { "ping", commandPing },
     { "start", commandStart },
     { "stop", commandStop },
@@ -88,6 +90,11 @@ void printID(byte id[8])
         Serial.print(id[i] >> 4, HEX);
         Serial.print(id[i] & 0x0F, HEX);
     }
+}
+
+byte commandRTC(byte argc, const char **argv) {
+    Serial.println(RTC.get());
+    return 0;
 }
 
 byte commandPing(byte argc, const char **argv)
@@ -607,6 +614,10 @@ void setup()
     shouldResetSystem = false;
     shouldResetTimeout = 0;
 
+    if (RTC.get() < BUILD_TIME) {
+        RTC.set(BUILD_TIME);
+    }
+
     wdt_reset(); // Watchdog reset in setup, right at exit.
 }
 // #pragma optimize( "", on )
@@ -796,7 +807,7 @@ void startNextDevice()
         return;
     }
 
-    if (startTimer.exceeds(30000)) {
+    if (startTimer.exceeds(60000)) {
         for (byte i = 0; i < DEVICE_COUNT; i++) {
             if (devices[i].canStart()) { // include !started in canStart() call.
                 startTimer.reset();

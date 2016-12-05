@@ -5,6 +5,7 @@ struct Command {
     byte (*func)(byte, const char **);
 };
 
+byte commandRTC(byte argc, const char **argv);
 byte commandStart(byte argc, const char **argv);
 byte commandStop(byte argc, const char **argv);
 // byte commandKill(byte argc, const char **argv);

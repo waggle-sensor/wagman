@@ -8,10 +8,9 @@ FLASHER_BAUD_RATE = 57600
 PORT = /dev/waggle_sysmon
 BOARD_FLASH = $(PACKAGE):$(ARCH):$(BOARD)
 BOOT_LOADER_TYPE = avr109
-PRE_FLASH_COMMAND = stty -F $(PORT) 1200 hupcl; sleep 3
-FLASHER = $(ARD_HOME)/hardware/tools/avr/bin/avrdude
-FLASHER_CONFIGS = $(ARD_HOME)/hardware/tools/avr/etc/avrdude.conf
-FLASH_BOARD = $(FLASHER) -l flash_avr.log -C$(FLASHER_CONFIGS) -v -p$(TYPE) -c$(BOOT_LOADER_TYPE) -P$(PORT) -b$(FLASHER_BAUD_RATE) -D -Uflash:w:$(BIN_DIR)/$(TARGET).ino.hex:i
+PRE_FLASH_COMMAND = stty -F $(PORT) 1200 hupcl; sleep 5
+FLASHER = avrdude
+FLASH_BOARD = $(FLASHER) -v -p$(TYPE) -c$(BOOT_LOADER_TYPE) -P$(PORT) -b$(FLASHER_BAUD_RATE) -D -Uflash:w:$(BIN_DIR)/$(TARGET).ino.hex:i
 BUILD_COMPLETE = mv $(BUILD_DIR)/$(TARGET).ino.hex $(BIN_DIR)/
 LINKPORT = $(PORT)
 SERIALBAUD = 115200
@@ -61,4 +60,3 @@ connect:
 
 test:	program
 	make connect
-

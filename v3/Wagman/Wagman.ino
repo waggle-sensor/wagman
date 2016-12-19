@@ -39,7 +39,7 @@ static Timer statusTimer;
 static char buffer[BUFFER_SIZE];
 static byte bufferSize = 0;
 
-time_t setupTime;
+static time_t setupTime;
 
 Command commands[] = {
     { "rtc", commandRTC },

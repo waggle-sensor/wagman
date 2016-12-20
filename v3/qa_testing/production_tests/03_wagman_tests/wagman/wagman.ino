@@ -18,7 +18,10 @@ int loop_count = 0;
 int question_no = 1;
 int temp;
 
-int HIH_final, HIH_init, HTU_hum_final, HTU_hum_init, Light_final, Light_init, HTU_temp_final, HTU_temp_init;
+int HIH_final, HIH_init, Light_final, Light_init;
+float HTU_hum_final, HTU_hum_init, HTU_temp_final, HTU_temp_init;
+
+
 
 void setup()
 {
@@ -61,12 +64,13 @@ void loop()
     
     HIH_init = analogRead(PIN_HIH4030_Sensor);
     Light_init = analogRead(PIN_Light_Sensor);
-    HTU_temp_init = myHumidity.readHumidity();
-    HTU_hum_init = myHumidity.readTemperature();
+    HTU_hum_init = myHumidity.readHumidity();
+    HTU_temp_init = myHumidity.readTemperature();
+    
         
     Serial.println("\n");
     
-    Serial.println("Please turn the board upside down and blow hot air on to it...");
+    Serial.println("Please place your fingers in the three sensors now...");
     delay(7000);
     Serial.print("Counting down...");
     for (loop_count = 5; loop_count > 0; loop_count--)
@@ -81,10 +85,19 @@ void loop()
     
     HIH_final = analogRead(PIN_HIH4030_Sensor);
     Light_final = analogRead(PIN_Light_Sensor);
-    HTU_temp_final = myHumidity.readHumidity();
-    HTU_hum_final = myHumidity.readTemperature();
+    HTU_hum_final = myHumidity.readHumidity();
+    HTU_temp_final = myHumidity.readTemperature();
     
-    if (HIH_final < HIH_init)
+//     Serial.println(HIH_final);
+//     Serial.println(HIH_init);
+//     
+//     Serial.println(HTU_hum_final);
+//     Serial.println(HTU_hum_init);
+//     
+//     Serial.println(HTU_temp_final);
+//     Serial.println(HTU_temp_init);
+    
+    if (HIH_final > (HIH_init - 5))
     {
          Serial.println("III. HIH4030: PASS");
     }
@@ -103,9 +116,9 @@ void loop()
          Serial.println("IV. LIGHT_SENSOR: FAIL");
     }
     
-    if ((HTU_hum_final < HTU_hum_init) && (HTU_temp_final > HTU_temp_init))
+    if ((HTU_hum_final > (HTU_hum_init - 1.5)) && (HTU_temp_final > (HTU_temp_init) + 0.5))
     {
-         Serial.println("V. HTU21D: PASS");
+        Serial.println("V. HTU21D: PASS");
     }
     else
     {

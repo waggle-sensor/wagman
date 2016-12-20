@@ -42,7 +42,7 @@ void setup()
 void loop()
 
 {
-    Serial.println("------Wagman Environmental Sensors Test------");
+    Serial.println("------Wagman Test------");
     Serial.println("");
     WagID_print ();
     
@@ -70,8 +70,8 @@ void loop()
         
     Serial.println("\n");
     
-    Serial.println("Please place your fingers in the three sensors now...");
-    delay(7000);
+    Serial.println("Please place your fingers on the three sensors now - HTU, HIH and Light Sensor.");
+    delay(5000);
     Serial.print("Counting down...");
     for (loop_count = 5; loop_count > 0; loop_count--)
     {
@@ -97,7 +97,7 @@ void loop()
 //     Serial.println(HTU_temp_final);
 //     Serial.println(HTU_temp_init);
     
-    if (HIH_final > (HIH_init - 5))
+    if (HIH_final > (HIH_init + 10))
     {
          Serial.println("III. HIH4030: PASS");
     }
@@ -116,7 +116,7 @@ void loop()
          Serial.println("IV. LIGHT_SENSOR: FAIL");
     }
     
-    if ((HTU_hum_final > (HTU_hum_init - 1.5)) && (HTU_temp_final > (HTU_temp_init) + 0.5))
+    if ((HTU_hum_final > (HTU_hum_init + 2.0)) && (HTU_temp_final > (HTU_temp_init) + 2.0))
     {
         Serial.println("V. HTU21D: PASS");
     }
@@ -127,9 +127,6 @@ void loop()
          
     }
     
-    
-    Serial.println("\n");
-    Serial.println("Please turn right side up, and wait to hear the relays click...");
     delay(5000);
     Serial.println("\n");
     
@@ -141,7 +138,7 @@ void loop()
     Serial.println("VII. Wagman Boot Selector Tests. Please use a multimeter with the beeper enabled for the following tests.");
     Serial.println("");
     Serial.println("");
-    Serial.println("------End of board test------");
+    Serial.println("------End of wagman test------");
     while(1)
     {
         boot_gm_usd();

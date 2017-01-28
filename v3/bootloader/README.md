@@ -38,12 +38,7 @@ Linux, a udev rule *60-avrisp.rules* may be needed in the */etc/udev/rules.d* di
 
 ```bash
 SUBSYSTEM!="usb", ACTION!="add", GOTO="avrisp_end"
-# Atmel Corp. JTAG ICE mkII
-ATTR{idVendor}=="03eb", ATTR{idProduct}=="2103", MODE="660", GROUP="dialout"
 # Atmel Corp. AVRISP mkII
 ATTR{idVendor}=="03eb", ATTR{idProduct}=="2104", MODE="660", GROUP="tty"
-# Atmel Corp. Dragon
-ATTR{idVendor}=="03eb", ATTR{idProduct}=="2107", MODE="660", GROUP="dialout"
-
 LABEL="avrisp_end"
 ```

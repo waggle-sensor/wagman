@@ -33,4 +33,12 @@ All risks in firmware-upgrade process are not alleviated by the bootloader impro
 The bootloader compilation process [requires several software packages] (http://www.leonardomiliani.com/en/2013/accorciamo-i-tempi-del-bootloader-della-leonardomicroesplora/) including [LUFA](https://github.com/abcminiuser/lufa), and avr-gcc toolchain. The LUFA packages and the appropriate [MakeFile] (https://github.com/waggle-sensor/wagman/blob/master/v3/bootloader/src/caterina/Makefile) used to compile the code  on an x86-64 Ubuntu machine have been included in the [LUFA-111009](https://github.com/waggle-sensor/wagman/tree/master/v3/bootloader/LUFA-111009) and [src](https://github.com/waggle-sensor/wagman/blob/master/v3/bootloader/src/caterina/) directories. The current binary bootloader can be found in the [bin](https://github.com/waggle-sensor/wagman/tree/master/v3/bootloader/bin) directory.
 # Flashing the Bootloader:
 
-The currently suggested bootloader flashing process involves the Arduino IDE and AVRISP mkII programmers. On Linux systems, the bootloader firmware named **Caterina-Micro.hex** found under the *arduino-1.6.7/hardware/arduino/avr/bootloaders/caterina/* folder is used by the IDE for Arduino-Micro class of devices, including the Wagman. A suggested method is to move this file to a safe location, and create a symbolic link to the bootloader binary provided in the bin folder *Caterina-Micro.hex -> wagman/v3/bootloader/bin/Wagman_bootloader.hex*. The IDE can now be used to flash the bootloader following the steps in the [Wagman Initialization](https://github.com/waggle-sensor/wagman/tree/master/v3/qa_testing/Wagman_Initialization) page.
+The currently suggested bootloader flashing process involves the [installbl script] (https://github.com/waggle-sensor/wagman/blob/master/v3/bootloader/src/caterina/installbl) and AVRISP mkII programmer. In order for the mkII programmer to work in 
+Linux, a udev rule *60-avrisp.rules* may be needed in the */etc/udev/rules.d* directory with the following entry. 
+
+```bash
+SUBSYSTEM!="usb", ACTION!="add", GOTO="avrisp_end"
+# Atmel Corp. AVRISP mkII
+ATTR{idVendor}=="03eb", ATTR{idProduct}=="2104", MODE="660", GROUP="tty"
+LABEL="avrisp_end"
+```

@@ -1,10 +1,7 @@
-# Command: Get / Set Date
-
-## Description
+# Commands List
+## Get / Set Date
 
 Gets / sets the RTC date.
-
-## Examples
 
 ```sh
 # gets the date
@@ -13,35 +10,23 @@ $ wagman-client date
 # sets the date
 $ wagman-client date 2016 03 15 13 00 00
 ```
-# Command: Get RTC
-
-## Description
+## Get RTC
 
 Gets the milliseconds since epoch from the RTC.
-
-## Examples
 
 ```sh
 $ wagman-client rtc
 ```
-# Command: Get Wagman ID
-
-## Description
+## Get Wagman ID
 
 Gets the onboard Wagman ID.
-
-## Examples
 
 ```sh
 $ wagman-client id
 ```
-# Command: Reset Wagman
-
-## Description
+## Reset Wagman
 
 Resets the Wagman with an optional delay.
-
-## Examples
 
 ```sh
 # resets the wagman immediately
@@ -50,25 +35,17 @@ $ wagman-client reset
 # resets the wagman after 90 seconds
 $ wagman-client reset 90
 ```
-# Command: Send Ping
-
-## Description
+## Send Ping
 
 Sends an "external" heartbeat signal for a device.
-
-## Examples
 
 ```sh
 # resets heartbeat timeout on device 1
 $ wagman-client ping 1
 ```
-# Command: Start Device
-
-## Description
+## Start Device
 
 Starts a device.
-
-## Examples
 
 ```sh
 # start the node controller
@@ -77,13 +54,9 @@ $ wagman-client start 0
 # start the guest node
 $ wagman-client start 1
 ```
-# Command: Stop Device
-
-## Description
+## Stop Device
 
 Stops a device with an optional delay.
-
-## Examples
 
 ```sh
 # stop guest node after 30 seconds

@@ -42,23 +42,19 @@ def sortkey(sections):
     return ''
 
 
+print('# Commands List')
+
 for sections in sorted(commands, key=sortkey):
     for section, body in sections:
         if section == 'Command':
-            print('# Command: {}'.format(body))
+            print('## {}'.format(body))
             print()
 
         if section == 'Description':
-            print('## Description')
-            print()
-
             print(body)
             print()
 
         if section == 'Examples':
-            print('## Examples')
-            print()
-
             print('```sh')
             print(body)
             print('```')

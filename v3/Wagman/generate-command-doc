@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+import re
+
+
+with open('wagman.ino') as f:
+    text = f.read()
+
+commands = []
+
+for block in re.findall('/\*((?:.|\n)*?)\*/', text):
+    if not re.search('Command:', block):
+        continue
+
+    if not re.search('Description:', block):
+        continue
+
+    sections = []
+
+    section = ''
+    lines = []
+
+    for line in block.splitlines():
+        m = re.search('(\w+):', line)
+        if m is not None:
+            if section:
+                sections.append((section, '\n'.join(lines).strip()))
+            section = m.group(1)
+            lines = []
+        else:
+            lines.append(line)
+
+    if section:
+        sections.append((section, '\n'.join(lines).strip()))
+
+    commands.append(sections)
+
+
+def sortkey(sections):
+    for section, body in sections:
+        if section == 'Command':
+            return body
+    return ''
+
+
+for sections in sorted(commands, key=sortkey):
+    for section, body in sections:
+        if section == 'Command':
+            print('# Command: {}'.format(body))
+            print()
+
+        if section == 'Description':
+            print('## Description')
+            print()
+
+            print(body)
+            print()
+
+        if section == 'Examples':
+            print('## Examples')
+            print()
+
+            print('```sh')
+            print(body)
+            print('```')

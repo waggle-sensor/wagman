@@ -92,11 +92,32 @@ void printID(byte id[8])
     }
 }
 
+/*
+Command:
+Get RTC
+
+Description:
+Gets the milliseconds since epoch from the RTC.
+
+Examples:
+$ wagman-client rtc
+*/
 byte commandRTC(byte argc, const char **argv) {
     Serial.println(RTC.get());
     return 0;
 }
 
+/*
+Command:
+Send Ping
+
+Description:
+Sends an "external" heartbeat signal for a device.
+
+Examples:
+# resets heartbeat timeout on device 1
+$ wagman-client ping 1
+*/
 byte commandPing(byte argc, const char **argv)
 {
     if (argc != 2)
@@ -112,6 +133,20 @@ byte commandPing(byte argc, const char **argv)
     return 0;
 }
 
+/*
+Command:
+Start Device
+
+Description:
+Starts a device.
+
+Examples:
+# start the node controller
+$ wagman-client start 0
+
+# start the guest node
+$ wagman-client start 1
+*/
 byte commandStart(byte argc, const char **argv)
 {
     if (argc != 2)
@@ -127,6 +162,20 @@ byte commandStart(byte argc, const char **argv)
     return 0;
 }
 
+/*
+Command:
+Stop Device
+
+Description:
+Stops a device with an optional delay.
+
+Examples:
+# stop guest node after 30 seconds
+$ wagman-client stop 1 30
+
+# stop guest node immediately
+$ wagman-client stop 1 0
+*/
 byte commandStop(byte argc, const char **argv)
 {
     if (argc <= 1)
@@ -148,6 +197,20 @@ byte commandStop(byte argc, const char **argv)
     return 0;
 }
 
+/*
+Command:
+Reset Wagman
+
+Description:
+Resets the Wagman with an optional delay.
+
+Examples:
+# resets the wagman immediately
+$ wagman-client reset
+
+# resets the wagman after 90 seconds
+$ wagman-client reset 90
+*/
 byte commandReset(byte argc, const char **argv)
 {
     shouldResetSystem = true;
@@ -162,6 +225,16 @@ byte commandReset(byte argc, const char **argv)
     return 0;
 }
 
+/*
+Command:
+Get Wagman ID
+
+Description:
+Gets the onboard Wagman ID.
+
+Examples:
+$ wagman-client id
+*/
 byte commandID(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     byte id[8];
@@ -173,6 +246,20 @@ byte commandID(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) cons
     return 0;
 }
 
+/*
+Command:
+Get / Set Date
+
+Description:
+Gets / sets the RTC date.
+
+Examples:
+# gets the date
+$ wagman-client date
+
+# sets the date
+$ wagman-client date 2016 03 15 13 00 00
+*/
 byte commandDate(byte argc, const char **argv)
 {
     if (argc != 1 && argc != 7)

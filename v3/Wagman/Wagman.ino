@@ -286,6 +286,17 @@ byte commandDate(byte argc, const char **argv)
     return 0;
 }
 
+/*
+Command:
+Get Current Values
+
+Description:
+Gets the current from the system and all devices. The outputs are formatted as:
+System Device0 Device1 ... Device4
+
+Examples:
+$ wagman-client cu
+*/
 byte commandCurrent(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     Serial.print(Wagman::getCurrent());
@@ -300,6 +311,20 @@ byte commandCurrent(__attribute__ ((unused)) byte argc, __attribute__ ((unused))
     return 0;
 }
 
+/*
+Command:
+Get Heartbeats
+
+Description:
+Gets the time since last seeing a heartbeat for each device. The outputs are formatted as:
+Device0
+Device1
+...
+Device4
+
+Examples:
+$ wagman-client hb
+*/
 byte commandHeartbeat(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     for (byte i = 0; i < DEVICE_COUNT; i++) {
@@ -309,6 +334,21 @@ byte commandHeartbeat(__attribute__ ((unused)) byte argc, __attribute__ ((unused
     return 0;
 }
 
+/*
+Command:
+Get Fail Counts
+
+Description:
+Gets the number of device failures for each device. Currently, this only includes
+heartbeat timeouts.
+Device0
+Device1
+...
+Device4
+
+Examples:
+$ wagman-client fc
+*/
 byte commandFailCount(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     for (byte i = 0; i < DEVICE_COUNT; i++) {
@@ -318,6 +358,20 @@ byte commandFailCount(__attribute__ ((unused)) byte argc, __attribute__ ((unused
     return 0;
 }
 
+/*
+Command:
+Get Thermistor Values
+
+Description:
+Gets the thermistor values for each device. The outputs are formatted as:
+Device0
+Device1
+...
+Device4
+
+Examples:
+$ wagman-client th
+*/
 byte commandThermistor(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     for (byte i = 0; i < DEVICE_COUNT; i++) {
@@ -327,6 +381,16 @@ byte commandThermistor(__attribute__ ((unused)) byte argc, __attribute__ ((unuse
     return 0;
 }
 
+/*
+Command:
+Get Environment Sensor Values
+
+Description:
+Gets the onboard temperature and humidity sensor values.
+
+Examples:
+$ wagman-client env
+*/
 byte commandEnvironment(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     Serial.print("temperature=");
@@ -335,11 +399,27 @@ byte commandEnvironment(__attribute__ ((unused)) byte argc, __attribute__ ((unus
     Serial.print("humidity=");
     Serial.println(Wagman::getHumidity());
 
-    // Serial.print('\0');
-
     return 0;
 }
 
+/*
+Command:
+Get / Set Device Boot Media
+
+Description:
+Gets / sets the next boot media for a device. The possible boot media are `sd`
+and `emmc`.
+
+Examples:
+# gets the selected boot media for the node controller.
+$ wagman-client bs 0
+
+# set the selected boot media for the guest node to sd
+$ wagman-client bs 1 sd
+
+# set the selected boot media for the guest node to emmc
+$ wagman-client bs 1 emmc
+*/
 byte commandBootMedia(byte argc, const char **argv)
 {
     if (argc != 2 && argc != 3)
@@ -388,6 +468,20 @@ byte commandLog(byte argc, const char **argv)
     return 0;
 }
 
+/*
+Command:
+Get Boot Flags
+
+Description:
+Gets the system boot flags. The possible results are:
+* WDRF: Reset by watchdog.
+* EXTF: Reset by external reset line.
+* BORF: Detected brownout.
+* PORF: Detected power on. (Should always be set.)
+
+Examples:
+$ wagman-client bf
+*/
 byte commandBootFlags(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     if (bootflags & _BV(WDRF))
@@ -401,6 +495,16 @@ byte commandBootFlags(__attribute__ ((unused)) byte argc, __attribute__ ((unused
     return 0;
 }
 
+/*
+Command:
+Get Uptime
+
+Description:
+Gets the system uptime in seconds.
+
+Examples:
+$ wagman-client up
+*/
 byte commandUptime(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     time_t time;
@@ -409,6 +513,18 @@ byte commandUptime(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) 
     return 0;
 }
 
+/*
+Command:
+Enable Device
+
+Description:
+Enables a device to be powered on automatically. Note that this doesn't
+immediately start the device.
+
+Examples:
+# enable the coresense
+$ wagman-client enable 2
+*/
 byte commandEnable(byte argc, const char **argv)
 {
     for (byte i = 1; i < argc; i++) {
@@ -424,6 +540,18 @@ byte commandEnable(byte argc, const char **argv)
     return 0;
 }
 
+/*
+Command:
+Disable Device
+
+Description:
+Disables a device from being powered on automatically. Note that this doesn't
+immediately stop a device.
+
+Examples:
+# disable the coresense
+$ wagman-client disable 2
+*/
 byte commandDisable(byte argc, const char **argv)
 {
     for (byte i = 1; i < argc; i++) {
@@ -439,6 +567,21 @@ byte commandDisable(byte argc, const char **argv)
     return 0;
 }
 
+/*
+Command:
+Change Device Timeout Behavior
+
+Description:
+Change the timeout behavior for the heartbeat and current. Currently, only heartbeat
+timeouts are supported.
+
+Examples:
+# disable watching the coresense heartbeat
+$ wagman-client watch 2 hb f
+
+# enable watching the coresense heartbeat
+$ wagman-client watch 2 hb t
+*/
 byte commandWatch(byte argc, const char **argv)
 {
 //    if (argc != 4)
@@ -460,6 +603,16 @@ byte commandWatch(byte argc, const char **argv)
     return 0;
 }
 
+/*
+Command:
+Get Wagman Boot Count
+
+Description:
+Gets the number of times the system has booted.
+
+Examples:
+$ wagman-client boots
+*/
 byte commandBoots(byte argc, const char **argv)
 {
     unsigned long count;
@@ -468,6 +621,16 @@ byte commandBoots(byte argc, const char **argv)
     return 0;
 }
 
+/*
+Command:
+Get Wagman Version
+
+Description:
+Gets the hardware / firmware versions of the system.
+
+Examples:
+$ wagman-client ver
+*/
 byte commandVersion(byte argc, const char **argv)
 {
     Serial.print("hw ");
@@ -491,6 +654,18 @@ byte commandVersion(byte argc, const char **argv)
     return 0;
 }
 
+/*
+Command:
+Get Wagman Bootloader Flag
+
+Description:
+Gets the bootloader stage boot / media flag for the node controller. The output
+indicates whether the node controller will be started in the bootloader stage
+and if so, with which boot media.
+
+Examples:
+$ wagman-client blf
+*/
 byte commandBLFlag(byte argc, const char **argv)
 {
     if (argc == 1) {

@@ -135,7 +135,7 @@ void init()
 
 void clearMagic()
 {
-    EEPROM.put(EEPROM_MAGIC_ADDR, (unsigned long)0);
+    EEPROM.put(EEPROM_MAGIC_ADDR, 0L);
 }
 
 bool getWireEnabled()
@@ -322,22 +322,22 @@ void setFaultCurrent(byte port, int current)
 
 unsigned long getFaultTimeout(byte device)
 {
-    return (unsigned long)15000; // 15 seconds
+    return 15000L; // 15 seconds
 }
 
 unsigned long getHeartbeatTimeout(byte device)
 {
-    return (unsigned long)60000; // 60 seconds
+    return 60000L; // 60 seconds
 }
 
 unsigned long getUnmanagedChangeTime(byte device)
 {
-    return (unsigned long)28800000; // 8 hours
+    return 28800000L; // 8 hours
 }
 
 unsigned long getStopTimeout(byte device)
 {
-    return (unsigned long)60000; // 60 seconds
+    return 60000L; // 60 seconds
 }
 
 BootLog::BootLog(unsigned int addr)

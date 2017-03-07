@@ -8,10 +8,10 @@ const byte PORT_NC = 0;
 const byte PORT_GN = 1;
 const byte PORT_CORESENSE = 2;
 
-const unsigned long HEARTBEAT_TIMEOUT = (unsigned long)300000;
-const unsigned long FAULT_TIMEOUT = (unsigned long)10000;
-const unsigned long DETECT_CURRENT_TIMEOUT = (unsigned long)10000;
-const unsigned long STOP_MESSAGE_TIMEOUT = (unsigned long)10000;
+const unsigned long HEARTBEAT_TIMEOUT = 300000L;
+const unsigned long FAULT_TIMEOUT = 10000L;
+const unsigned long DETECT_CURRENT_TIMEOUT = 10000L;
+const unsigned long STOP_MESSAGE_TIMEOUT = 10000L;
 
 void Device::init()
 {
@@ -222,6 +222,9 @@ void Device::updateFault()
     }
 }
 
+// Probably want to move a lot of this into state handler tables to dispatch
+// on events. Or, on a state change, update the function pointer for the
+// update function.
 void Device::updateState()
 {
     switch (state) {
@@ -313,7 +316,7 @@ void Device::updateStartedManaged()
 
 void Device::updateStartedUnmanaged()
 {
-    if (stateTimer.exceeds(14400000)) {
+    if (stateTimer.exceeds(14400000L)) {
         Logger::begin(name);
         Logger::log("unmanaged switch");
         Logger::end();

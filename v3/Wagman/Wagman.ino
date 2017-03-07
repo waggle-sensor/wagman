@@ -695,6 +695,25 @@ byte commandBLFlag(byte argc, const char **argv)
     return 0;
 }
 
+/*
+Command:
+Reset EEPROM
+
+Description:
+Requests that the system resets its persistent EEPROM on the *next* reboot.
+
+Examples:
+# request a eeprom reset
+$ wagman-client eereset
+# reset the wagman
+$ wagman-client reset
+*/
+byte commandResetEEPROM(byte argc, const char **argv)
+{
+    Record::clearMagic();
+    return 0;
+}
+
 void executeCommand(const char *sid, byte argc, const char **argv)
 {
     byte (*func)(byte, const char **) = NULL;
@@ -721,12 +740,6 @@ void executeCommand(const char *sid, byte argc, const char **argv)
 
     // marks the end of a response packet.
     Serial.println("->>>");
-}
-
-byte commandResetEEPROM(byte argc, const char **argv)
-{
-    Record::clearMagic();
-    return 0;
 }
 
 void processCommand()

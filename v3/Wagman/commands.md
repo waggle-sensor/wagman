@@ -146,6 +146,16 @@ Gets the hardware / firmware versions of the system.
 ```sh
 $ wagman-client ver
 ```
+## Reset EEPROM
+
+Requests that the system resets its persistent EEPROM on the *next* reboot.
+
+```sh
+# request a eeprom reset
+$ wagman-client eereset
+# reset the wagman
+$ wagman-client reset
+```
 ## Reset Wagman
 
 Resets the Wagman with an optional delay.

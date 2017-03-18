@@ -6,36 +6,33 @@ bootloader and firmware files found in this repo, following the steps below -
 
 ### 1. [Bootloader:](./bootloader/)
 
-The bootloader is installed first on the WagMan. The bootloader is not field upgradable.  
+  The bootloader is installed first on the WagMan. The bootloader is not field upgradable.  
 
-* Needs: [AVRISP mkII programmer](http://www.atmel.com/tools/avrispmkii.aspx), Linux Computer.
+  * Needs: [AVRISP mkII programmer](http://www.atmel.com/tools/avrispmkii.aspx), Linux Computer.
 
-* Preperation: 
-  - For the mkII programmer to function properly in Linux, a udev rule 60-avrisp.rules may be needed in the /etc/udev/rules.d directory with the following entry.
+  * Preperation: 
+    - For the mkII programmer to function properly in Linux, a udev rule 60-avrisp.rules may be needed in the /etc/udev/rules.d directory with the following entry.
 
-```bash
-SUBSYSTEM!="usb", ACTION!="add", GOTO="avrisp_end"
-# Atmel Corp. AVRISP mkII
-ATTR{idVendor}=="03eb", ATTR{idProduct}=="2104", MODE="660", GROUP="tty"
-LABEL="avrisp_end"
-```
+    ```bash
+    SUBSYSTEM!="usb", ACTION!="add", GOTO="avrisp_end"
+    # Atmel Corp. AVRISP mkII
+    ATTR{idVendor}=="03eb", ATTR{idProduct}=="2104", MODE="660", GROUP="tty"
+    LABEL="avrisp_end"
+    ```
 
   
-* Process: 
-  - Power on Wagman by connecting the 5V DC power as shown in figure below. Red is +5V and Black is ground. </br>
-    <img src="./qa_testing/design_dev_tests/Wagman_Initialization/resources/power_connect.jpg" width="220">
-
-  - The Yellow "ON" LED on the WagMan should light up. 
-    <img src="./qa_testing/design_dev_tests/Wagman_Initialization/resources/coin_cell_battery_debug_LED.jpg" width="220">
-  
-  - Connect the Atmel AVRISP mkII to the Linux computer and connect it to J2 of Wagman as shown below. </br>
-    <img src="./qa_testing/design_dev_tests/Wagman_Initialization/resources/avrisp_connect.jpg" width="220">
-    
-  - Install the bootloader using the command installbl
-  ```bash
-  ./installbl
-  ```
-  - Unplug the AVRISP from the WagMan on successful install of bootloader. 
+  * Process: 
+    - Power on Wagman by connecting the 5V DC power as shown in figure below. Red is +5V and Black is ground. </br>
+      <img src="./qa_testing/design_dev_tests/Wagman_Initialization/resources/power_connect.jpg" width="220">
+    - The Yellow "ON" LED on the WagMan should light up. </br>
+      <img src="./qa_testing/design_dev_tests/Wagman_Initialization/resources/coin_cell_battery_debug_LED.jpg" width="220">
+    - Connect the Atmel AVRISP mkII to the Linux computer and connect it to J2 of Wagman as shown below. </br>
+      <img src="./qa_testing/design_dev_tests/Wagman_Initialization/resources/avrisp_connect.jpg" width="220">
+    - Install the bootloader using the command installbl
+      ```bash
+      ./installbl
+      ```
+    - Unplug the AVRISP from the WagMan on successful install of bootloader. 
   
   ### 2. [Firmware:](./firmware/)
   
@@ -59,7 +56,7 @@ into the programming computer when installing the firmware. The WagMan firware i
   - Power on Wagman by connecting the 5V DC power as shown in figure below. Red is +5V and Black is ground. </br>
     <img src="./qa_testing/design_dev_tests/Wagman_Initialization/resources/power_connect.jpg" width="220">
 
-  - The Yellow "ON" LED on the WagMan should light up. 
+  - The Yellow "ON" LED on the WagMan should light up. </br>
     <img src="./qa_testing/design_dev_tests/Wagman_Initialization/resources/coin_cell_battery_debug_LED.jpg" width="220">
   
   - Plug the Micro-USB cable into the Linux computer and connect it to Micro-USB port of the Wagman.

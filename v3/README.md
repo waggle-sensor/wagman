@@ -1,10 +1,8 @@
 # WagMan Layout and Features
 
-The WagMan V3.1 board is capable of managing upto 5 devices through power control, power monitoring,
-heart-beat monitoring and device temperature monitoring. The figure below shows a WagMan with annotations
-pointing out the various capabilities, sensors and connectors on board.
+The WagMan V3.1 board is capable of managing upto 5 devices through power control, power monitoring, heart-beat monitoring and device temperature monitoring. The figure below shows a WagMan with annotations pointing out the various capabilities, sensors and connectors on board.
 
-<img src="./resources/WagManAnnotated.jpg" width="800">
+<img src="./resources/WagmanAnnotated.jpg" width="800">
 
 ## Onboard Sensors
 

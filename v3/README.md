@@ -61,7 +61,7 @@ into the programming computer when installing the firmware. The WagMan firware i
   ```
   
   
-  ### 3. WagMan (Re)Initialize: 
+### 3. WagMan (Re)Initialize: 
   
   Initialize the WagMan using the following command - 
   ```bash

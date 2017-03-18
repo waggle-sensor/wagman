@@ -53,21 +53,21 @@ The WagMan board has 5 status LEDs with the following features
  The WagMan board has several power and communication Inputs and Outputs as listed below
 
  * Power
-  * Power Input - 5V, 10A max.
-  * 5 Power Outputs - 5V, 2.5A max.
+   - Power Input - 5V, 10A max.
+   - 5 Power Outputs - 5V, 2.5A max.
 
  * Communication
-  * USB Interface - USB CDC communication port to connect to Node-Controller
-  * ISP Interface - For loading Bootloader on Atmel 32U4 using AVRISP MkII programmer. Post boot-loader flashing phase, the SRE V1 board is connected to this port for enabling Atmel 32U4 reset by Node-Controller.
+   - USB Interface - USB CDC communication port to connect to Node-Controller
+   - ISP Interface - For loading Bootloader on Atmel 32U4 using AVRISP MkII programmer. Post boot-loader flashing phase, the SRE V1 board is connected to this port for enabling Atmel 32U4 reset by Node-Controller.
 
  * Health Status
-  * Heart-beat inputs - five ports that can sense a heart-beat signal represented by toggle between GND and Logic high.
+   - Heart-beat inputs - five ports that can sense a heart-beat signal represented by toggle between GND and Logic high.
 
- * Sensor
-  * Thermistor inputs - five inputs to sense temperature
+ * Sensors-
+   - Thermistor inputs - five inputs to sense temperature
 
  * Control
-  * Reset outputs - five lines for devices that can be reset by toggling the line. The lines operate at 5V logic and cannot be used simultaneously with power delivery from a port.
+   - Reset outputs - five lines for devices that can be reset by toggling the line. The lines operate at 5V logic and cannot be used simultaneously with power delivery from a port.
 
 
 

@@ -17,7 +17,7 @@ During the upgrade process the Node-controller is kept alive by the latched powe
 ## Wagman Firmware Upgrade with Node-controller Power-ON in Boot-loader State:
 
 To mitigate the above risk, the boot-loader is modified to receive instructions from a working firmware. A working firmware can write instructions (option to power ON Node-controller and choice of eMMC or SD card) into the EEPROM which are preserved across soft/hard resets and also power failures. These instructions are read by the boot-loader and appropriate actions are performed. The new firmware-upgrade process is as follows -
-  1. The working Wagman [firmware](https://github.com/waggle-sensor/wagman/blob/master/v3/Wagman/Record.cpp), on the direction from Node-controller, enables bootloader stage Node-controller power-ON, along with the choice of the appropriate boot-media. This is written to location 0x40 in the EEPROM.
+  1. The Wagman [firmware](../firmware/Record.cpp), on the direction from Node-controller, enables bootloader stage Node-controller power-ON, along with the choice of the appropriate boot-media. This is written to location 0x40 in the EEPROM.
   2. The Node-controller initiates the firmware-upgrade using the Auto-reset process (1) ( the Forced-reset (2) is used as the backup process).
   3. The bootloader reads the memory location 0x40 and sets the right relay settings to choose the appropriate boot-media for Node-controller and forces a power ON. If the Node-controller is already powered-ON, this process has no effect on it. Otherwise, the Node-controller is powered-ON with the required boot-media.
   4. After 5 seconds, the Wagman goes into the standard Arduino-bootloader phase, ready to receive the firmware upgrade over the USB link.

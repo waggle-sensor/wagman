@@ -1,4 +1,6 @@
-# Wagman
+# WagMan: The Waggle Manager
+
+<img src="./v3/resources/WagmanAnnotated.jpg" width="800">
 
 The WagMan is a custom-designed embedded microcontroller board that 
 manages power, monitors the operation of all system components, and 

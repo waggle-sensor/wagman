@@ -53,20 +53,20 @@ into the programming computer when installing the firmware. The WagMan firware i
 
   
 * Process: 
-  - Power on Wagman by connecting the 5V DC power as shown in figure below. Red is +5V and Black is ground. </br>
-    <img src="./qa_testing/design_dev_tests/Wagman_Initialization/resources/power_connect.jpg" width="220">
-
-  - The Yellow "ON" LED on the WagMan should light up. </br>
-    <img src="./qa_testing/design_dev_tests/Wagman_Initialization/resources/coin_cell_battery_debug_LED.jpg" width="220">
-  
+  - Power on Wagman by connecting the 5V DC power as described above.
   - Plug the Micro-USB cable into the Linux computer and connect it to Micro-USB port of the Wagman.
-  
   - Install the firmware using the command installbl
   ```bash
   ./installfw
   ```
-  - Unplug the Micro-USB cable from WagMan on successful install of firmware. 
-
+  
+  
+  ### 3. WagMan (Re)Initialize: 
+  
+  Initialize the WagMan using the following command - 
+  ```bash
+  ./wminit
+  ```
   
 
 ## WagMan Layout and Features

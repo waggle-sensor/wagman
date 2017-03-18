@@ -30,11 +30,11 @@ All risks in firmware-upgrade process are not alleviated by the bootloader impro
 
 ## Compiling Bootloader:
 
-The bootloader compilation process [requires several software packages](http://www.leonardomiliani.com/en/2013/accorciamo-i-tempi-del-bootloader-della-leonardomicroesplora/) including [LUFA](https://github.com/abcminiuser/lufa), and avr-gcc toolchain. The LUFA packages and the appropriate [MakeFile](https://github.com/waggle-sensor/WagMan/blob/master/v3/bootloader/src/caterina/Makefile) used to compile the code  on an x86-64 Ubuntu machine have been included in the [LUFA-111009](https://github.com/waggle-sensor/WagMan/tree/master/v3/bootloader/LUFA-111009) and [src](https://github.com/waggle-sensor/WagMan/blob/master/v3/bootloader/src/caterina/) directories. The current binary bootloader can be found in the [bin](https://github.com/waggle-sensor/WagMan/tree/master/v3/bootloader/bin) directory.
-# Flashing the Bootloader:
+The bootloader compilation process [requires several software packages](http://www.leonardomiliani.com/en/2013/accorciamo-i-tempi-del-bootloader-della-leonardomicroesplora/) including [LUFA](https://github.com/abcminiuser/lufa), and avr-gcc toolchain. The LUFA packages and the appropriate [MakeFile](./src/caterina/Makefile) used to compile the code  on an x86-64 Ubuntu machine have been included in the [LUFA-111009](./LUFA-111009) and [src](./src/caterina/) directories. The current binary bootloader can be found in the [bin](./bin) directory.
 
-The currently suggested bootloader flashing process involves the [installbl script](https://github.com/waggle-sensor/WagMan/blob/master/v3/bootloader/src/caterina/installbl) and AVRISP mkII programmer. In order for the mkII programmer to work in 
-Linux, a udev rule *60-avrisp.rules* may be needed in the */etc/udev/rules.d* directory with the following entry. 
+# Flashing the Bootloader in Linux:
+
+The currently suggested bootloader flashing process involves the [installbl script](./src/caterina/installbl) and AVRISP mkII programmer. In order for the mkII programmer to work in Linux, a udev rule *60-avrisp.rules* may be needed in the */etc/udev/rules.d* directory with the following entry. 
 
 ```bash
 SUBSYSTEM!="usb", ACTION!="add", GOTO="avrisp_end"

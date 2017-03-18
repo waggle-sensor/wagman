@@ -8,7 +8,7 @@ bootloader and firmware files found in this repo, following the steps below -
 
   The bootloader is installed first on the WagMan. The bootloader is not field upgradable.  
 
-  * Needs: [AVRISP mkII programmer](http://www.atmel.com/tools/avrispmkii.aspx), Linux Computer.
+  * Needs: [AVRISP mkII programmer](http://www.atmel.com/tools/avrispmkii.aspx), Linux Computer with [avrdude](http://www.nongnu.org/avrdude/).
 
   * Preperation: 
     - For the mkII programmer to function properly in Linux, a udev rule 60-avrisp.rules may be needed in the /etc/udev/rules.d directory with the following entry.
@@ -39,7 +39,7 @@ bootloader and firmware files found in this repo, following the steps below -
 The firmware install follows the bootloader. Please leave only one WagMan (and no Arduino Micro class devices) plugged 
 into the programming computer when installing the firmware. The WagMan firware is field Upgradable. 
 
-* Needs: Micro-USB cable, Linux Computer.
+* Needs: Micro-USB cable, Linux Computer with [avrdude](http://www.nongnu.org/avrdude/).
 
 * Preperation: 
   - Onetime setup: Place udev rule 75-waggle-arduino.rules in the /etc/udev/rules.d directory with the following entry.

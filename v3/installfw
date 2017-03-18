@@ -1,0 +1,2 @@
+#!/bin/bash
+avrdude -v -pm32u4 -cavr109 -P /dev/waggle_sysmon -b57600 -D -Uflash:w:/firmware/bin/firmware.ino.hex:i

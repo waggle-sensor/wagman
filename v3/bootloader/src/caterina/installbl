@@ -1,4 +1,0 @@
-#!/bin/bash
-avrdude -C ./avrdude.conf -B 2 -p atmega32u4 -P usb -c avrispmkII -U efuse:w:0xcb:m  -U hfuse:w:0xd8:m -U lfuse:w:0xff:m -v -U flash:w:Caterina.hex
-sleep 2
-make program

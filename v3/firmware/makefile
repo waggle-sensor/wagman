@@ -65,4 +65,4 @@ test:	program
 	make connect
 
 docs:
-	./generate-command-doc > commands.md
+	./generate-command-doc > README.md

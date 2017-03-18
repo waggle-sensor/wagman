@@ -6,6 +6,8 @@ bootloader and firmware files found in this repo, following the steps below -
 
 ### 1. [Bootloader:](./bootloader/)
 
+The bootloader is installed first on the WagMan. The bootloader is not field upgradable.  
+
 * Needs: [AVRISP mkII programmer](http://www.atmel.com/tools/avrispmkii.aspx), Linux Computer.
 
 * Preperation: 
@@ -23,7 +25,7 @@ LABEL="avrisp_end"
   - Power on Wagman by connecting the 5V DC power as shown in figure below. Red is +5V and Black is ground. </br>
     <img src="./qa_testing/design_dev_tests/Wagman_Initialization/resources/power_connect.jpg" width="220">
 
-  - The Yellow "ON" LED lights up. The L and L1 debug LEDs are to the left of the ON LED. </br>
+  - The Yellow "ON" LED on the WagMan should light up. 
     <img src="./qa_testing/design_dev_tests/Wagman_Initialization/resources/coin_cell_battery_debug_LED.jpg" width="220">
   
   - Connect the Atmel AVRISP mkII to the Linux computer and connect it to J2 of Wagman as shown below. </br>
@@ -33,6 +35,42 @@ LABEL="avrisp_end"
   ```bash
   ./installbl
   ```
+  - Unplug the AVRISP from the WagMan on successful install of bootloader. 
+  
+  ### 2. [Firmware:](./firmware/)
+  
+The firmware install follows the bootloader. Please leave only one WagMan (and no Arduino Micro class devices) plugged 
+into the programming computer when installing the firmware. The WagMan firware is field Upgradable. 
+
+* Needs: Micro-USB cable, Linux Computer.
+
+* Preperation: 
+  - Onetime setup: Place udev rule 75-waggle-arduino.rules in the /etc/udev/rules.d directory with the following entry.
+
+  ```bash
+  SUBSYSTEM!="usb", ACTION!="add", GOTO="add_rules_end"
+  SUBSYSTEM=="tty", KERNEL=="ttyACM[0-9]*", ATTRS{idVendor}=="2341", ATTRS{idProduct}=="0037", SYMLINK+="waggle_sysmon"
+  SUBSYSTEM=="tty", KERNEL=="ttyACM[0-9]*", ATTRS{idVendor}=="2341", ATTRS{idProduct}=="8037", SYMLINK+="waggle_sysmon"
+  LABEL="add_rules_end"
+  ```
+
+  
+* Process: 
+  - Power on Wagman by connecting the 5V DC power as shown in figure below. Red is +5V and Black is ground. </br>
+    <img src="./qa_testing/design_dev_tests/Wagman_Initialization/resources/power_connect.jpg" width="220">
+
+  - The Yellow "ON" LED on the WagMan should light up. 
+    <img src="./qa_testing/design_dev_tests/Wagman_Initialization/resources/coin_cell_battery_debug_LED.jpg" width="220">
+  
+  - Plug the Micro-USB cable into the Linux computer and connect it to Micro-USB port of the Wagman.
+  
+  - Install the firmware using the command installbl
+  ```bash
+  ./installfw
+  ```
+  - Unplug the Micro-USB cable from WagMan on successful install of firmware. 
+
+  
 
 ## WagMan Layout and Features
 

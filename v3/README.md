@@ -1,4 +1,36 @@
-# WagMan Layout and Features
+## Getting Started
+
+The WagMan V3.1 device uses two unique pieces of code for accomplishing its tasks - bootloader and firmware. To use a WagMan 
+in a Waggle node, both the pieces of code must be flashed onto the board. It is recommended to use the precompiled binary 
+bootloader and firmware files found in this repo, following the steps below -
+
+### 1. Bootloader: [Info](./bootloader/)
+
+* Needs: [AVRISP mkII programmer](http://www.atmel.com/tools/avrispmkii.aspx), Linux Computer.
+
+* Preperation: 
+  - For the mkII programmer to function properly in Linux, a udev rule 60-avrisp.rules may be needed in the /etc/udev/rules.d directory with the following entry.
+
+```bash
+SUBSYSTEM!="usb", ACTION!="add", GOTO="avrisp_end"
+# Atmel Corp. AVRISP mkII
+ATTR{idVendor}=="03eb", ATTR{idProduct}=="2104", MODE="660", GROUP="tty"
+LABEL="avrisp_end"
+```
+
+  
+* Process: 
+  - Power on Wagman by connecting the 5V DC power as shown in figure below. Red is +5V and Black is ground. </br>
+<img src="./qa_testing/design_dev_tests/Wagman_Initialization/resources/power_connect.jpg" width="220">
+  - The Yellow "ON" LED lights up. The L and L1 debug LEDs are to the left of the ON LED. </br>
+  <img src="./qa_testing/design_dev_tests/Wagman_Initialization/resources/coin_cell_battery_debug_LED.jpg" width="220">
+  
+  - Connect the Atmel AVRISP mkII to the Linux computer and connect it to J2 of Wagman as shown below. </br>
+<img src="./qa_testing/design_dev_tests/Wagman_Initialization/resources/avrisp_connect.jpg" width="220">
+  - Install the bootloader using [installbl script](./src/caterina/installbl)
+
+
+## WagMan Layout and Features
 
 The WagMan V3.1 board is capable of managing upto 5 devices through power control, power monitoring, heart-beat monitoring and device temperature monitoring. The figure below shows a WagMan with annotations pointing out the various capabilities, sensors and connectors on board.
 
@@ -19,6 +51,9 @@ In addition to the above sensors, the WagMan can keep time using a real-time clo
 which also provides the WagMan with a 6-byte unique ID.
 
 ## Power Distribution, Control and Metering
+
+
+
 There are 5 ports on the WagMan numbered Port 1 to 5 with the following features
   * Each port has one 5V power output, one Thermistor input (2 pins) and one heart-beat input. An optional
   reset pin can be used to reset a device (by toggling the line) powered by an external source. The reset

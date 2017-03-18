@@ -1,5 +1,5 @@
 ARD_HOME = $(ARDUINO_DIR)
-TARGET = Wagman
+TARGET = firmware
 PACKAGE = arduino
 ARCH = avr
 BOARD = micro

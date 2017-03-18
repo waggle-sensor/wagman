@@ -34,7 +34,7 @@ The bootloader compilation process [requires several software packages](http://w
 
 # Flashing the Bootloader in Linux:
 
-The currently suggested bootloader flashing process involves the [installbl script](./src/caterina/installbl) and AVRISP mkII programmer. In order for the mkII programmer to work in Linux, a udev rule *60-avrisp.rules* may be needed in the */etc/udev/rules.d* directory with the following entry. 
+The currently suggested bootloader flashing process involves the [installbl script](../installbl) and AVRISP mkII programmer. In order for the mkII programmer to work in Linux, a udev rule *60-avrisp.rules* may be needed in the */etc/udev/rules.d* directory with the following entry. 
 
 ```bash
 SUBSYSTEM!="usb", ACTION!="add", GOTO="avrisp_end"

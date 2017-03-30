@@ -3,33 +3,26 @@ from serial import Serial
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--device', default='/dev/waggle_sysmon')
+parser.add_argument('--device', default='/dev/waggle_sysmon', help='path to device')
+parser.add_argument('--timeout', default=10, type=int, help='timeout in seconds')
 parser.add_argument('args', nargs='+')
 args = parser.parse_args()
 
-with Serial(args.device, baudrate=57600, timeout=5) as ser:
+with Serial(args.device, baudrate=57600, timeout=args.timeout) as ser:
     command = '@cli {}\n'.format(' '.join(args.args)).encode()
     ser.write(command)
 
     lines = []
-    attempts = 0
 
     while True:
         try:
             line = ser.readline().decode()
         except UnicodeDecodeError:
             continue
-
         if len(line) == 0:
-            if attempts < 3:
-                attempts += 1
-                continue
-            else:
-                raise TimeoutError('Wagman request timed out.')
-
+            raise TimeoutError('Wagman request timed out.')
         if line.startswith('log:'):
             continue
-
         if line.startswith('<<<- sid=cli'):
             break
 
@@ -38,17 +31,10 @@ with Serial(args.device, baudrate=57600, timeout=5) as ser:
             line = ser.readline().decode()
         except UnicodeDecodeError:
             continue
-
         if len(line) == 0:
-            if attempts < 3:
-                attempts += 1
-                continue
-            else:
-                raise TimeoutError('Wagman request timed out.')
-
+            raise TimeoutError('Wagman request timed out.')
         if line.startswith('log:'):
             continue
-
         if line.startswith('->>>'):
             break
 

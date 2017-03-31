@@ -1,2 +1,11 @@
-#!/bin/bash
-avrdude -v -pm32u4 -cavr109 -P /dev/waggle_sysmon -b57600 -D -Uflash:w:./firmware/bin/firmware.ino.hex:i
+#!/usr/bin/env python3
+import argparse
+import subprocess
+import sys
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--device', default='/dev/waggle_sysmon')
+args = parser.parse_args()
+
+p = subprocess.run('avrdude -v -pm32u4 -cavr109 -P {} -b57600 -D -Uflash:w:./firmware/bin/firmware.ino.hex:i'.format(args.device), shell=True)
+sys.exit(p.returncode)

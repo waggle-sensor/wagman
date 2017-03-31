@@ -2,7 +2,19 @@
 from serial import Serial
 import argparse
 
-parser = argparse.ArgumentParser()
+epilog = '''
+wagman commands:
+  start n   Starts device n.
+  stop n t  Stops device n in t seconds.
+  hb        Gets devices heartbeats.
+  eereset   Clear EEPROM on next boot.
+  reset     Reset the wagman.
+'''.strip()
+
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    epilog=epilog)
+
 parser.add_argument('--device', default='/dev/waggle_sysmon', help='path to device')
 parser.add_argument('--timeout', default=10, type=int, help='timeout in seconds')
 parser.add_argument('args', nargs='+')

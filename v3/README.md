@@ -55,7 +55,7 @@ into the programming computer when installing the firmware. The WagMan firware i
 * Process: 
   - Power on Wagman by connecting the 5V DC power as described above.
   - Plug the Micro-USB cable into the Linux computer and connect it to Micro-USB port of the Wagman.
-  - Install the firmware using the command installbl
+  - Install the firmware using the command installfw
   ```bash
   ./installfw
   ```
@@ -63,7 +63,7 @@ into the programming computer when installing the firmware. The WagMan firware i
   
 ### 3. WagMan (Re)Initialize: 
   
-  Initialize the WagMan using the following command - 
+  Initialize the WagMan using the following command wminit- 
   ```bash
   ./wminit
   ```

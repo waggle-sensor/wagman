@@ -7,5 +7,4 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--device', default='/dev/waggle_sysmon')
 args = parser.parse_args()
 
-p = subprocess.run('avrdude -v -pm32u4 -cavr109 -P {} -b57600 -D -Uflash:w:./firmware/bin/firmware.ino.hex:i'.format(args.device), shell=True)
-sys.exit(p.returncode)
+sys.exit(subprocess.call('avrdude -v -pm32u4 -cavr109 -P {} -b57600 -D -Uflash:w:./firmware/bin/firmware.ino.hex:i'.format(args.device), shell=True))

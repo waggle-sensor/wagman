@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# install bootloader
+if ./installbl; then
+  echo '>>> BOOTLOADER PASS'
+else
+  echo '>>> BOOTLOADER FAIL'
+  exit 1
+fi
+
+# install firmware
+sleep 5
+
+if ./installfw; then
+  echo '>>> FIRMWARE PASS'
+else
+  echo '>>> FIRMWARE FAIL'
+  exit 1
+fi
+
+# initialize wagman
+if ./wminit; then
+  echo '>>> SETUP PASS'
+else
+  echo '>>> SETUP FAIL'
+  exit 1
+fi

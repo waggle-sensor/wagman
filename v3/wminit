@@ -1,16 +1,16 @@
-#!/bin/sh
+#!/bin/bash
 
-utils/wagmancli eereset
+utils/wagmancli $@ eereset
 
-utils/wagmancli date $(date '+%Y %m %d %H %M %S')
+utils/wagmancli $@ date $(date '+%Y %m %d %H %M %S')
 
 echo 'wagman date'
-utils/wagmancli date
+utils/wagmancli $@ date
 
 echo 'local date'
 date '+%Y %m %d %H %M %S'
 
 echo 'wagman version'
-utils/wagmancli ver
+utils/wagmancli $@ ver
 
-utils/wagmancli reset
+utils/wagmancli $@ reset

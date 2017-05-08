@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # install bootloader
-if ./installbl; then
+if ./installbl $@; then
   echo '>>> BOOTLOADER PASS'
 else
   echo '>>> BOOTLOADER FAIL'
@@ -11,15 +11,17 @@ fi
 # install firmware
 sleep 5
 
-if ./installfw; then
+if ./installfw $@; then
   echo '>>> FIRMWARE PASS'
 else
   echo '>>> FIRMWARE FAIL'
   exit 1
 fi
 
+sleep 10
+
 # initialize wagman
-if ./wminit; then
+if ./wminit $@; then
   echo '>>> SETUP PASS'
 else
   echo '>>> SETUP FAIL'

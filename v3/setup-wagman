@@ -5,6 +5,7 @@ if ./installbl $@; then
   echo '>>> BOOTLOADER PASS'
 else
   echo '>>> BOOTLOADER FAIL'
+  sleep 30
   exit 1
 fi
 
@@ -15,6 +16,7 @@ if ./installfw $@; then
   echo '>>> FIRMWARE PASS'
 else
   echo '>>> FIRMWARE FAIL'
+  sleep 30
   exit 1
 fi
 
@@ -25,5 +27,6 @@ if ./wminit $@; then
   echo '>>> SETUP PASS'
 else
   echo '>>> SETUP FAIL'
+  sleep 30
   exit 1
 fi

@@ -1,10 +1,14 @@
 #!/bin/bash
 
+PLAIN='\033[0m'
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+
 # install bootloader
 if ./installbl $@; then
-  echo '>>> BOOTLOADER PASS'
+  echo "${GREEN}>>> BOOTLOADER PASS${PLAIN}"
 else
-  echo '>>> BOOTLOADER FAIL'
+  echo "${RED}>>> BOOTLOADER FAIL${PLAIN}"
   sleep 30
   exit 1
 fi
@@ -13,9 +17,9 @@ fi
 sleep 5
 
 if ./installfw $@; then
-  echo '>>> FIRMWARE PASS'
+  echo "${GREEN}>>> FIRMWARE PASS${PLAIN}"
 else
-  echo '>>> FIRMWARE FAIL'
+  echo "${RED}>>> FIRMWARE FAIL${PLAIN}"
   sleep 30
   exit 1
 fi
@@ -24,9 +28,9 @@ sleep 10
 
 # initialize wagman
 if ./wminit $@; then
-  echo '>>> SETUP PASS'
+  echo "${GREEN}>>> SETUP PASS${PLAIN}"
 else
-  echo '>>> SETUP FAIL'
+  echo "${RED}>>> SETUP FAIL${PLAIN}"
   sleep 30
   exit 1
 fi

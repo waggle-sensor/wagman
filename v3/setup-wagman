@@ -23,7 +23,7 @@ fi
 # install firmware
 sleep 5
 
-if ./installfw $port; then
+if ./installfw --device $port; then
   passed FIRMWARE
 else
   failed FIRMWARE

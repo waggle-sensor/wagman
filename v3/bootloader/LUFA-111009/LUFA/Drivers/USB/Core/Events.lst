@@ -77,19 +77,19 @@
   43               	.Letext0:
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 Events.c
-     /tmp/ccO9mANt.s:2      *ABS*:000000000000003e __SP_H__
-     /tmp/ccO9mANt.s:3      *ABS*:000000000000003d __SP_L__
-     /tmp/ccO9mANt.s:4      *ABS*:000000000000003f __SREG__
-     /tmp/ccO9mANt.s:5      *ABS*:0000000000000000 __tmp_reg__
-     /tmp/ccO9mANt.s:6      *ABS*:0000000000000001 __zero_reg__
-     /tmp/ccO9mANt.s:13     .text.USB_Event_Stub:0000000000000000 USB_Event_Stub
-     /tmp/ccO9mANt.s:13     .text.USB_Event_Stub:0000000000000000 EVENT_USB_Device_Connect
-     /tmp/ccO9mANt.s:13     .text.USB_Event_Stub:0000000000000000 EVENT_USB_Device_Disconnect
-     /tmp/ccO9mANt.s:13     .text.USB_Event_Stub:0000000000000000 EVENT_USB_Device_ControlRequest
-     /tmp/ccO9mANt.s:13     .text.USB_Event_Stub:0000000000000000 EVENT_USB_Device_ConfigurationChanged
-     /tmp/ccO9mANt.s:13     .text.USB_Event_Stub:0000000000000000 EVENT_USB_Device_Suspend
-     /tmp/ccO9mANt.s:13     .text.USB_Event_Stub:0000000000000000 EVENT_USB_Device_WakeUp
-     /tmp/ccO9mANt.s:13     .text.USB_Event_Stub:0000000000000000 EVENT_USB_Device_Reset
-     /tmp/ccO9mANt.s:13     .text.USB_Event_Stub:0000000000000000 EVENT_USB_Device_StartOfFrame
+     /tmp/ccUGhKY7.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccUGhKY7.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccUGhKY7.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccUGhKY7.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccUGhKY7.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccUGhKY7.s:13     .text.USB_Event_Stub:0000000000000000 USB_Event_Stub
+     /tmp/ccUGhKY7.s:13     .text.USB_Event_Stub:0000000000000000 EVENT_USB_Device_Connect
+     /tmp/ccUGhKY7.s:13     .text.USB_Event_Stub:0000000000000000 EVENT_USB_Device_Disconnect
+     /tmp/ccUGhKY7.s:13     .text.USB_Event_Stub:0000000000000000 EVENT_USB_Device_ControlRequest
+     /tmp/ccUGhKY7.s:13     .text.USB_Event_Stub:0000000000000000 EVENT_USB_Device_ConfigurationChanged
+     /tmp/ccUGhKY7.s:13     .text.USB_Event_Stub:0000000000000000 EVENT_USB_Device_Suspend
+     /tmp/ccUGhKY7.s:13     .text.USB_Event_Stub:0000000000000000 EVENT_USB_Device_WakeUp
+     /tmp/ccUGhKY7.s:13     .text.USB_Event_Stub:0000000000000000 EVENT_USB_Device_Reset
+     /tmp/ccUGhKY7.s:13     .text.USB_Event_Stub:0000000000000000 EVENT_USB_Device_StartOfFrame
 
 NO UNDEFINED SYMBOLS

@@ -402,7 +402,7 @@
   28               		.loc 2 336 0
   29 0004 82E1      		ldi r24,lo8(18)
   30 0006 89BD      		out 0x29,r24
-  31               	.L3:
+  31               	.L2:
   32               	.LBE9:
   33               	.LBE8:
   40:../../LUFA-111009/LUFA/Drivers/USB/Core/AVR8/Device_AVR8.c **** 	if (!(USB_Options & USB_OPT_MANUAL_PLL))
@@ -412,7 +412,7 @@
   34               		.loc 1 43 0 discriminator 1
   35 0008 09B4      		in __tmp_reg__,0x29
   36 000a 00FE      		sbrs __tmp_reg__,0
-  37 000c 00C0      		rjmp .L3
+  37 000c 00C0      		rjmp .L2
   38               	.LBB10:
   39               	.LBB11:
  337:../../LUFA-111009/LUFA/Drivers/USB/Core/AVR8/../AVR8/../AVR8/USBController_AVR8.h **** 			}
@@ -488,12 +488,12 @@
   47 0018 8091 E000 		lds r24,224
   48 001c 8260      		ori r24,lo8(2)
   49 001e 8093 E000 		sts 224,r24
-  50               	.L5:
+  50               	.L3:
   49:../../LUFA-111009/LUFA/Drivers/USB/Core/AVR8/Device_AVR8.c **** 	while (UDCON & (1 << RMWKUP));
   51               		.loc 1 49 0 discriminator 1
   52 0022 8091 E000 		lds r24,224
   53 0026 81FD      		sbrc r24,1
-  54 0028 00C0      		rjmp .L5
+  54 0028 00C0      		rjmp .L3
   55               	/* epilogue start */
   50:../../LUFA-111009/LUFA/Drivers/USB/Core/AVR8/Device_AVR8.c **** }
   56               		.loc 1 50 0
@@ -505,11 +505,11 @@
   63               		.file 3 "/usr/lib/avr/include/stdint.h"
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 Device_AVR8.c
-     /tmp/cc2vLuiP.s:2      *ABS*:000000000000003e __SP_H__
-     /tmp/cc2vLuiP.s:3      *ABS*:000000000000003d __SP_L__
-     /tmp/cc2vLuiP.s:4      *ABS*:000000000000003f __SREG__
-     /tmp/cc2vLuiP.s:5      *ABS*:0000000000000000 __tmp_reg__
-     /tmp/cc2vLuiP.s:6      *ABS*:0000000000000001 __zero_reg__
-     /tmp/cc2vLuiP.s:13     .text.USB_Device_SendRemoteWakeup:0000000000000000 USB_Device_SendRemoteWakeup
+     /tmp/cckDJSnE.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/cckDJSnE.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/cckDJSnE.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/cckDJSnE.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/cckDJSnE.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/cckDJSnE.s:13     .text.USB_Device_SendRemoteWakeup:0000000000000000 USB_Device_SendRemoteWakeup
 
 NO UNDEFINED SYMBOLS

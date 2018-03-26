@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+from serial import Serial
+import argparse
+
+epilog = '''
+wagman commands:
+  start n   Starts device n.
+  stop n t  Stops device n in t seconds.
+  hb        Gets devices heartbeats.
+  eereset   Clear EEPROM on next boot.
+  reset     Reset the wagman.
+'''.strip()
+
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    epilog=epilog)
+
+parser.add_argument('--device', default='/dev/waggle_sysmon', help='path to device')
+parser.add_argument('--timeout', default=10, type=int, help='timeout in seconds')
+parser.add_argument('args', nargs='+')
+args = parser.parse_args()
+
+with Serial(args.device, baudrate=57600, timeout=args.timeout) as ser:
+    command = '@cli {}\n'.format(' '.join(args.args)).encode()
+    ser.write(command)
+
+    lines = []
+
+    while True:
+        try:
+            line = ser.readline().decode()
+        except UnicodeDecodeError:
+            continue
+        if len(line) == 0:
+            raise TimeoutError('Wagman request timed out.')
+        if line.startswith('log:'):
+            continue
+        if line.startswith('<<<- sid=cli'):
+            break
+
+    while True:
+        try:
+            line = ser.readline().decode()
+        except UnicodeDecodeError:
+            continue
+        if len(line) == 0:
+            raise TimeoutError('Wagman request timed out.')
+        if line.startswith('log:'):
+            continue
+        if line.startswith('->>>'):
+            break
+
+        lines.append(line)
+
+    output = ''.join(lines).strip()
+    print(output)

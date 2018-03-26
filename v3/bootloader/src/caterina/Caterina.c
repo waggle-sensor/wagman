@@ -134,7 +134,9 @@ int main(void)
 	MCUSR = 0;							// clear all reset flags
 	/* Watchdog may be configured with a 15 ms period so must disable it before going any further */
 	wdt_disable();
-	
+        
+        eeprom_write_byte( (uint8_t*) 0x41, mcusr_state );  // Saving the state of the MCUSR reg so that the Wagman code can
+                                                            // see and understand why the wagman rebooted. 
 	/*
 	if (mcusr_state & (1<<EXTRF)) {
 		// External reset -  we should continue to self-programming mode.

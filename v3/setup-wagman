@@ -1,0 +1,45 @@
+#!/bin/bash
+
+function passed {
+  printf "\033[0;32m>>> %s PASS\033[0m\n" $1
+}
+
+function failed {
+  printf "\033[0;31m>>> %s FAIL\033[0m\n" $1
+}
+
+# save port before programming
+port="/dev/$(readlink /dev/waggle_sysmon)"
+
+# install bootloader
+if ./installbl $@; then
+  passed BOOTLOADER
+else
+  failed BOOTLOADER
+  sleep 30
+  exit 1
+fi
+
+# install firmware
+sleep 5
+
+if ./installfw --device $port; then
+  passed FIRMWARE
+else
+  failed FIRMWARE
+  sleep 30
+  exit 1
+fi
+
+sleep 10
+
+# initialize wagman
+if ./wminit $@; then
+  passed SETUP
+else
+  failed SETUP
+  sleep 30
+  exit 1
+fi
+
+sleep 10

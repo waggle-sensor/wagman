@@ -1,4 +1,9 @@
-# Commands List
+<!--
+waggle_topic=Waggle/Node/Wagman
+-->
+
+# Wagman Commands
+
 ## Change Device Timeout Behavior
 
 Change the timeout behavior for the heartbeat and current. Currently, only heartbeat

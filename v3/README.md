@@ -1,3 +1,7 @@
+<!--
+waggle_topic=Waggle/Node/Wagman,Wagman Overview
+-->
+
 # WagMan Layout and Features
 
 The WagMan V3.1 board is capable of managing upto 5 devices through power control, power monitoring,
@@ -68,9 +72,3 @@ The WagMan board has 5 status LEDs with the following features
 
  * Control
    - Reset outputs - five lines for devices that can be reset by toggling the line. The lines operate at 5V logic and cannot be used simultaneously with power delivery from a port.
-
-
-
-
-
-

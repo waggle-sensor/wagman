@@ -1,0 +1,82 @@
+"Due Pin Number","SAM3X Pin Name","Due Mapped Pin Name","Max Output Current (mA)","Max Current Sink (mA)","Use"
+0,"PA8","RX0",3,6,"Console_RX"
+1,"PA9","TX0",15,9,"Console_TX"
+2,"PB25","Digital Pin 2",3,6,"LED1"
+3,"PC28","Digital Pin 3",15,9,"LED2"
+4,"connected to both PA29 and PC26","Digital Pin 4",15,9,
+5,"PC25","Digital Pin 5",15,9,"LED3"
+6,"PC24","Digital Pin 6",15,9,"LED4"
+7,"PC23","Digital Pin 7",15,9,"LED5"
+8,"PC22","Digital Pin 8",15,9,"LED6"
+9,"PC21","Digital Pin 9",15,9,"LED7"
+10,"connected to both PA28 and PC29","Digital Pin 10",15,9,
+11,"PD7","Digital Pin 11",15,9,"LED8"
+12,"PD8","Digital Pin 12",15,9,"LED9"
+13,"PB27","Digital Pin 13 / Amber LED ‘L’",3,6,"“L”"
+14,"PD4","TX3",15,9,"P4TX_A"
+15,"PD5","RX3",15,9,"P4RX_A"
+16,"PA13","TX2",3,6,"P2TX_A"
+17,"PA12","RX2",3,6,"P2RX_A"
+18,"PA11","TX1",3,6,"P1TX"
+19,"PA10","RX1",3,6,"P1RX"
+20,"PB12","SDA",3,6,"I2C"
+21,"PB13","SCL",3,6,"I2C"
+22,"PB26","Digital Pin 22",3,6,
+23,"PA14","Digital Pin 23",15,9,
+24,"PA15","Digital Pin 24",15,9,
+25,"PD0","Digital Pin 25",15,9,"P5TX_A"
+26,"PD1","Digital pin 26",15,9,"P5RX_A"
+27,"PD2","Digital Pin 27",15,9,"P2TX_A"
+28,"PD3","Digital Pin 28",15,9,"P2RX_A"
+29,"PD6","Digital Pin 29",15,9,"EE_RST"
+30,"PD9","Digital Pin 30",15,9,"MR2"
+31,"PA7","Digital Pin 31",15,9,
+32,"PD10","Digital Pin 32",15,9,
+33,"PC1","Digital Pin 33",15,9,"NC_LAT_CLK"
+34,"PC2","Digital Pin 34",15,9,"NC_LAT_D"
+35,"PC3","Digital Pin 35",15,9,"EP_LAT_CLK"
+36,"PC4","Digital Pin 36",15,9,"EP_LAT_D"
+37,"PC5","Digital Pin 37",15,9,"CS_LAT_CLK"
+38,"PC6","Digital Pin 38",15,9,"CS_LAT_D"
+39,"PC7","Digital Pin 39",15,9,"P4_LAT_CLK"
+40,"PC8","Digital Pin 40",15,9,"P4_LAT_D"
+41,"PC9","Digital Pin 41",15,9,"NC_BOOT_SEL"
+42,"PA19","Digital Pin 42",15,9,
+43,"PA20","Digital Pin 43",3,6,
+44,"PC19","Digital Pin 44",15,9,
+45,"PC18","Digital Pin 45",15,9,"P5_LAT_CLK"
+46,"PC17","Digital Pin 46",15,9,"P5_LAT_D"
+47,"PC16","Digital Pin 47",15,9,"EP_BOOT_SEL"
+48,"PC15","Digital Pin 48",15,9,"NC_BOOT_SEL"
+49,"PC14","Digital Pin 49",15,9,"HEAD1"
+50,"PC13","Digital Pin 50",15,9,"HEAD2"
+51,"PC12","Digital Pin 51",15,9,"HEAD3"
+52,"PB21","Digital Pin 52",3,6,"HEAD4"
+53,"PB14","Digital Pin 53",15,9,"HEAD5"
+54,"PA16","Analog In 0",3,6,"P1_THM"
+55,"PA24","Analog In 1",3,6,"OP1_ADC"
+56,"PA23","Analog In 2",3,6,"P2_THM"
+57,"PA22","Analog In 3",3,6,"OP2_ADC"
+58,"PA6","Analog In 4",3,6,"P3_THM"
+59,"PA4","Analog In 5",3,6,"OP3_ADC"
+60,"PA3","Analog In 6",3,6,"P4_THM"
+61,"PA2","Analog In 7",3,6,"OP4_ADC"
+62,"PB17","Analog In 8",3,6,"P5_THM"
+63,"PB18","Analog In 9",3,6,"OP5_ADC"
+64,"PB19","Analog In 10",3,6,"PHOTORESIST"
+65,"PB20","Analog In 11",3,6,"5V_IN_ADC"
+66,"PB15","DAC0",3,6,
+67,"PB16","DAC1",3,6,
+68,"PA1","CANRX",3,6,
+69,"PA0","CANTX",15,9,
+70,"PA17","SDA1",3,6,
+71,"PA18","SCL2",15,9,
+72,"PC30","LED ‘RX’",15,9,
+73,"PA21","LED ‘TX’",3,6,
+74,"PA25","(MISO)",15,9,
+75,"PA26","(MOSI)",15,9,
+76,"PA27","(SCLK)",15,9,
+77,"PA28","(NPCS0)",15,9,
+78,"PB23","(unconnected)",15,9,
+"USB","PB11","ID",15,9,
+"USB","PB10","VBOF",15,9,

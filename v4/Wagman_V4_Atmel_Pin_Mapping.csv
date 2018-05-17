@@ -41,8 +41,8 @@
 39,"PC7","Digital Pin 39",15,9,"P4_LAT_CLK"
 40,"PC8","Digital Pin 40",15,9,"P4_LAT_D"
 41,"PC9","Digital Pin 41",15,9,"NC_BOOT_SEL"
-42,"PA19","Digital Pin 42",15,9,
-43,"PA20","Digital Pin 43",3,6,
+42,"PA19","Digital Pin 42",15,9,"SD_SS"
+43,"PA20","Digital Pin 43",3,6,"SD_CD"
 44,"PC19","Digital Pin 44",15,9,
 45,"PC18","Digital Pin 45",15,9,"P5_LAT_CLK"
 46,"PC17","Digital Pin 46",15,9,"P5_LAT_D"
@@ -73,9 +73,9 @@
 71,"PA18","SCL2",15,9,"PORT1.5"
 72,"PC30","LED ‘RX’",15,9,
 73,"PA21","LED ‘TX’",3,6,
-74,"PA25","(MISO)",15,9,
-75,"PA26","(MOSI)",15,9,
-76,"PA27","(SCLK)",15,9,
+74,"PA25","(MISO)",15,9,SD_DO
+75,"PA26","(MOSI)",15,9,SD_DI
+76,"PA27","(SCLK)",15,9,SD_SCK
 77,"PA28","(NPCS0)",15,9,
 78,"PB23","(unconnected)",15,9,
 "USB","PB11","ID",15,9,

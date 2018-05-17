@@ -12,7 +12,7 @@
 10,"connected to both PA28 and PC29","Digital Pin 10",15,9,
 11,"PD7","Digital Pin 11",15,9,"LED8"
 12,"PD8","Digital Pin 12",15,9,"LED9"
-13,"PB27","Digital Pin 13 / Amber LED ‘L’",3,6,"“L”"
+13,"PB27","Digital Pin 13 / Amber LED ‘L’",3,6,"LED0"
 14,"PD4","TX3",15,9,"P4TX_A"
 15,"PD5","RX3",15,9,"P4RX_A"
 16,"PA13","TX2",3,6,"P2TX_A"

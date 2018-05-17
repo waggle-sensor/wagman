@@ -2,8 +2,8 @@
 
 The WagMan V4 board is capable of managing up to 5 devices through power control, power monitoring,
 heart-beat monitoring and device temperature monitoring. The Wagman V4 version is a successor of the
-V3 version descibed [here.](https://github.com/waggle-sensor/wagman/blob/develop/v3/README.md) A list
-of the main features of the Wagman are listed below - 
+V3 version descibed [here](https://github.com/waggle-sensor/wagman/blob/develop/v3/README.md) and 
+was designed based on the feature lists laidout in the [RFC.](https://github.com/waggle-sensor/development/blob/master/WagMan_4.0_Discussion.md) A list of the main features of the Wagman are listed below - 
   * *Built around more capable Atmel SAM3X8E ARM Cortex-M3 CPU*
   * *On board 32K EEPROM*
   * *On board uSD storage slot*
@@ -16,6 +16,8 @@ of the main features of the Wagman are listed below -
   * *UART Console and Programming Port for debugging and out-of-band wireless interaction*
   * *Support for devices with multiple input voltages and logic-levels*
   * *Voltage and Current sensing on Wagman's main power supply and individual power lines to all connected devices*
+  * *Thermal monitoring of all 5 connected devices*
+  * *On board temperature, humidity and light sensor for local environmental monitoring*
   * *Full UART heartbeat capability on all 5 managed channels*
   * *Node Control dead-man trigger*
   * *Latched relays for uninterrupted power to devices during Wagman reboot*

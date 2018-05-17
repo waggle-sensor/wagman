@@ -10,7 +10,7 @@ of the main features of the Wagman are listed below -
   * *On board RTC*
   * *Supervisory circuits to safely reset Wagman during power glitches*
   * *SAM3X8E able to trigger self-power-cycle*
-  * *Ability to power-down SAM3X8E and associated circuits completely from Node Controller and restart*
+  * *Ability to power-down SAM3X8E and associated circuits completely from Node Controller and reboot*
   * *Ability to soft-reset SAM3X8E from Node Controller*
   * *Improved power distribution*
   * *UART Console and Programming Port for debugging and out-of-band wireless interaction*

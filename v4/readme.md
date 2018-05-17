@@ -1,10 +1,8 @@
 ### Features
 
-The WagMan V4 board is capable of managing up to 5 devices through power control, power monitoring,
-heart-beat monitoring and device temperature monitoring. The Wagman V4 version is a successor of the
-V3 version descibed [here](https://github.com/waggle-sensor/wagman/blob/develop/v3/README.md) and 
-was designed based on the features listed in the [RFC.](https://github.com/waggle-sensor/development/blob/master/WagMan_4.0_Discussion.md) 
-Salient design features -
+The WagMan V4 board is capable of managing up to 5 devices through power control, 
+power monitoring, heart-beat monitoring and device temperature monitoring. The 
+Wagman V4 version is a successor to the [Wagman V3](https://github.com/waggle-sensor/wagman/blob/develop/v3/README.md#wagman-layout-and-features) implemented in 2015-16 and was designed based on the features listed in the [RFC.](https://github.com/waggle-sensor/development/blob/master/WagMan_4.0_Discussion.md) Salient features of the new Wagman V4 include -
   * *Built around more capable Atmel SAM3X8E ARM Cortex-M3 CPU*
   * *On board 32K EEPROM*
   * *On board uSD storage slot*

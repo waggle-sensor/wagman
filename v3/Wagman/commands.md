@@ -1,5 +1,5 @@
 <!--
-waggle_topic=Waggle/Node/Wagman
+waggle_topic=/wagman/operations
 -->
 
 # Wagman Commands

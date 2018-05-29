@@ -1,5 +1,5 @@
 <!--
-waggle_topic=Waggle/Node/Wagman,Wagman Overview
+waggle_topic=wagman/introduction
 -->
 
 # WagMan: The Waggle Manager

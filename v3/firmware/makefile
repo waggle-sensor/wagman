@@ -1,5 +1,5 @@
 ARD_HOME = $(ARDUINO_DIR)
-TARGET = Wagman
+TARGET = firmware
 PACKAGE = arduino
 ARCH = avr
 BOARD = micro
@@ -65,4 +65,4 @@ test:	program
 	make connect
 
 docs:
-	./generate-command-doc > commands.md
+	./generate-command-doc > README.md

@@ -85,11 +85,11 @@ float HTU21D::readHumidity(void)
 	//sensorStatus = rawHumidity & 0x0003; //Grab only the right two bits
 	rawHumidity &= 0xFFFC; //Zero out the status bits but keep them in place
 
-	//Given the raw humidity data, calculate the actual relative humidity
-	float tempRH = rawHumidity / (float)65536; //2^16 = 65536
-	float rh = -6 + (125 * tempRH); //From page 14
+// 	//Given the raw humidity data, calculate the actual relative humidity
+// 	float tempRH = rawHumidity / (float)65536; //2^16 = 65536
+// 	float rh = -6 + (125 * tempRH); //From page 14
 
-	return(rh);
+	return(rawHumidity);
 }
 
 //Read the temperature
@@ -137,11 +137,11 @@ float HTU21D::readTemperature(void)
 	//sensorStatus = rawTemperature & 0x0003; //Grab only the right two bits
 	rawTemperature &= 0xFFFC; //Zero out the status bits but keep them in place
 
-	//Given the raw temperature data, calculate the actual temperature
-	float tempTemperature = rawTemperature / (float)65536; //2^16 = 65536
-	float realTemperature = (float)(-46.85 + (175.72 * tempTemperature)); //From page 14
+// 	//Given the raw temperature data, calculate the actual temperature
+// 	float tempTemperature = rawTemperature / (float)65536; //2^16 = 65536
+// 	float realTemperature = (float)(-46.85 + (175.72 * tempTemperature)); //From page 14
 
-	return(realTemperature);
+	return(rawTemperature);
 }
 
 //Set sensor resolution

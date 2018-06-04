@@ -1,5 +1,5 @@
 <!--
-waggle_topic=/wagman/wagman_v3/API,Wagman V3 API
+waggle_topic=/wagman/wagman_v3/API,Wagman V3.0 API
 -->
 
 # Commands List

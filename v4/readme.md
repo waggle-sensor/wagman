@@ -2,6 +2,8 @@
 waggle_topic=/wagman/wagman_v4/introduction, Wagman V4.0 Features
 -->
 
+# Wagman V4.0 Features and Capabilities
+
 ### Features
 
 The WagMan V4 board is capable of managing up to 5 devices through power control, 

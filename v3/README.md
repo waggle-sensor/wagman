@@ -1,6 +1,7 @@
 <!--
-waggle_topic=IGNORE
+waggle_topic=wagman/wagman_v3,Wagman Version 3.0
 -->
+
 
 # WagMan Firmware Layout and Features
 

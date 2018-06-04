@@ -2,7 +2,7 @@
 waggle_topic=/wagman/wagman_v3/bootloader,Wagman V3.0 Bootloader
 -->
 
-## WagMan Bootloader:
+# WagMan Bootloader:
 
 The WagMan design is centered around an Atmel [ATmega32U4](http://www.atmel.com/Images/Atmel-7766-8-bit-AVR-ATmega16U4-32U4_Datasheet.pdf) processor, and uses a [modified version](https://github.com/waggle-sensor/WagMan/tree/master/v3/bootloader/src/caterina) of the [Caterina](https://github.com/arduino/Arduino/tree/master/hardware/arduino/avr/bootloaders/caterina) bootloader installed in the [Arduino Micro](https://www.arduino.cc/en/Main/ArduinoBoardMicro) class of boards. The bootloader modifications are aimed toward improving the reliability of the in-situ WagMan firmware upgrade process by passing bootloader stage GPIO operation requests from firmware space using the EEPROM storage. This bootloader makes the WagMan incompatible with the regular Arduino IDE's USB firmware upgrade process due to change in timing-delays to accommodate the additional features.
 

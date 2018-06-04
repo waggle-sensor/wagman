@@ -1,5 +1,5 @@
 <!--
-waggle_topic=/wagman
+waggle_topic=/wagman/wagman_v3/bootloader,Wagman V3.0 Bootloader
 -->
 
 ## WagMan Bootloader:

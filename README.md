@@ -1,5 +1,5 @@
 <!--
-waggle_topic=wagman/introduction
+waggle_topic=wagman/introduction, Wagman: The Waggle Manager
 -->
 
 # WagMan: The Waggle Manager

@@ -1,5 +1,5 @@
 <!--
-waggle_topic=/wagman/wagman_v3/EEPROM_Layout
+waggle_topic=/wagman/wagman_v3/EEPROM_Layout, Wagman V3.0 EEPROM Reference
 -->
 
 # Wagman EEPROM Reference

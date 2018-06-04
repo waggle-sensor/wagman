@@ -1,5 +1,5 @@
 <!--
-waggle_topic=/wagman/wagman_v4, Wagman V4.0 Features
+waggle_topic=/wagman/wagman_v4/introduction, Wagman V4.0 Features
 -->
 
 ### Features

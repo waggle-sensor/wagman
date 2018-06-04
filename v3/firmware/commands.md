@@ -1,3 +1,7 @@
+<!--
+waggle_topic=/wagman/wagman_v3/API
+-->
+
 # Commands List
 ## Change Device Timeout Behavior
 

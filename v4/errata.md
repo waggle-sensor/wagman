@@ -24,7 +24,8 @@ the functionality, and the 3 boards for further testing have been enabled with
 the by-pass. 
 
         * CAT872 (SWS003) - Current wiring limits usage and needs to be 
-          corrected. 
+          corrected. The device should also be powered on using 5V bus instead of 
+          3V bus. 
         * MC14541 (U25) - Reset Output needs to be inverted. Auto-reset should 
           be enabled for deterministic behavior. 
         * NL17SZ06 (U27) - Chip has I/O pins flipped, needs to be corrected. 
@@ -58,8 +59,10 @@ a logic probe.
       to logic before the first pulse from U26. 
     4. CAT872 (SWS003) - Connect MR1 and MR2 to Atmel, one to arm the 
       power-cycle circuit and the other to request a 13 second power-OFF of the Atmel. 
+      Power device using 5V and not 3V. 
     5. MC14541 (U25) - AR to GND and Q Sel to VCC. 
     6. NL17SZ06 (U27) - Exchange input and output. 
+    7. Remove R56 and R55. 
 
 
 

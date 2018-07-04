@@ -47,7 +47,7 @@
 45,"PC18","Digital Pin 45",15,9,"P5_LAT_CLK"
 46,"PC17","Digital Pin 46",15,9,"P5_LAT_D"
 47,"PC16","Digital Pin 47",15,9,"EP_BOOT_SEL"
-48,"PC15","Digital Pin 48",15,9,"NC_BOOT_SEL"
+48,"PC15","Digital Pin 48",15,9,"NC_AUTO_DISABLE"
 49,"PC14","Digital Pin 49",15,9,"HEAD1"
 50,"PC13","Digital Pin 50",15,9,"HEAD2"
 51,"PC12","Digital Pin 51",15,9,"HEAD3"

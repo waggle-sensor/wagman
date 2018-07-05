@@ -55,7 +55,7 @@ a logic probe.
     
 ## To be Tested - 
 
-    * All tests finished. 
+    * 
 
 ## Required Fixes - 
 
@@ -70,9 +70,8 @@ a logic probe.
     5. MC14541 (U25) - AR to GND and Q Sel to VCC. 
     6. NL17SZ06 (U27) - Exchange input and output. 
     7. Remove R56 and R55. 
-
-
-
+    8. ACS722LLCTR-05AB-T should be ACS722LLCTR-10AU-T. We do not need +/- 5A swing. 
+    
 ## Other-fixes -
 
 ### NC-Reset-Wagman: 

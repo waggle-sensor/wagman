@@ -12,6 +12,7 @@ File root1;
 
 void setup() {
   // Open serial communications and wait for port to open:
+  delay(5000);
   SerialUSB.begin(115200);
   while (!SerialUSB) {
     ; // wait for serial port to connect. Needed for native USB port only

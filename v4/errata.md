@@ -55,7 +55,7 @@ a logic probe.
     
 ## To be Tested - 
 
-    * All tests finished. 
+    * 
 
 ## Required Fixes - 
 

@@ -72,7 +72,7 @@ a logic probe.
     7. Remove R56 and R55. 
     8. ACS722LLCTR-05AB-T should be ACS722LLCTR-10AU-T. We do not need +/- 5A swing. 
     
-## Other-fixes -
+## Other-fixes and things to think about -
 
 ### NC-Reset-Wagman: 
 The current implementation can allow the NC to indefinitely keep the 
@@ -86,8 +86,8 @@ needing continuous active operations to hold the Wagman in reset-state.
 
 ### NC's ability to Power-cycle Wagman:
 
-Currently the NC has the ability to power-cycle the Wagman which seems redundant 
-given that it can already perform a Wagman-reset. This may be removed in the 
-next version of the board. 
-
-    
+Currently the NC has the ability to power-cycle the Wagman in addition to being able 
+to perform a Wagman-reset. In the next version of the board - 
+ * Choose one of the two modes
+ * Keep both with the option of choosing one of the two with a switch at Wagman 
+   install time.

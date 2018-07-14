@@ -11,7 +11,22 @@ laptop over USB.
     * Wagman-erase
     * Atmel will reset when the Voltage drops below 4.65V.
     * NC can reset Wagman Atmel 
-
+    * Sensors on Board:
+        - HTU21D
+        - Thermistors
+        - Light-sensor
+        - Current Sensors
+        - Output Voltage sensing 
+    * NC-boot prevention
+    * SD card access 
+    * Console Port
+        - Communication 
+        - Erase
+        - Reset Wagman
+    * RTC
+    * EEPROM
+    * Wagman-EERESET switch
+    * Debug-LEDs
         
 ## Issues - 
 
@@ -40,15 +55,7 @@ a logic probe.
     
 ## To be Tested - 
 
-    * Sensors on Board - HTU21D, Thermistors, Light-sensor, 
-    Current Sensors, Voltage sensing 
-    * NC-boot prevention
-    * SD card access 
-    * Console Port 
-    * RTC
-    * EEPROM
-    * Wagman-EERESET switch
-    * Debug-LEDs
+    * 
 
 ## Required Fixes - 
 
@@ -63,9 +70,8 @@ a logic probe.
     5. MC14541 (U25) - AR to GND and Q Sel to VCC. 
     6. NL17SZ06 (U27) - Exchange input and output. 
     7. Remove R56 and R55. 
-
-
-
+    8. ACS722LLCTR-05AB-T should be ACS722LLCTR-10AU-T. We do not need +/- 5A swing. 
+    
 ## Other-fixes -
 
 ### NC-Reset-Wagman: 

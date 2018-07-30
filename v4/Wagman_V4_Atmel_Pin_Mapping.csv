@@ -31,7 +31,7 @@
 29,"PD6","Digital Pin 29",15,9,"EE_RST"
 30,"PD9","Digital Pin 30",15,9,"MR2"
 31,"PA7","Digital Pin 31",15,9,
-32,"PD10","Digital Pin 32",15,9,
+32,"PD10","Digital Pin 32",15,9,"MR1"
 33,"PC1","Digital Pin 33",15,9,"NC_LAT_CLK"
 34,"PC2","Digital Pin 34",15,9,"NC_LAT_D"
 35,"PC3","Digital Pin 35",15,9,"EP_LAT_CLK"

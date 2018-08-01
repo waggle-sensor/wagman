@@ -71,6 +71,7 @@ a logic probe.
     6. NL17SZ06 (U27) - Exchange input and output. 
     7. Remove R56 and R55. 
     8. ACS722LLCTR-05AB-T should be ACS722LLCTR-10AU-T. We do not need +/- 5A swing. 
+    9. Replace power input part -  277-1721-ND instead of 277-1779-ND 
     
 ## Other-fixes and things to think about -
 

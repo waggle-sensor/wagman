@@ -1,6 +1,6 @@
 # Wagman V4 Development Notes
 
-## LED Layout
+## LEDs
 
 LED pinout ordered from `L13` to `L11` is:
 

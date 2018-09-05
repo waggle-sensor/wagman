@@ -41,13 +41,6 @@ void EEPROMWritePage(int port, int pageNum, int *pageData) {
     Wire.endTransmission();
 }
 
-void EEPROMSeek(int port, int addr) {
-    Wire.beginTransmission(port);
-    Wire.write(0xa0);
-    writeAddress(addr)
-    Wire.endTransmission();
-}
-
 int EEPROMReadByte(int port, unsigned long timeout) {
     Wire.beginTransmission(port);
     Wire.write(0xa1);
@@ -67,7 +60,11 @@ int EEPROMReadByte(int port, unsigned long timeout) {
 }
 
 int EEPROMReadByteAtAddress(int port, int addr, unsigned long timeout) {
-    EEPROMSeek(port, addr);
+    Wire.beginTransmission(port);
+    Wire.write(0xa0);
+    writeAddress(addr)
+    Wire.endTransmission();
+
     return EEPROMReadByte(port, timeout);
 }
 

@@ -51,6 +51,8 @@ device is unplugged and plugged back in under 60 seconds, the C1+ will be starte
 7. `TESTED:` On U22, break spurious connecton to A8 and B8, which crossed S1RX and S2TX. This connection was cut at 
 Argonne and tested to function properly. PCB correction.
 
+8. `TESTED:` Break N$27 connection between R33/U18.1 and R60/U21.10. PCB correction.
+
 
 
 

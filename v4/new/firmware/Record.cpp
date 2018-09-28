@@ -3,6 +3,7 @@
 #include "Wagman.h"
 #include "commands.h"
 
+#warning "Using mocked out RAM EEPROM."
 MockEEPROM<4096> EEPROM;
 
 static const unsigned long MAGIC = 0xADA1ADA1;

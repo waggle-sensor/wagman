@@ -120,6 +120,7 @@ void init()
 
     noInterrupts();
 
+    #warning "Not running heartbeat timer. Expect regular timeouts."
     /* TODO Correct timer behavior.
     // schedule timer 1 to check on heartbeat signal. this is to ensure that
     // we never miss a heartbeat check.

@@ -42,6 +42,6 @@ private:
     byte data[N];
 };
 
-MockEEPROM<4096> EEPROM;
+extern MockEEPROM<4096> EEPROM;
 
 #endif

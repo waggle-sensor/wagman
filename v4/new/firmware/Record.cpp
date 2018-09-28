@@ -3,6 +3,8 @@
 #include "Wagman.h"
 #include "commands.h"
 
+MockEEPROM<4096> EEPROM;
+
 static const unsigned long MAGIC = 0xADA1ADA1;
 
 static const byte DEVICE_COUNT = 5;

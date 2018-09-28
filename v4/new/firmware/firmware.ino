@@ -11,6 +11,30 @@
 #include "MCP79412RTC.h"
 #include "EEPROM.h"
 
+#warning "Using mocked out MCUSR register."
+int MCUSR = 0;
+
+const int WDRF = 0;
+const int BORF = 1;
+const int EXTRF = 2;
+const int PORF = 3;
+
+constexpr int _BV(int x) {
+    return 1 << x;
+}
+
+#warning "Using mocked out watchdog!"
+const int WDTO_8S = 0;
+
+void wdt_reset() {
+}
+
+void wdt_enable(int flags) {
+}
+
+void wdt_disable() {
+}
+
 // TODO Look into watchdog.
 // TODO Define EEPROM file which has same interface, but talks to EEPROM IC over bus.
 // write small test case for this.
@@ -107,7 +131,7 @@ Examples:
 $ wagman-client rtc
 */
 byte commandRTC(byte argc, const char **argv) {
-    Serial.println(RTC.get());
+    Serial.println(Wagman::Clock.get());
     return 0;
 }
 

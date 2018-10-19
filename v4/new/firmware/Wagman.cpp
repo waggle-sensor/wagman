@@ -1,3 +1,17 @@
+/*
+
+L [Relay] R
+o o o o o o
+| | | | | |
+| | | | | +--- TX
+| | | | +----- _V
+| | | +------- RX
+| | +--------- GND
+| +----------- TH
++------------- TH
+
+*/
+
 #include <Arduino.h>
 #include <Wire.h>
 #include "HTU21D.h"
@@ -5,13 +19,26 @@
 #include "MCP79412RTC.h"
 #include "Wagman.h"
 #include "Record.h"
+#include <array>
 
-static const byte LED_COUNT = 2;
 static const byte PORT_COUNT = 5;
 static const byte BOOT_SELECTOR_COUNT = 2;
-static const byte LED_PINS[LED_COUNT] = {13, 9};
-static const byte POWER_PINS[PORT_COUNT] = {4, 6, 8, 10, 12};
-static const byte POWER_LATCH_0_PIN = 0;
+std::array<byte, 9> LED_PINS = {12, 11, 2, 3, 5, 6, 7, 8, 9};
+
+struct RelayConfig {
+    int clk;
+    int d;
+    int led;
+};
+
+const RelayConfig relayConfigs[PORT_COUNT] = {
+    {.clk = 33, .d = 34},
+    {.clk = 35, .d = 36},
+    {.clk = 37, .d = 38},
+    {.clk = 39, .d = 40},
+    {.clk = 45, .d = 46},
+};
+
 static const byte HEARTBEAT_PINS[PORT_COUNT] = {5, 7, A4, 11, A5};
 static const byte THERMISTOR_0_PIN = A0;
 static const byte THERMISTOR_CHANNELS[] = {
@@ -29,33 +56,34 @@ static const byte PORT_CURRENT_ADDRESS[PORT_COUNT] = {0x62, 0x68, 0x6A, 0x63, 0x
 static const byte BOOT_SELECTOR_PINS[BOOT_SELECTOR_COUNT] = {1, A3};
 
 static HTU21D htu21d;
-static MCP342X mcp3428_1;
+static MCP342X mcp3428[2];
 
 static bool wireEnabled = true;
 
 static volatile byte heartbeatState[5] = {LOW, LOW, LOW, LOW, LOW};
 volatile byte heartbeatCounters[5] = {0, 0, 0, 0, 0};
 
-ISR(TIMER1_OVF_vect) {
-    for (byte i = 0; i < 5; i++) {
-        byte newState = digitalRead(HEARTBEAT_PINS[i]);
-        bool triggered = (heartbeatState[i] != newState);
-
-        if (triggered) {
-            heartbeatCounters[i]++;
-        }
-
-        heartbeatState[i] = newState;
-    }
-}
+// ISR(TIMER1_OVF_vect) {
+//     for (byte i = 0; i < 5; i++) {
+//         byte newState = digitalRead(HEARTBEAT_PINS[i]);
+//         bool triggered = (heartbeatState[i] != newState);
+//
+//         if (triggered) {
+//             heartbeatCounters[i]++;
+//         }
+//
+//         heartbeatState[i] = newState;
+//     }
+// }
 
 namespace Wagman
 {
 
 unsigned int getThermistor(byte port)
 {
-    if (!getWireEnabled())
-        return 0xFFFF;
+    if (!getWireEnabled()) {
+        return 0;
+    }
 
     if (!validPort(port))
         return 0;
@@ -63,16 +91,43 @@ unsigned int getThermistor(byte port)
     if (port == 0) {
         return analogRead(THERMISTOR_0_PIN);
     } else {
-        mcp3428_1.selectChannel(THERMISTOR_CHANNELS[port], MCP342X::GAIN_1);
-        return mcp3428_1.readADC() >> 5;
+        mcp3428[0].selectChannel(THERMISTOR_CHANNELS[port], MCP342X::GAIN_1);
+        return mcp3428[0].readADC() >> 5;
     }
+}
+
+void setLEDs(int mode) {
+    for (auto pin : LED_PINS) {
+        pinMode(pin, OUTPUT);
+        digitalWrite(pin, mode);
+    }
+}
+
+void setLEDAnalog(byte led, int level)
+{
+    if (!validLED(led)) {
+        return;
+    }
+
+    if (level < 0) {
+        level = 0;
+    }
+
+    if (level > 255) {
+        level = 255;
+    }
+
+    pinMode(LED_PINS[led], OUTPUT);
+    analogWrite(LED_PINS[led], level);
 }
 
 void setLED(byte led, bool on)
 {
-    if (!validLED(led))
+    if (!validLED(led)) {
         return;
+    }
 
+    pinMode(LED_PINS[led], OUTPUT);
     digitalWrite(LED_PINS[led], on ? HIGH : LOW);
 }
 
@@ -91,28 +146,28 @@ void toggleLED(byte led)
 
 void init()
 {
-    for (byte i = 0; i < LED_COUNT; i++) {
-        pinMode(LED_PINS[i], OUTPUT);
+    for (auto pin : LED_PINS) {
+        pinMode(pin, OUTPUT);
     }
 
-    for (byte i = 0; i < PORT_COUNT; i++) {
-        pinMode(POWER_PINS[i], OUTPUT);
+    for (int i = 0; i < PORT_COUNT; i++) {
+        pinMode(relayConfigs[i].clk, OUTPUT);
+        pinMode(relayConfigs[i].d, OUTPUT);
         pinMode(HEARTBEAT_PINS[i], INPUT_PULLUP);
         heartbeatCounters[i] = 0;
     }
 
-    for (byte i = 0; i < BOOT_SELECTOR_COUNT; i++) {
+    for (int i = 0; i < BOOT_SELECTOR_COUNT; i++) {
         pinMode(BOOT_SELECTOR_PINS[i], OUTPUT);
     }
-
-    pinMode(POWER_LATCH_0_PIN, OUTPUT);
 
     wireEnabled = Record::getWireEnabled();
 
     Wire.begin();
     delay(200);
 
-    mcp3428_1.init(MCP342X::H, MCP342X::H);
+    mcp3428[0].init(MCP342X::H, MCP342X::H);
+    mcp3428[1].init(MCP342X::L, MCP342X::H);
     delay(200);
 
     htu21d.begin();
@@ -133,33 +188,32 @@ void init()
     interrupts();
 }
 
-void setRelay(byte port, bool on)
-{
-    if (!validPort(port))
-        return;
+void setLatchedRelay(int clk, int d, int mode) {
+    pinMode(clk, OUTPUT);
+    pinMode(d, OUTPUT);
 
-    if (port == 0) {
-        digitalWrite(POWER_LATCH_0_PIN, LOW);
-        delay(50);
-        digitalWrite(POWER_PINS[port], on ? HIGH : LOW);
-        delay(50);
-        digitalWrite(POWER_LATCH_0_PIN, HIGH);
-        delay(50);
-        digitalWrite(POWER_LATCH_0_PIN, LOW);
-        delay(50);
-    } else {
-        digitalWrite(POWER_PINS[port], on ? HIGH : LOW);
-        delay(50);
-    }
+    digitalWrite(clk, LOW);
+    digitalWrite(d, mode);
+    delay(100);
+    digitalWrite(clk, HIGH);
+    delay(100);
+    digitalWrite(clk, LOW);
+    digitalWrite(d, LOW);
+    delay(100);
 }
 
-byte getRelay(byte port)
-{
+// need to change usage of LEDs slightly... want a dedicated "signal" LED
+// want a relay LED.
+// perhaps on a heartbeat, we can blink on of the power leds briefly, if its on
+// (hypothetically, we shouldn't be able to not do this...)
+// think in terms of a switch with blinking traffic lights.
+
+void setRelay(int port, int mode) {
     if (!validPort(port)) {
-        return RELAY_OFF; // probably should indicate error state instead...
+        return;
     }
 
-    return RELAY_OFF;
+    setLatchedRelay(relayConfigs[port].clk, relayConfigs[port].d, mode);
 }
 
 byte getHeartbeat(byte port)
@@ -173,26 +227,39 @@ byte getHeartbeat(byte port)
 //
 // Gets the current drawn by the entire system.
 //
-unsigned int getCurrent()
-{
-    if (!getWireEnabled())
-        return 0xFFFF;
-
-    return getAddressCurrent(SYSTEM_CURRENT_ADDRESS);
+unsigned int getCurrent() {
+    mcp3428[0].selectChannel(MCP342X::CHANNEL_0, MCP342X::GAIN_1);
+    return mcp3428[0].readADC() >> 5;
 }
+
+struct CurrentADCConfig {
+    int device;
+    int channel;
+    int gain;
+};
+
+CurrentADCConfig currentADCConfigs[] = {
+    {0, MCP342X::CHANNEL_3, MCP342X::GAIN_1},
+    {0, MCP342X::CHANNEL_1, MCP342X::GAIN_1},
+    {0, MCP342X::CHANNEL_2, MCP342X::GAIN_1},
+    {1, MCP342X::CHANNEL_0, MCP342X::GAIN_1},
+    {1, MCP342X::CHANNEL_3, MCP342X::GAIN_1},
+};
 
 //
 // Gets the current drawn by a particular port.
 //
-unsigned int getCurrent(byte port)
-{
-    if (!getWireEnabled())
-        return 0xFFFF;
-
-    if (!validPort(port))
+unsigned int getCurrent(byte port) {
+    if (!validPort(port)) {
         return 0;
+    }
 
-    return getAddressCurrent(PORT_CURRENT_ADDRESS[port]);
+    int device = currentADCConfigs[port].device;
+    int channel = currentADCConfigs[port].channel;
+    int gain = currentADCConfigs[port].gain;
+
+    mcp3428[device].selectChannel(channel, gain);
+    return mcp3428[device].readADC() >> 5;
 }
 
 float getHumidity()
@@ -257,7 +324,7 @@ bool validPort(byte port)
 
 bool validLED(byte led)
 {
-    return led < LED_COUNT;
+    return led < LED_PINS.size();
 }
 
 bool validBootSelector(byte selector)
@@ -265,15 +332,15 @@ bool validBootSelector(byte selector)
     return selector < BOOT_SELECTOR_COUNT;
 }
 
-unsigned int getAddressCurrent(byte addr)
-{
+unsigned int getAddressCurrent(byte addr) {
     static const unsigned int MILLIAMPS_PER_STEP = 16;
     byte csb, lsb;
     byte attempts;
     byte timeout;
 
-    if (!getWireEnabled())
-        return 0xFFFF;
+    if (!getWireEnabled()) {
+        return 0;
+    }
 
     for (attempts = 0; attempts < 10; attempts++) {
 
@@ -317,7 +384,7 @@ unsigned int getAddressCurrent(byte addr)
         return ((csb << 8) | lsb) * MILLIAMPS_PER_STEP;
     }
 
-    return 0xFFFF; /* return error value */
+    return 0; /* return error value */
 }
 
 void getTime(time_t &time)

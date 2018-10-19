@@ -6,16 +6,16 @@ namespace Logger
 void begin(const char *name)
 {
     if (logging) {
-        Serial.print("log: ");
-        Serial.print(name);
-        Serial.print(' ');
+        SerialUSB.print("log: ");
+        SerialUSB.print(name);
+        SerialUSB.print(' ');
     }
 }
 
 void end()
 {
     if (logging) {
-        Serial.println();
+        SerialUSB.println();
     }
 }
 

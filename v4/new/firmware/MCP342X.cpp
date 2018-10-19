@@ -49,7 +49,7 @@ unsigned int MCP342X::readADC()
     }
 
 	if (attempts == 10)
-		return 0xFFFF;
+		return 0;
 
 	byte h = Wire.read();
   	byte l = Wire.read();

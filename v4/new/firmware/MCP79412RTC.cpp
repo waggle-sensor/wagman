@@ -52,13 +52,11 @@
 #define i2cWrite Wire.send
 #endif
 
-/*----------------------------------------------------------------------*
- * Constructor.                                                         *
- *----------------------------------------------------------------------*/
-MCP79412RTC::MCP79412RTC()
-{
-    i2cBegin();
-}
+
+// MCP79412RTC::MCP79412RTC()
+// {
+//     i2cBegin(); NOTE Seems to cause Wagman to hang at start up... Check if that's actually true after hitting RESET..
+// }
 
 /*----------------------------------------------------------------------*
  * Read the current time from the RTC and return it as a time_t value.  *

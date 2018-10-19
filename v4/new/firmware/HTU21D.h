@@ -31,9 +31,7 @@
 class HTU21D {
 
 public:
-  HTU21D();
 
-  //Public Functions
   void begin();
   float readHumidity();
   float readTemperature();
@@ -49,4 +47,3 @@ private:
   //Private Variables
 
 };
-

@@ -203,7 +203,7 @@ void Device::updateFault()
     byte newCurrentLevel;
 
     // current sensor error
-    if (current == 0xFFFF)
+    if (current == 0)
         return;
 
     if (current < 120) {

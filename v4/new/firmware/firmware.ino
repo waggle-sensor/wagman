@@ -1,4 +1,3 @@
-//#include <avr/wdt.h>
 #include "Wagman.h"
 #include "Record.h"
 #include "Device.h"
@@ -99,24 +98,24 @@ Command commands[] = {
 
 void printDate(const DateTime &dt)
 {
-    Serial.print(dt.year);
-    Serial.print(' ');
-    Serial.print(dt.month);
-    Serial.print(' ');
-    Serial.print(dt.day);
-    Serial.print(' ');
-    Serial.print(dt.hour);
-    Serial.print(' ');
-    Serial.print(dt.minute);
-    Serial.print(' ');
-    Serial.print(dt.second);
+    SerialUSB.print(dt.year);
+    SerialUSB.print(' ');
+    SerialUSB.print(dt.month);
+    SerialUSB.print(' ');
+    SerialUSB.print(dt.day);
+    SerialUSB.print(' ');
+    SerialUSB.print(dt.hour);
+    SerialUSB.print(' ');
+    SerialUSB.print(dt.minute);
+    SerialUSB.print(' ');
+    SerialUSB.print(dt.second);
 }
 
 void printID(byte id[8])
 {
     for (byte i = 2; i < 8; i++) {
-        Serial.print(id[i] >> 4, HEX);
-        Serial.print(id[i] & 0x0F, HEX);
+        SerialUSB.print(id[i] >> 4, HEX);
+        SerialUSB.print(id[i] & 0x0F, HEX);
     }
 }
 
@@ -131,7 +130,7 @@ Examples:
 $ wagman-client rtc
 */
 byte commandRTC(byte argc, const char **argv) {
-    Serial.println(Wagman::Clock.get());
+    SerialUSB.println(Wagman::Clock.get());
     return 0;
 }
 
@@ -269,7 +268,7 @@ byte commandID(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) cons
 
     Wagman::getID(id);
     printID(id);
-    Serial.println();
+    SerialUSB.println();
 
     return 0;
 }
@@ -297,7 +296,7 @@ byte commandDate(byte argc, const char **argv)
         DateTime dt;
         Wagman::getDateTime(dt);
         printDate(dt);
-        Serial.println();
+        SerialUSB.println();
     } else if (argc == 7) {
         DateTime dt;
 
@@ -327,14 +326,14 @@ $ wagman-client cu
 */
 byte commandCurrent(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
-    Serial.print(Wagman::getCurrent());
+    SerialUSB.print(Wagman::getCurrent());
 
     for (byte i = 0; i < DEVICE_COUNT; i++) {
-        Serial.print(' ');
-        Serial.print(Wagman::getCurrent(i));
+        SerialUSB.print(' ');
+        SerialUSB.print(Wagman::getCurrent(i));
     }
 
-    Serial.println();
+    SerialUSB.println();
 
     return 0;
 }
@@ -356,7 +355,7 @@ $ wagman-client hb
 byte commandHeartbeat(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     for (byte i = 0; i < DEVICE_COUNT; i++) {
-        Serial.println(devices[i].timeSinceHeartbeat());
+        SerialUSB.println(devices[i].timeSinceHeartbeat());
     }
 
     return 0;
@@ -380,7 +379,7 @@ $ wagman-client fc
 byte commandFailCount(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     for (byte i = 0; i < DEVICE_COUNT; i++) {
-        Serial.println(Record::getBootFailures(i));
+        SerialUSB.println(Record::getBootFailures(i));
     }
 
     return 0;
@@ -403,7 +402,7 @@ $ wagman-client th
 byte commandThermistor(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     for (byte i = 0; i < DEVICE_COUNT; i++) {
-        Serial.println(Wagman::getThermistor(i));
+        SerialUSB.println(Wagman::getThermistor(i));
     }
 
     return 0;
@@ -421,11 +420,11 @@ $ wagman-client env
 */
 byte commandEnvironment(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
-    Serial.print("temperature=");
-    Serial.println(Wagman::getTemperature());
+    SerialUSB.print("temperature=");
+    SerialUSB.println(Wagman::getTemperature());
 
-    Serial.print("humidity=");
-    Serial.println(Wagman::getHumidity());
+    SerialUSB.print("humidity=");
+    SerialUSB.println(Wagman::getHumidity());
 
     return 0;
 }
@@ -461,22 +460,22 @@ byte commandBootMedia(byte argc, const char **argv)
     if (argc == 3) {
         if (strcmp(argv[2], "sd") == 0) {
             devices[index].setNextBootMedia(MEDIA_SD);
-            Serial.println("set sd");
+            SerialUSB.println("set sd");
         } else if (strcmp(argv[2], "emmc") == 0) {
             devices[index].setNextBootMedia(MEDIA_EMMC);
-            Serial.println("set emmc");
+            SerialUSB.println("set emmc");
         } else {
-            Serial.println("invalid media");
+            SerialUSB.println("invalid media");
         }
     } else if (argc == 2) {
         byte bootMedia = devices[index].getNextBootMedia();
 
         if (bootMedia == MEDIA_SD) {
-            Serial.println("sd");
+            SerialUSB.println("sd");
         } else if (bootMedia == MEDIA_EMMC) {
-            Serial.println("emmc");
+            SerialUSB.println("emmc");
         } else {
-            Serial.println("invalid media");
+            SerialUSB.println("invalid media");
         }
     }
 
@@ -513,13 +512,13 @@ $ wagman-client bf
 byte commandBootFlags(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
     if (bootflags & _BV(WDRF))
-        Serial.println("WDRF");
+        SerialUSB.println("WDRF");
     if (bootflags & _BV(BORF))
-        Serial.println("BORF");
+        SerialUSB.println("BORF");
     if (bootflags & _BV(EXTRF))
-        Serial.println("EXTRF");
+        SerialUSB.println("EXTRF");
     if (bootflags & _BV(PORF))
-        Serial.println("PORF");
+        SerialUSB.println("PORF");
     return 0;
 }
 
@@ -537,7 +536,7 @@ byte commandUptime(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) 
 {
     time_t time;
     Wagman::getTime(time);
-    Serial.println(time - setupTime);
+    SerialUSB.println(time - setupTime);
     return 0;
 }
 
@@ -645,7 +644,7 @@ byte commandBoots(byte argc, const char **argv)
 {
     unsigned long count;
     Record::getBootCount(count);
-    Serial.println(count);
+    SerialUSB.println(count);
     return 0;
 }
 
@@ -661,23 +660,23 @@ $ wagman-client ver
 */
 byte commandVersion(byte argc, const char **argv)
 {
-    Serial.print("hw ");
-    Serial.print(WAGMAN_HW_VER_MAJ);
-    Serial.print('.');
-    Serial.println(WAGMAN_HW_VER_MIN);
+    SerialUSB.print("hw ");
+    SerialUSB.print(WAGMAN_HW_VER_MAJ);
+    SerialUSB.print('.');
+    SerialUSB.println(WAGMAN_HW_VER_MIN);
 
-    Serial.print("ker ");
-    Serial.print(WAGMAN_KERNEL_MAJ);
-    Serial.print('.');
-    Serial.print(WAGMAN_KERNEL_MIN);
-    Serial.print('.');
-    Serial.println(WAGMAN_KERNEL_SUB);
+    SerialUSB.print("ker ");
+    SerialUSB.print(WAGMAN_KERNEL_MAJ);
+    SerialUSB.print('.');
+    SerialUSB.print(WAGMAN_KERNEL_MIN);
+    SerialUSB.print('.');
+    SerialUSB.println(WAGMAN_KERNEL_SUB);
 
-    Serial.print("time ");
-    Serial.println(BUILD_TIME);
+    SerialUSB.print("time ");
+    SerialUSB.println(BUILD_TIME);
 
-    Serial.print("git ");
-    Serial.println(BUILD_GIT);
+    SerialUSB.print("git ");
+    SerialUSB.println(BUILD_GIT);
 
     return 0;
 }
@@ -700,13 +699,13 @@ byte commandBLFlag(byte argc, const char **argv)
         byte mode = Record::getBootloaderNodeController();
 
         if (mode == 0) {
-            Serial.println("off");
+            SerialUSB.println("off");
         } else if (mode == 1) {
-            Serial.println("sd");
+            SerialUSB.println("sd");
         } else if (mode == 2) {
-            Serial.println("emmc");
+            SerialUSB.println("emmc");
         } else {
-            Serial.println("?");
+            SerialUSB.println("?");
         }
     } else if (argc == 2) {
         if (strcmp(argv[1], "off") == 0) {
@@ -716,7 +715,7 @@ byte commandBLFlag(byte argc, const char **argv)
         } else if (strcmp(argv[1], "emmc") == 0) {
             Record::setBootloaderNodeController(2);
         } else {
-            Serial.println("invalid mode");
+            SerialUSB.println("invalid mode");
         }
     }
 
@@ -755,19 +754,19 @@ void executeCommand(const char *sid, byte argc, const char **argv)
     }
 
     // marks the beginning of a response packet.
-    Serial.print("<<<- sid=");
-    Serial.print(sid);
-    Serial.print(' ');
-    Serial.println(argv[0]);
+    SerialUSB.print("<<<- sid=");
+    SerialUSB.print(sid);
+    SerialUSB.print(' ');
+    SerialUSB.println(argv[0]);
 
     if (func != NULL) {
         func(argc, argv);
     } else {
-        Serial.println("invalid command");
+        SerialUSB.println("invalid command");
     }
 
     // marks the end of a response packet.
-    Serial.println("->>>");
+    SerialUSB.println("->>>");
 }
 
 void processCommand()
@@ -819,8 +818,8 @@ void processCommands()
 {
     byte dataread = 0; // using this instead of a timer to reduce delay in processing byte stream
 
-    while (Serial.available() > 0 && dataread < 240) {
-        char c = Serial.read();
+    while (SerialUSB.available() > 0 && dataread < 240) {
+        char c = SerialUSB.read();
 
         buffer[bufferSize++] = c;
         dataread++;
@@ -829,8 +828,8 @@ void processCommands()
             bufferSize = 0;
 
             // flush remainder of line.
-            while (Serial.available() > 0 && dataread < 240) {
-                if (Serial.read() == '\n')
+            while (SerialUSB.available() > 0 && dataread < 240) {
+                if (SerialUSB.read() == '\n')
                     break;
                 dataread++;
             }
@@ -855,9 +854,7 @@ void deviceKilled(Device &device)
 
 extern MockEEPROM<4096> EEPROM;
 
-// #pragma optimize( "", off )
-void setup()
-{
+void setup() {
     MCUSR = 0;
     wdt_disable();
     bootflags = EEPROM.read(0x41);
@@ -865,17 +862,13 @@ void setup()
     wdt_enable(WDTO_8S);
     wdt_reset(); // watchdog reset in setup after power up.
 
-    Serial.begin(57600);
+    SerialUSB.begin(57600);
 
     // show init light sequence
-    for (byte i = 0; i < 8; i++) {
-        Wagman::setLED(0, true);
+   for (byte i = 0; i < 16; i++) {
+        Wagman::setLEDs(HIGH);
         delay(100);
-        Wagman::setLED(1, true);
-        delay(100);
-        Wagman::setLED(0, false);
-        delay(100);
-        Wagman::setLED(1, false);
+        Wagman::setLEDs(LOW);
         delay(100);
     }
 
@@ -886,14 +879,10 @@ void setup()
         Wagman::init();
 
         for (byte i = 0; i < 16; i++) {
-            Wagman::setLED(0, true);
-            delay(20);
-            Wagman::setLED(1, true);
-            delay(20);
-            Wagman::setLED(0, false);
-            delay(20);
-            Wagman::setLED(1, false);
-            delay(20);
+            Wagman::setLEDs(HIGH);
+            delay(40);
+            Wagman::setLEDs(LOW);
+            delay(40);
         }
     } else {
         Wagman::init();
@@ -925,11 +914,8 @@ void setup()
 
     wdt_reset(); // Watchdog reset in setup, right at exit.
 }
-// #pragma optimize( "", on )
 
-
-void setupDevices()
-{
+void setupDevices() {
     devices[0].name = "nc";
     devices[0].port = 0;
     devices[0].bootSelector = 0;
@@ -986,14 +972,12 @@ void setupDevices()
     }
 }
 
-void checkSensors()
-{
+void checkSensors() {
     checkCurrentSensors();
     checkThermistors();
 }
 
-void checkCurrentSensors()
-{
+void checkCurrentSensors() {
     for (byte i = 0; i < DEVICE_COUNT; i++) {
         byte attempt;
 
@@ -1102,6 +1086,9 @@ void showBootLog(const Record::BootLog &bootLog)
     }
 }
 
+// should probably tie current -> current LEDs
+// can also blink them as needed.
+
 void startNextDevice()
 {
     // if we've asked for a specific device, start that device.
@@ -1124,10 +1111,7 @@ void startNextDevice()
     }
 }
 
-void loop()
-{
-    // ensure that the watchdog is always enabled
-
+void loop() {
     // don't bother starting any new devices once we've decided to reset
     if (!shouldResetSystem) {
         startNextDevice();
@@ -1150,61 +1134,56 @@ void loop()
         resetSystem();
     }
 
+    wdt_reset(); // Watchdog reset in loop, at the end of the loop.
+
     Wagman::toggleLED(0);
 
-    if (shouldResetSystem) {
-        Wagman::setLED(1, Wagman::getLED(0));
+    // IDEA Can apply a nonlinear curve so we ramp up more quickly.
+    // TODO Fix led mapping.
+    // TODO Blink on RX / TX (heartbeat) values.
+
+    unsigned int currentLevel[5];
+
+    for (int i = 0; i < 5; i++) {
+        currentLevel[i] = Wagman::getCurrent(i);
     }
 
-    wdt_reset(); // Watchdog reset in loop, at the end of the loop.
+    for (int i = 0; i < 5; i++) {
+        if (currentLevel[i] > 200) {
+            Wagman::setLED(i + 1, HIGH);
+        } else {
+            Wagman::setLED(i + 1, LOW);
+        }
+    }
+
+    SerialUSB.println();
+
     delay(200);
 }
 
-void resetSystem()
-{
+void resetSystem() {
     // ensure that watchdog is set!
     wdt_enable(WDTO_8S);
     wdt_reset(); // Watchdog reset in resetSystem.
 
     for (;;) {
         for (byte i = 0; i < 5; i++) {
-            Wagman::setLED(0, true);
-            Wagman::setLED(1, true);
+            Wagman::setLEDs(HIGH);
             delay(80);
-            Wagman::setLED(0, false);
-            Wagman::setLED(1, false);
+            Wagman::setLEDs(LOW);
             delay(80);
         }
 
-        Wagman::setLED(0, true);
-        Wagman::setLED(1, true);
+        Wagman::setLEDs(HIGH);
         delay(200);
-        Wagman::setLED(0, false);
-        Wagman::setLED(1, false);
+        Wagman::setLEDs(LOW);
         delay(200);
     }
 }
 
-void logStatus()
-{
+void logStatus() {
     byte id[8];
     Wagman::getID(id);
-
-    // assume we'll always miss the first message.
-
-    // cmd
-    // sid
-    // ...
-    // \0
-
-    // log
-    // id.heartbeat
-    // 2032
-    // 123
-    // 1234
-    // 1111
-    // 3221
-    // \0
 
     Logger::begin("id");
     printID(id);
@@ -1217,7 +1196,7 @@ void logStatus()
 
     Logger::begin("date");
     printDate(dt);
-    Serial.println();
+    SerialUSB.println();
 
     delay(50);
 

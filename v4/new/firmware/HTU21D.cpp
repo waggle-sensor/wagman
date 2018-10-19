@@ -26,11 +26,6 @@
 #include <Wire.h>
 #include "HTU21D.h"
 
-HTU21D::HTU21D()
-{
-  //Set initial values for private vars
-}
-
 //Begin
 /*******************************************************************************************/
 //Start I2C communication
@@ -207,11 +202,11 @@ byte HTU21D::check_crc(uint16_t message_from_sensor, uint8_t check_value_from_se
 
   for (int i = 0 ; i < 16 ; i++) //Operate on only 16 positions of max 24. The remaining 8 are our remainder and should be zero when we're done.
   {
-    //Serial.print("remainder: ");
-    //Serial.println(remainder, BIN);
-    //Serial.print("divsor:    ");
-    //Serial.println(divsor, BIN);
-    //Serial.println();
+    //SerialUSB.print("remainder: ");
+    //SerialUSB.println(remainder, BIN);
+    //SerialUSB.print("divsor:    ");
+    //SerialUSB.println(divsor, BIN);
+    //SerialUSB.println();
 
     if( remainder & (uint32_t)1<<(23 - i) ) //Check if there is a one in the left position
       remainder ^= divsor;
@@ -221,4 +216,3 @@ byte HTU21D::check_crc(uint16_t message_from_sensor, uint8_t check_value_from_se
 
   return (byte)remainder;
 }
-

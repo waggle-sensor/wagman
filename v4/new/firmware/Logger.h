@@ -10,14 +10,14 @@ namespace Logger
     template <class T>
     void log(T value) {
         if (logging) {
-            Serial.print(value);
+            SerialUSB.print(value);
         }
     }
 
     template <class T>
     void logHex(T value) {
         if (logging) {
-            Serial.print(value, HEX);
+            SerialUSB.print(value, HEX);
         }
     }
 

@@ -90,7 +90,7 @@ enum {ALM_MATCH_SECONDS, ALM_MATCH_MINUTES, ALM_MATCH_HOURS, ALM_MATCH_DAY, ALM_
 class MCP79412RTC
 {
     public:
-        MCP79412RTC();
+
         static time_t get(void);
         static void set(time_t t);
         static boolean read(tmElements_t &tm);

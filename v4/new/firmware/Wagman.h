@@ -30,8 +30,7 @@ namespace Wagman
 {
     void init();
 
-    void setRelay(byte port, bool on);
-    byte getRelay(byte port);
+    void setRelay(int port, int mode);
 
     byte getHeartbeat(byte port);
 
@@ -41,6 +40,8 @@ namespace Wagman
 
     unsigned int getThermistor(byte port);
 
+    void setLEDAnalog(byte led, int level);
+    void setLEDs(int mode);
     void setLED(byte led, bool on);
     bool getLED(byte led);
     void toggleLED(byte led);

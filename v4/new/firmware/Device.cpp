@@ -114,10 +114,26 @@ byte Device::start()
     return 0;
 }
 
-byte Device::stop()
-{
-    if (state != STATE_STARTED)
+// TODO Revist state diagram.
+// IDEA now we really do want to use the sensors to better determine
+// the state. For us, if we want a device to be stopped, we need to know what
+// the last valid state of the relay. We can gracefully degrade this by allowing
+// the current sensor to override the last remembered relay state?
+
+byte Device::stop() {
+    if (state == STATE_STOPPING) {
+        Logger::begin(name);
+        Logger::log("already stopping");
+        Logger::end();
         return ERROR_INVALID_ACTION;
+    }
+
+    if (state == STATE_STOPPED) {
+        Logger::begin(name);
+        Logger::log("already stopped");
+        Logger::end();
+        return ERROR_INVALID_ACTION;
+    }
 
     Logger::begin(name);
     Logger::log("stopping");
@@ -130,8 +146,9 @@ byte Device::stop()
 
 byte Device::kill()
 {
-    if (state == STATE_DISABLED)
+    if (state == STATE_DISABLED) {
         return ERROR_INVALID_ACTION;
+    }
 
     Logger::begin(name);
     Logger::log("killing");

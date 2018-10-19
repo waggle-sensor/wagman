@@ -532,11 +532,9 @@ Gets the system uptime in seconds.
 Examples:
 $ wagman-client up
 */
-byte commandUptime(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
-{
-    time_t time;
-    Wagman::getTime(time);
-    SerialUSB.println(time - setupTime);
+byte commandUptime(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv) {
+    unsigned long uptimeSeconds = millis() / 1000;
+    SerialUSB.println(uptimeSeconds);
     return 0;
 }
 
@@ -1136,29 +1134,29 @@ void loop() {
 
     wdt_reset(); // Watchdog reset in loop, at the end of the loop.
 
-    Wagman::toggleLED(0);
-
     // IDEA Can apply a nonlinear curve so we ramp up more quickly.
     // TODO Fix led mapping.
     // TODO Blink on RX / TX (heartbeat) values.
 
     unsigned int currentLevel[5];
+    const unsigned int currentBaseline[5] = {200, 200, 170, 200, 200};
 
     for (int i = 0; i < 5; i++) {
         currentLevel[i] = Wagman::getCurrent(i);
     }
 
     for (int i = 0; i < 5; i++) {
-        if (currentLevel[i] > 200) {
+        if (currentLevel[i] > currentBaseline[i]) {
             Wagman::setLED(i + 1, HIGH);
         } else {
             Wagman::setLED(i + 1, LOW);
         }
     }
 
-    SerialUSB.println();
-
-    delay(200);
+    Wagman::setLED(0, HIGH);
+    delay(50);
+    Wagman::setLED(0, LOW);
+    delay(50);
 }
 
 void resetSystem() {

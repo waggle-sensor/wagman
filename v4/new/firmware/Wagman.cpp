@@ -157,9 +157,6 @@ void init()
 
     wireEnabled = Record::getWireEnabled();
 
-    Wire.begin();
-    delay(200);
-
     mcp3428[0].init(MCP342X::H, MCP342X::H);
     mcp3428[1].init(MCP342X::L, MCP342X::H);
     delay(200);

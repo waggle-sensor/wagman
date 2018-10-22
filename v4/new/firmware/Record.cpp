@@ -4,7 +4,8 @@
 #include "commands.h"
 
 #warning "Using mocked out RAM EEPROM."
-MockEEPROM<4096> EEPROM;
+// MockEEPROM<4096> EEPROM;
+ExternalEEPROM EEPROM;
 
 static const unsigned long MAGIC = 0xADA1ADA1;
 
@@ -14,7 +15,7 @@ static const byte DEVICE_COUNT = 5;
 
 static const byte BOOT_LOG_CAPACITY = 4;
 
-static const unsigned int
+static const int
     EEPROM_MAGIC_ADDR = 0,
     EEPROM_HARDWARE_VERSION = 4,
     EEPROM_FIRMWARE_VERSION = 6,
@@ -23,24 +24,20 @@ static const unsigned int
     EEPROM_WIRE_ENABLED = 32,
     EEPROM_BOOTLOADER_NODE_CONTROLLER = 0x40;
 
-static const unsigned int WAGMAN_REGION_START = 128;
-
-static const unsigned int WAGMAN_LAST_BOOT_TIME = 0;
-
-static const unsigned int WAGMAN_HTU21D_HEALTH = 4;
-static const unsigned int WAGMAN_HTU21D_RANGE = 5;
-
-static const unsigned int WAGMAN_HIH4030_HEALTH = 9;
-static const unsigned int WAGMAN_HIH4030_RANGE = 10;
-
-static const unsigned int WAGMAN_CURRENT_HEALTH = 14;
-static const unsigned int WAGMAN_CURRENT_RANGE = 15;
+static const int WAGMAN_REGION_START = 128;
+static const int WAGMAN_LAST_BOOT_TIME = 0;
+static const int WAGMAN_HTU21D_HEALTH = 4;
+static const int WAGMAN_HTU21D_RANGE = 5;
+static const int WAGMAN_HIH4030_HEALTH = 9;
+static const int WAGMAN_HIH4030_RANGE = 10;
+static const int WAGMAN_CURRENT_HEALTH = 14;
+static const int WAGMAN_CURRENT_RANGE = 15;
 
 // Device EEPROM Spec
 
-static const unsigned int EEPROM_PORT_REGIONS_START = 256;
-static const unsigned int EEPROM_PORT_REGIONS_SIZE = 128;
-static const unsigned int
+static const int EEPROM_PORT_REGIONS_START = 256;
+static const int EEPROM_PORT_REGIONS_SIZE = 128;
+static const int
     EEPROM_PORT_ENABLED = 0,
     EEPROM_PORT_MANAGED = 1,
 
@@ -80,7 +77,7 @@ BootLog bootLogs[5] = {
     BootLog(256 + 4 * 128 + 64),
 };
 
-unsigned int deviceRegion(byte device)
+int deviceRegion(byte device)
 {
     return EEPROM_PORT_REGIONS_START + device * EEPROM_PORT_REGIONS_SIZE;
 }
@@ -136,9 +133,8 @@ void init()
     EEPROM.put(EEPROM_MAGIC_ADDR, MAGIC);
 }
 
-void clearMagic()
-{
-    EEPROM.put(EEPROM_MAGIC_ADDR, 0L);
+void clearMagic() {
+    EEPROM.put(EEPROM_MAGIC_ADDR, (unsigned long)0);
 }
 
 bool getWireEnabled()

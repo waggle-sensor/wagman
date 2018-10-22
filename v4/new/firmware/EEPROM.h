@@ -1,10 +1,35 @@
 #ifndef __H_EEPROM__
 #define __H_EEPROM__
 
-typedef unsigned char byte;
+#include <Wire.h>
+
+class EEPROMInterface {
+public:
+
+    virtual byte read(int addr) = 0;
+    virtual void write(int addr, byte value) = 0;
+
+    template <class T>
+    void get(int addr, T &obj) {
+        byte *objbytes = (byte *)&obj;
+
+        for (int i = 0; i < sizeof(obj); i++) {
+            objbytes[i] = read(addr + i);
+        }
+    }
+
+    template <class T>
+    void put(int addr, T obj) {
+        byte *objbytes = (byte *)&obj;
+
+        for (int i = 0; i < sizeof(obj); i++) {
+            write(addr + i, objbytes[i]);
+        }
+    }
+};
 
 template <int N>
-class MockEEPROM {
+class MockEEPROM : public EEPROMInterface {
 public:
 
     void clear() {
@@ -17,7 +42,7 @@ public:
         return N;
     }
 
-    byte read(int addr) const {
+    byte read(int addr) {
         return data[addr];
     }
 
@@ -25,23 +50,62 @@ public:
         data[addr] = value;
     }
 
-    template <class T>
-    void get(int addr, T &value) const {
-        T *ptr = (T *)(&data[addr]);
-        value = *ptr;
-    }
-
-    template <class T>
-    void put(int addr, T value) {
-        T *ptr = (T *)(&data[addr]);
-        *ptr = value;
-    }
-
 private:
 
     byte data[N];
 };
 
-extern MockEEPROM<4096> EEPROM;
+class ExternalEEPROM : public EEPROMInterface {
+public:
+
+    bool waitForDevice() const {
+      while (true) {
+          Wire.beginTransmission(busaddr);
+
+          if (Wire.endTransmission() == 0) {
+              return true;
+          }
+      }
+
+      return false;
+    }
+
+    void writeAddress(int addr) {
+      Wire.write((byte)((addr >> 8) & 0xff));
+      Wire.write((byte)((addr >> 0) & 0xff));
+    }
+
+    byte read(int addr) {
+        waitForDevice();
+
+        Wire.beginTransmission(busaddr);
+        writeAddress(addr);
+        Wire.endTransmission();
+
+        Wire.requestFrom(busaddr, 1);
+
+        while (Wire.available() == 0) {
+            // TODO ensure timeout
+        }
+
+        return Wire.read();
+    }
+
+    void write(int addr, byte data) {
+        waitForDevice();
+
+        Wire.beginTransmission(busaddr);
+        writeAddress(addr);
+        Wire.write(data);
+        Wire.endTransmission(); // TODO Add Error function for error handling.
+    }
+
+private:
+
+    static const int busaddr = 0x50;
+};
+
+extern ExternalEEPROM EEPROM;
+// extern MockEEPROM<4096> EEPROM;
 
 #endif

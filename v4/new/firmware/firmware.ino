@@ -850,15 +850,18 @@ void deviceKilled(Device &device)
     }
 }
 
-extern MockEEPROM<4096> EEPROM;
+// extern MockEEPROM<4096> EEPROM;
+extern ExternalEEPROM EEPROM;
 
 void setup() {
     MCUSR = 0;
     wdt_disable();
-    bootflags = EEPROM.read(0x41);
+    // bootflags = EEPROM.read(0x41); // TODO Ensure timeout on EEPROM.
     delay(4000);
     wdt_enable(WDTO_8S);
     wdt_reset(); // watchdog reset in setup after power up.
+
+    Wire.begin();
 
     SerialUSB.begin(57600);
     SerialUSB.setTimeout(100);
@@ -944,7 +947,7 @@ void setupDevices() {
     devices[2].port = 2;
     devices[2].primaryMedia = MEDIA_SD;
     devices[2].secondaryMedia = MEDIA_EMMC;
-    devices[2].watchHeartbeat = true;
+    devices[2].watchHeartbeat = false; // TODO Change back to true.
     devices[2].watchCurrent = false;
 
     devices[3].name = "x1";

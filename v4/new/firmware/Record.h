@@ -6,7 +6,6 @@
 
 // #define CLEANSLATE 0x01
 
-
 struct Version
 {
     byte major;

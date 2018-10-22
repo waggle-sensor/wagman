@@ -49,23 +49,15 @@ static const byte THERMISTOR_CHANNELS[] = {
     MCP342X::CHANNEL_3,
 };
 
+const int voltagePins[5] = {A1, A3, A5, A7, A9};
 const int thermistorPins[5] = {A0, A2, A4, A6, A8};
-
-// const int OP1_ADC = A1;
-// const int OP2_ADC = A3;
-// const int OP3_ADC = A5;
-// const int OP4_ADC = A7;
-// const int OP5_ADC = A9;
-//
-// const int PHOTORESIST = A10;
-// const int ADC_5V_IN = A11;
-// const int PHOTORESIST = A10;
+const int photoresistorPin = A10;
 
 static const byte SYSTEM_CURRENT_ADDRESS = 0x60;
 
 static const byte PORT_CURRENT_ADDRESS[PORT_COUNT] = {0x62, 0x68, 0x6A, 0x63, 0x6B};
 
-static const byte BOOT_SELECTOR_PINS[BOOT_SELECTOR_COUNT] = {1, A3};
+static const byte BOOT_SELECTOR_PINS[BOOT_SELECTOR_COUNT] = {41, 47};
 
 static HTU21D htu21d;
 static MCP342X mcp3428[2];
@@ -74,19 +66,26 @@ static bool wireEnabled = true;
 
 unsigned int heartbeatCounters[5] = {0, 0, 0, 0, 0};
 
-namespace Wagman
-{
+namespace Wagman {
 
-unsigned int getThermistor(byte port)
-{
-    if (!getWireEnabled()) {
+unsigned int getVoltage(int port) {
+    if (!validPort(port)) {
         return 0;
     }
 
-    if (!validPort(port))
+    return analogRead(voltagePins[port]);
+}
+
+unsigned int getThermistor(int port) {
+    if (!validPort(port)) {
         return 0;
+    }
 
     return analogRead(thermistorPins[port]);
+}
+
+unsigned int getLight() {
+    return analogRead(photoresistorPin);
 }
 
 void setLEDs(int mode) {

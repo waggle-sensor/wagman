@@ -1274,6 +1274,17 @@ void logStatus() {
 
     delay(50);
 
+    Logger::begin("vdc");
+
+    for (byte i = 0; i < 5; i++) {
+        Logger::log(Wagman::getVoltage(i));
+        Logger::log(' ');
+    }
+
+    Logger::end();
+
+    delay(50);
+
     Logger::begin("th");
 
     for (byte i = 0; i < 5; i++) {
@@ -1289,6 +1300,8 @@ void logStatus() {
     Logger::log(Wagman::getTemperature());
     Logger::log(' ');
     Logger::log(Wagman::getHumidity());
+    Logger::log(' ');
+    Logger::log(Wagman::getLight());
     Logger::end();
 
     delay(50);

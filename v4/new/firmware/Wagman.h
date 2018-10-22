@@ -38,7 +38,8 @@ namespace Wagman
     unsigned int getCurrent(byte port);
     unsigned int getAddressCurrent(byte addr);
 
-    unsigned int getThermistor(byte port);
+    unsigned int getVoltage(int port);
+    unsigned int getThermistor(int port);
 
     void setLEDAnalog(byte led, int level);
     void setLEDs(int mode);
@@ -46,6 +47,7 @@ namespace Wagman
     bool getLED(byte led);
     void toggleLED(byte led);
 
+    unsigned int getLight();
     float getHumidity();
     float getTemperature();
 

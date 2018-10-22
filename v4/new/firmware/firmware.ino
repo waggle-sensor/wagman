@@ -861,6 +861,16 @@ void setup() {
     wdt_reset(); // watchdog reset in setup after power up.
 
     SerialUSB.begin(57600);
+    SerialUSB.setTimeout(100);
+
+    Serial1.begin(115200);
+    Serial1.setTimeout(100);
+
+    Serial2.begin(115200);
+    Serial2.setTimeout(100);
+
+    Serial3.begin(115200);
+    Serial3.setTimeout(100);
 
     // show init light sequence
    for (byte i = 0; i < 16; i++) {
@@ -1109,6 +1119,19 @@ void startNextDevice()
     }
 }
 
+bool HasPrefix(const char *s, const char *prefix) {
+    while (*prefix) {
+        if (*s != *prefix) {
+            return false;
+        }
+
+        s++;
+        prefix++;
+    }
+
+    return true;
+}
+
 void loop() {
     // don't bother starting any new devices once we've decided to reset
     if (!shouldResetSystem) {
@@ -1138,6 +1161,8 @@ void loop() {
     // TODO Fix led mapping.
     // TODO Blink on RX / TX (heartbeat) values.
 
+    bool devicePowered[5];
+
     unsigned int currentLevel[5];
     const unsigned int currentBaseline[5] = {200, 200, 170, 200, 200};
 
@@ -1146,17 +1171,55 @@ void loop() {
     }
 
     for (int i = 0; i < 5; i++) {
-        if (currentLevel[i] > currentBaseline[i]) {
-            Wagman::setLED(i + 1, HIGH);
-        } else {
-            Wagman::setLED(i + 1, LOW);
+        devicePowered[i] = currentLevel[i] > currentBaseline[i];
+    }
+
+    for (int i = 0; i < 5; i++) {
+        Wagman::setLED(i + 1, devicePowered[i] ? HIGH : LOW);
+    }
+
+    byte heartbeatBuffer[32];
+    bool shouldBlink[5] = {true, false, false, false, false};
+
+    // TODO Cache a "powered on" level.
+
+    if (devicePowered[0] && (Serial1.available() > 0)) {
+        int n = Serial1.readBytesUntil('\n', heartbeatBuffer, 32);
+        heartbeatBuffer[n] = 0;
+
+        if (HasPrefix((const char *)heartbeatBuffer, "hello")) {
+            shouldBlink[1] = true;
+            heartbeatCounters[0]++;
+            Serial1.println("hello");
         }
     }
 
-    Wagman::setLED(0, HIGH);
+    if (devicePowered[1] && (Serial2.available() > 0)) {
+        int n = Serial2.readBytesUntil('\n', heartbeatBuffer, 32);
+        heartbeatBuffer[n] = 0;
+
+        if (HasPrefix((const char *)heartbeatBuffer, "hello")) {
+            shouldBlink[2] = true;
+            heartbeatCounters[1]++;
+            Serial2.println("hello");
+        }
+    }
+
+    // TODO Refactor blinking / lighting stuff later.
+
+    for (int i = 0; i < 3; i++) {
+        if (shouldBlink[i]) {
+            Wagman::setLED(i, LOW);
+        }
+    }
+
     delay(50);
-    Wagman::setLED(0, LOW);
-    delay(50);
+
+    for (int i = 0; i < 3; i++) {
+        if (shouldBlink[i]) {
+            Wagman::setLED(i, HIGH);
+        }
+    }
 }
 
 void resetSystem() {

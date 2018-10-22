@@ -60,21 +60,7 @@ static MCP342X mcp3428[2];
 
 static bool wireEnabled = true;
 
-static volatile byte heartbeatState[5] = {LOW, LOW, LOW, LOW, LOW};
-volatile byte heartbeatCounters[5] = {0, 0, 0, 0, 0};
-
-// ISR(TIMER1_OVF_vect) {
-//     for (byte i = 0; i < 5; i++) {
-//         byte newState = digitalRead(HEARTBEAT_PINS[i]);
-//         bool triggered = (heartbeatState[i] != newState);
-//
-//         if (triggered) {
-//             heartbeatCounters[i]++;
-//         }
-//
-//         heartbeatState[i] = newState;
-//     }
-// }
+unsigned int heartbeatCounters[5] = {0, 0, 0, 0, 0};
 
 namespace Wagman
 {

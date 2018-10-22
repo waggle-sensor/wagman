@@ -1178,7 +1178,7 @@ void loop() {
         Wagman::setLED(i + 1, devicePowered[i] ? HIGH : LOW);
     }
 
-    byte heartbeatBuffer[32];
+    byte heartbeatBuffer[33];
     bool shouldBlink[5] = {true, false, false, false, false};
 
     // TODO Cache a "powered on" level.

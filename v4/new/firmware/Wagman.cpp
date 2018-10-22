@@ -49,6 +49,18 @@ static const byte THERMISTOR_CHANNELS[] = {
     MCP342X::CHANNEL_3,
 };
 
+const int thermistorPins[5] = {A0, A2, A4, A6, A8};
+
+// const int OP1_ADC = A1;
+// const int OP2_ADC = A3;
+// const int OP3_ADC = A5;
+// const int OP4_ADC = A7;
+// const int OP5_ADC = A9;
+//
+// const int PHOTORESIST = A10;
+// const int ADC_5V_IN = A11;
+// const int PHOTORESIST = A10;
+
 static const byte SYSTEM_CURRENT_ADDRESS = 0x60;
 
 static const byte PORT_CURRENT_ADDRESS[PORT_COUNT] = {0x62, 0x68, 0x6A, 0x63, 0x6B};
@@ -74,12 +86,7 @@ unsigned int getThermistor(byte port)
     if (!validPort(port))
         return 0;
 
-    if (port == 0) {
-        return analogRead(THERMISTOR_0_PIN);
-    } else {
-        mcp3428[0].selectChannel(THERMISTOR_CHANNELS[port], MCP342X::GAIN_1);
-        return mcp3428[0].readADC() >> 5;
-    }
+    return analogRead(thermistorPins[port]);
 }
 
 void setLEDs(int mode) {
@@ -132,6 +139,8 @@ void toggleLED(byte led)
 
 void init()
 {
+    analogReadResolution(12);
+
     for (auto pin : LED_PINS) {
         pinMode(pin, OUTPUT);
     }

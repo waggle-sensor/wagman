@@ -28,7 +28,6 @@ std::array<byte, 9> LED_PINS = {12, 11, 2, 3, 5, 6, 7, 8, 9};
 struct RelayConfig {
     int clk;
     int d;
-    int led;
 };
 
 const RelayConfig relayConfigs[PORT_COUNT] = {
@@ -136,8 +135,14 @@ void toggleLED(byte led)
     setLED(led, !getLED(led));
 }
 
-void init()
-{
+#define NC_AUTO_DISABLE 48
+
+void init() {
+    // TODO Confirm this is what we want. Maybe only set this once we're toggling
+    // NC relay?
+    pinMode(NC_AUTO_DISABLE, OUTPUT);
+    digitalWrite(NC_AUTO_DISABLE, LOW);
+
     analogReadResolution(12);
 
     for (auto pin : LED_PINS) {

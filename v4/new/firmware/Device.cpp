@@ -121,16 +121,14 @@ byte Device::start()
 // the current sensor to override the last remembered relay state?
 
 byte Device::stop() {
+    if (state == STATE_STOPPED) {
+        kill();
+        return 0;
+    }
+
     if (state == STATE_STOPPING) {
         Logger::begin(name);
         Logger::log("already stopping");
-        Logger::end();
-        return ERROR_INVALID_ACTION;
-    }
-
-    if (state == STATE_STOPPED) {
-        Logger::begin(name);
-        Logger::log("already stopped");
         Logger::end();
         return ERROR_INVALID_ACTION;
     }

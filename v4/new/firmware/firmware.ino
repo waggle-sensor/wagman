@@ -73,7 +73,6 @@ Command commands[] = {
     { "ping", commandPing },
     { "start", commandStart },
     { "stop", commandStop },
-    // { "stop!", commandKill },
     { "reset", commandReset },
     { "id", commandID },
     { "cu", commandCurrent },
@@ -1167,14 +1166,14 @@ void loop() {
     bool devicePowered[5];
 
     unsigned int currentLevel[5];
-    const unsigned int currentBaseline[5] = {200, 200, 170, 200, 200};
+    const unsigned int currentBaseline[5] = {200, 200, 169, 200, 200};
 
     for (int i = 0; i < 5; i++) {
         currentLevel[i] = Wagman::getCurrent(i);
     }
 
     for (int i = 0; i < 5; i++) {
-        devicePowered[i] = currentLevel[i] > currentBaseline[i];
+        devicePowered[i] = currentLevel[i] >= currentBaseline[i];
     }
 
     for (int i = 0; i < 5; i++) {

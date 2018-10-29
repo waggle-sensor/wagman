@@ -1,5 +1,5 @@
 /*
- HTU21D Humidity Sensor Library
+ H *TU21D Humidity Sensor Library
  By: Nathan Seidle
  SparkFun Electronics
  Date: September 22nd, 2013
@@ -11,9 +11,9 @@
 
 
 #if defined(ARDUINO) && ARDUINO >= 100
- #include "Arduino.h"
+#include "Arduino.h"
 #else
- #include "WProgram.h"
+#include "WProgram.h"
 #endif
 
 #include <Wire.h>
@@ -31,19 +31,20 @@
 class HTU21D {
 
 public:
+    //Public Functions
+    void begin();
+    float readHumidity(void);
+    float readTemperature(void);
+    void setResolution(byte resBits);
 
-  void begin();
-  float readHumidity();
-  float readTemperature();
-  void setResolution(byte resBits);
-
-  //Public Variables
+    //Public Variables
 
 private:
-  //Private Functions
-  byte read_user_register(void);
-  byte check_crc(uint16_t message_from_sensor, uint8_t check_value_from_sensor);
+    //Private Functions
 
-  //Private Variables
+    byte read_user_register(void);
+    byte check_crc(uint16_t message_from_sensor, uint8_t check_value_from_sensor);
+
+    //Private Variables
 
 };

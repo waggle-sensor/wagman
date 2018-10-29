@@ -22,16 +22,8 @@ constexpr int _BV(int x) {
     return 1 << x;
 }
 
-#warning "Using mocked out watchdog!"
-const int WDTO_8S = 0;
-
-void wdt_reset() {
-}
-
-void wdt_enable(int flags) {
-}
-
-void wdt_disable() {
+void watchdogSetup() {
+    watchdogEnable(8000); // 8s watchdog
 }
 
 // TODO Look into watchdog.
@@ -854,11 +846,10 @@ extern ExternalEEPROM EEPROM;
 
 void setup() {
     MCUSR = 0;
-    wdt_disable();
+//    wdt_disable();
     // bootflags = EEPROM.read(0x41); // TODO Ensure timeout on EEPROM.
     delay(4000);
-    wdt_enable(WDTO_8S);
-    wdt_reset(); // watchdog reset in setup after power up.
+    watchdogReset();
 
     Wire.begin();
 
@@ -882,7 +873,7 @@ void setup() {
         delay(100);
     }
 
-    wdt_reset(); // Watchdog reset in setup after light sequence.
+    watchdogReset();
 
     if (!Record::initialized()) {
         Record::init();
@@ -902,7 +893,7 @@ void setup() {
     Record::setLastBootTime(setupTime);
     Record::incrementBootCount();
 
-    wdt_reset(); // Watchdog reset in setup after incrementing boot count.
+    watchdogReset();
 
     if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
         checkSensors();
@@ -922,7 +913,7 @@ void setup() {
         Wagman::Clock.set(BUILD_TIME);
     }
 
-    wdt_reset(); // Watchdog reset in setup, right at exit.
+    watchdogReset();
 }
 
 void setupDevices() {
@@ -1135,21 +1126,24 @@ bool HasPrefix(const char *s, const char *prefix) {
 }
 
 void loop() {
+    watchdogReset();
+
     // don't bother starting any new devices once we've decided to reset
     if (!shouldResetSystem) {
         startNextDevice();
     }
 
+    watchdogReset();
+
     for (byte i = 0; i < DEVICE_COUNT; i++) {
         devices[i].update();
-        wdt_reset(); // Watchdog reset in loop, device update loop.
     }
 
     processCommands();
 
     if (statusTimer.exceeds(60000)) {
         statusTimer.reset();
-        wdt_reset(); // Watchdog reset in loop, logstatus.
+        watchdogReset();
         logStatus();
     }
 
@@ -1157,7 +1151,7 @@ void loop() {
         resetSystem();
     }
 
-    wdt_reset(); // Watchdog reset in loop, at the end of the loop.
+    watchdogReset();
 
     // IDEA Can apply a nonlinear curve so we ramp up more quickly.
     // TODO Fix led mapping.
@@ -1225,9 +1219,7 @@ void loop() {
 }
 
 void resetSystem() {
-    // ensure that watchdog is set!
-    wdt_enable(WDTO_8S);
-    wdt_reset(); // Watchdog reset in resetSystem.
+    watchdogReset();
 
     for (;;) {
         for (byte i = 0; i < 5; i++) {

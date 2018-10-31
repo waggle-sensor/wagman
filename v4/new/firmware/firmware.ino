@@ -1294,8 +1294,20 @@ void logStatus() {
     Logger::log(Wagman::getTemperature());
     Logger::log(' ');
     Logger::log(Wagman::getHumidity());
-    Logger::log(' ');
+    Logger::end();
+
+    Logger::begin("temperature");
+    Logger::log(Wagman::getTemperature());
+    Logger::end();
+
+    Logger::begin("humidity");
+    Logger::log(Wagman::getHumidity());
+    Logger::end();
+
+    Logger::begin("light");
     Logger::log(Wagman::getLight());
+    Logger::end();
+
     Logger::end();
 
     delay(50);

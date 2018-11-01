@@ -1,0 +1,8 @@
+#!/bin/sh
+
+if [ -z "$1" ]; then
+	echo "no port specified"
+	exit 1
+fi
+
+arduino-cli upload -b arduino:sam:wagman_v2 -p $1 -v

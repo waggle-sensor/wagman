@@ -27,7 +27,7 @@ void watchdogSetup (void) __attribute__ ((weak, alias("_watchdogDefaultSetup")))
 ```
 
 Unfortunately, the DUE's watchdog configuration is write-once per chip reset, so
-you must to override the `watchdogSetup` function in your code to use the watchdog.
+you **must** to override the `watchdogSetup` function in your code to use the watchdog.
 
 A minimal example is:
 

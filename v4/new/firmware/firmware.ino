@@ -10,6 +10,10 @@
 #include "MCP79412RTC.h"
 #include "EEPROM.h"
 
+#include <SPI.h>
+#include <SD.h>
+#define SD_CS 42
+
 #warning "Using mocked out MCUSR register."
 int MCUSR = 0;
 
@@ -84,6 +88,7 @@ Command commands[] = {
     { "boots", commandBoots },
     { "ver", commandVersion },
     { "blf", commandBLFlag },
+    { "sdinfo", commandSDInfo },
     { NULL, NULL },
 };
 
@@ -727,6 +732,62 @@ $ wagman-client reset
 byte commandResetEEPROM(byte argc, const char **argv)
 {
     Record::clearMagic();
+    return 0;
+}
+
+byte commandSDInfo(byte argc, const char **argv) {
+    Sd2Card card;
+    SdVolume volume;
+
+    card.init(SPI_HALF_SPEED, SD_CS);
+
+    SerialUSB.print("Card Type : ");
+
+    switch (card.type()) {
+        case SD_CARD_TYPE_SD1:
+            SerialUSB.println("SD1");
+            break;
+        case SD_CARD_TYPE_SD2:
+            SerialUSB.println("SD2");
+            break;
+        case SD_CARD_TYPE_SDHC:
+            SerialUSB.println("SDHC");
+            break;
+        default:
+            SerialUSB.println("Unknown");
+            break;
+    }
+
+    if (!volume.init(card)) {
+      SerialUSB.println("Could not find FAT16/FAT32 partition.\nMake sure you've formatted the card");
+      while (1);
+    }
+
+    SerialUSB.print("Clusters : ");
+    SerialUSB.println(volume.clusterCount());
+    SerialUSB.print("Blocks x Cluster : ");
+    SerialUSB.println(volume.blocksPerCluster());
+
+    SerialUSB.print("Total Blocks : ");
+    SerialUSB.println(volume.blocksPerCluster() * volume.clusterCount());
+    SerialUSB.println();
+
+    // print the type and size of the first FAT-type volume
+    uint32_t volumesize;
+    SerialUSB.print("Volume type is:    FAT");
+    SerialUSB.println(volume.fatType(), DEC);
+
+    volumesize = volume.blocksPerCluster();    // clusters are collections of blocks
+    volumesize *= volume.clusterCount();       // we'll have a lot of clusters
+    volumesize /= 2;                           // SD card blocks are always 512 bytes (2 blocks are 1KB)
+    SerialUSB.print("Volume size (Kb):  ");
+    SerialUSB.println(volumesize);
+    SerialUSB.print("Volume size (Mb):  ");
+    volumesize /= 1024;
+    SerialUSB.println(volumesize);
+    SerialUSB.print("Volume size (Gb):  ");
+    SerialUSB.println((float)volumesize / 1024.0);
+
     return 0;
 }
 

@@ -27,7 +27,13 @@ constexpr int _BV(int x) {
 }
 
 void watchdogSetup() {
-    watchdogEnable(8000); // 8s watchdog
+    // I moved this to setup() just so sequence of events is more clear.
+    // Definiing this function is enough to override the default behavior,
+    // you don't actually need to do watchdogEnable here.
+
+    // watchdogReset();
+    // watchdogEnable(8000); // 8s watchdog
+    // watchdogReset();
 }
 
 // TODO Look into watchdog.
@@ -906,10 +912,8 @@ void deviceKilled(Device &device)
 extern ExternalEEPROM EEPROM;
 
 void setup() {
-    MCUSR = 0;
-//    wdt_disable();
-    // bootflags = EEPROM.read(0x41); // TODO Ensure timeout on EEPROM.
-    delay(4000);
+    watchdogReset();
+    watchdogEnable(8000);
     watchdogReset();
 
     Wire.begin();
@@ -926,21 +930,15 @@ void setup() {
     Serial3.begin(115200);
     Serial3.setTimeout(100);
 
-    // show init light sequence
-   for (byte i = 0; i < 16; i++) {
-        Wagman::setLEDs(HIGH);
-        delay(100);
-        Wagman::setLEDs(LOW);
-        delay(100);
-    }
-
     watchdogReset();
 
     if (!Record::initialized()) {
         Record::init();
         Wagman::init();
 
-        for (byte i = 0; i < 16; i++) {
+        watchdogReset();
+
+        for (byte i = 0; i < 8; i++) {
             Wagman::setLEDs(HIGH);
             delay(40);
             Wagman::setLEDs(LOW);
@@ -955,11 +953,6 @@ void setup() {
     Record::incrementBootCount();
 
     watchdogReset();
-
-    if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
-        checkSensors();
-    }
-
     setupDevices();
     deviceWantsStart = 0;
 
@@ -1018,20 +1011,20 @@ void setupDevices() {
     // Check for any incomplete relays which may have killed the system.
     // An assumption here is that if one of these devices killed the system
     // when starting, then there should only be one incomplete relay state.
-    for (byte i = 0; i < DEVICE_COUNT; i++) {
-        byte state = Record::getRelayState(i);
-
-        if (state == RELAY_TURNING_ON || state == RELAY_TURNING_OFF) {
-            Record::setRelayState(i, RELAY_OFF);
-
-            // Plausible that power off was caused by toggling this relay.
-            if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
-                devices[i].disable();
-            } else {
-                devices[i].kill();
-            }
-        }
-    }
+    // for (byte i = 0; i < DEVICE_COUNT; i++) {
+    //     byte state = Record::getRelayState(i);
+    //
+    //     if (state == RELAY_TURNING_ON || state == RELAY_TURNING_OFF) {
+    //         Record::setRelayState(i, RELAY_OFF);
+    //
+    //         // Plausible that power off was caused by toggling this relay.
+    //         if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
+    //             devices[i].disable();
+    //         } else {
+    //             devices[i].kill();
+    //         }
+    //     }
+    // }
 }
 
 void checkSensors() {

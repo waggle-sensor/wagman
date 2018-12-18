@@ -913,7 +913,7 @@ extern ExternalEEPROM EEPROM;
 
 void setup() {
     watchdogReset();
-    watchdogEnable(8000);
+    watchdogEnable(16000);
     watchdogReset();
 
     Wire.begin();

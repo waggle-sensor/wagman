@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 firmware=$1
 port=$2
@@ -8,4 +8,4 @@ if [ -z "$firmware" ] || [ -z "$port" ]; then
 	exit 1
 fi
 
-arduino-cli upload -v -b arduino:sam:wagman_v2 -i $firmware -p $port
+bossac -i -d --port=$(basename $port) -U true -e -w -v -b $firmware -R

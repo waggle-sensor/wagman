@@ -5,4 +5,4 @@ if [ -z "$1" ]; then
 	exit 1
 fi
 
-arduino-cli upload -b arduino:sam:wagman_v2 -p $1 -v
+arduino-cli upload -v -b arduino:sam:wagman_v2 -i bin/firmware-2.0.0.bin -p $1

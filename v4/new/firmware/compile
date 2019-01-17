@@ -1,4 +1,4 @@
 #!/bin/sh
 
 mkdir -p bin/
-arduino-cli compile -v -b arduino:sam:wagman_v2 -o bin/firmware-2.0.0
+arduino-cli compile -v -b arduino:sam:wagman_v2 -o bin/firmware-4.0.0

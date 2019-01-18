@@ -1193,8 +1193,8 @@ void loop() {
 
     if (statusTimer.exceeds(60000)) {
         statusTimer.reset();
-        watchdogReset();
-        logStatus();
+        // watchdogReset();
+        // logStatus();
     }
 
     if (shouldResetSystem && shouldResetTimer.exceeds(shouldResetTimeout)) {

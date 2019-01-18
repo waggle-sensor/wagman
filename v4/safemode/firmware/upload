@@ -1,0 +1,11 @@
+#!/bin/sh
+
+firmware=$1
+port=$2
+
+if [ -z "$firmware" ] || [ -z "$port" ]; then
+	echo "usage: $0 firmware port"
+	exit 1
+fi
+
+arduino-cli upload -v -b arduino:sam:wagman_v2 -i $firmware -p $port

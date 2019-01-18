@@ -1,0 +1,4 @@
+#!/bin/sh
+
+mkdir -p bin/
+arduino-cli compile -v -b arduino:sam:wagman_v2 -o bin/firmware-safemode-4.0.0

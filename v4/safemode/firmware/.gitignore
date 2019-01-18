@@ -1,0 +1,3 @@
+./bin/*.elf
+./build/*
+flash_avr.log

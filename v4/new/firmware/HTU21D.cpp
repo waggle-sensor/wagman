@@ -37,7 +37,7 @@ void HTU21D::begin() {
 //Calc humidity and return it to the user
 //Returns 998 if I2C timed out
 //Returns 999 if CRC is wrong
-float HTU21D::readHumidity(void)
+bool HTU21D::readHumidity(unsigned int *rawout, float *hrfout)
 {
     //Request a humidity reading
     Wire.beginTransmission(HTDU21D_ADDRESS);
@@ -56,7 +56,7 @@ float HTU21D::readHumidity(void)
     {
         counter++;
         delay(1);
-        if(counter > 100) return 998;                               //Error out
+        if(counter > 100) return false;                               //Error out
     }
 
     byte msb, lsb, checksum;
@@ -72,7 +72,11 @@ float HTU21D::readHumidity(void)
 
     unsigned int rawHumidity = ((unsigned int) msb << 8) | (unsigned int) lsb;
 
-    if(check_crc(rawHumidity, checksum) != 0) return(999);      //Error out
+    if (rawout != NULL) {
+        *rawout = rawHumidity;
+    }
+
+    if(check_crc(rawHumidity, checksum) != 0) return false;      //Error out
 
     //sensorStatus = rawHumidity & 0x0003; //Grab only the right two bits
     rawHumidity &= 0xFFFC;                                      //Zero out the status bits but keep them in place
@@ -81,7 +85,11 @@ float HTU21D::readHumidity(void)
     float tempRH = rawHumidity / (float)65536;                  //2^16 = 65536
     float rh = -6 + (125 * tempRH);                             //From page 14
 
-    return(rh);
+    if (hrfout != NULL) {
+        *hrfout = rh;
+    }
+
+    return true;
 }
 
 //Read the temperature
@@ -89,7 +97,7 @@ float HTU21D::readHumidity(void)
 //Calc temperature and return it to the user
 //Returns 998 if I2C timed out
 //Returns 999 if CRC is wrong
-float HTU21D::readTemperature(void)
+bool HTU21D::readTemperature(unsigned int *rawout, float *hrfout)
 {
     //Request the temperature
     Wire.beginTransmission(HTDU21D_ADDRESS);
@@ -108,7 +116,7 @@ float HTU21D::readTemperature(void)
     {
         counter++;
         delay(1);
-        if(counter > 100) return 998;                               //Error out
+        if(counter > 100) return false;                               //Error out
     }
 
     unsigned char msb, lsb, checksum;
@@ -124,7 +132,11 @@ float HTU21D::readTemperature(void)
 
     unsigned int rawTemperature = ((unsigned int) msb << 8) | (unsigned int) lsb;
 
-    if(check_crc(rawTemperature, checksum) != 0) return(999);   //Error out
+    if (rawout != NULL) {
+        *rawout = rawTemperature;
+    }
+
+    if(check_crc(rawTemperature, checksum) != 0) return false;   //Error out
 
     //sensorStatus = rawTemperature & 0x0003; //Grab only the right two bits
     rawTemperature &= 0xFFFC;                                   //Zero out the status bits but keep them in place
@@ -134,7 +146,11 @@ float HTU21D::readTemperature(void)
     //From page 14
     float realTemperature = (float)(-46.85 + (175.72 * tempTemperature));
 
-    return(realTemperature);
+    if (hrfout != NULL) {
+        *hrfout = realTemperature;
+    }
+
+    return true;
 }
 
 //Set sensor resolution
@@ -213,83 +229,4 @@ byte HTU21D::check_crc(uint16_t message_from_sensor, uint8_t check_value_from_se
     }
 
     return (byte)remainder;
-}
-
-unsigned int HTU21D::readRawHumidity()
-{
-    //Request a humidity reading
-    Wire.beginTransmission(HTDU21D_ADDRESS);
-    Wire.write(TRIGGER_HUMD_MEASURE_NOHOLD);                    //Measure humidity with no bus holding
-    Wire.endTransmission();
-
-    //Hang out while measurement is taken. 50mS max, page 4 of datasheet.
-    delay(55);
-
-    //Comes back in three bytes, data(MSB) / data(LSB) / Checksum
-    Wire.requestFrom(HTDU21D_ADDRESS, 3);
-
-    //Wait for data to become available
-    int counter = 0;
-    while(Wire.available() < 3)
-    {
-        counter++;
-        delay(1);
-        if(counter > 100) return 998;                               //Error out
-    }
-
-    byte msb, lsb, checksum;
-    msb = Wire.read();
-    lsb = Wire.read();
-    checksum = Wire.read();
-
-/* //Used for testing
-    byte msb, lsb, checksum;
-    msb = 0x4E;
-    lsb = 0x85;
-    checksum = 0x6B;*/
-
-    unsigned int rawHumidity = ((unsigned int) msb << 8) | (unsigned int) lsb;
-    return rawHumidity;
-}
-
-//Read the temperature
-/*******************************************************************************************/
-//Calc temperature and return it to the user
-//Returns 998 if I2C timed out
-//Returns 999 if CRC is wrong
-unsigned int HTU21D::readRawTemperature()
-{
-    //Request the temperature
-    Wire.beginTransmission(HTDU21D_ADDRESS);
-    Wire.write(TRIGGER_TEMP_MEASURE_NOHOLD);
-    Wire.endTransmission();
-
-    //Hang out while measurement is taken. 50mS max, page 4 of datasheet.
-    delay(55);
-
-    //Comes back in three bytes, data(MSB) / data(LSB) / Checksum
-    Wire.requestFrom(HTDU21D_ADDRESS, 3);
-
-    //Wait for data to become available
-    int counter = 0;
-    while(Wire.available() < 3)
-    {
-        counter++;
-        delay(1);
-        if(counter > 100) return 998;                               //Error out
-    }
-
-    unsigned char msb, lsb, checksum;
-    msb = Wire.read();
-    lsb = Wire.read();
-    checksum = Wire.read();
-
-/* //Used for testing
-    byte msb, lsb, checksum;
-    msb = 0x68;
-    lsb = 0x3A;
-    checksum = 0x7C; */
-
-    unsigned int rawTemperature = ((unsigned int) msb << 8) | (unsigned int) lsb;
-    return rawTemperature;
 }

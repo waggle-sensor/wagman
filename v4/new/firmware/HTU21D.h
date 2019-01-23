@@ -33,12 +33,9 @@ class HTU21D {
 public:
     //Public Functions
     void begin();
-    float readHumidity(void);
-    float readTemperature(void);
+    bool readHumidity(unsigned int *rawout, float *hrfout);
+    bool readTemperature(unsigned int *rawout, float *hrfout);
     void setResolution(byte resBits);
-
-    unsigned int readRawHumidity(void);
-    unsigned int readRawTemperature(void);
 
     //Public Variables
 

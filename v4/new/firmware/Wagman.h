@@ -47,12 +47,9 @@ namespace Wagman
     bool getLED(byte led);
     void toggleLED(byte led);
 
-    unsigned int getLight();
-    float getHumidity();
-    float getTemperature();
-
-    unsigned int getRawHumidity();
-    unsigned int getRawTemperature();
+    bool getLight(unsigned int *raw);
+    bool getHumidity(unsigned int *raw, float *hrf);
+    bool getTemperature(unsigned int *raw, float *hrf);
 
     byte getBootMedia(byte selector);
     void setBootMedia(byte selector, byte media);

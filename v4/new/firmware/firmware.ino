@@ -422,15 +422,42 @@ $ wagman-client env
 */
 byte commandEnvironment(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
+    unsigned int rawTemperature, rawHumidity, rawLight;
+    float temperature, humidity;
+    bool temperatureOK = Wagman::getTemperature(&rawTemperature, &temperature);
+    bool humidityOK = Wagman::getHumidity(&rawHumidity, &humidity);
+    bool lightOK = Wagman::getLight(&rawLight);
+
     SerialUSB.print("temperature ");
-    SerialUSB.print(Wagman::getRawTemperature());
+    SerialUSB.print(rawTemperature);
     SerialUSB.print(" ");
-    SerialUSB.println(Wagman::getTemperature());
+    SerialUSB.print(temperature);
+
+    if (!temperatureOK) {
+        SerialUSB.println(" err");
+    }
+
+    SerialUSB.println();
 
     SerialUSB.print("humidity ");
-    SerialUSB.print(Wagman::getRawHumidity());
+    SerialUSB.print(rawHumidity);
     SerialUSB.print(" ");
-    SerialUSB.println(Wagman::getHumidity());
+    SerialUSB.print(humidity);
+
+    if (!humidityOK) {
+        SerialUSB.println(" err");
+    }
+
+    SerialUSB.println();
+
+    SerialUSB.print("light ");
+    SerialUSB.print(rawLight);
+
+    if (!humidityOK) {
+        SerialUSB.println(" err");
+    }
+
+    SerialUSB.println();
 
     return 0;
 }
@@ -1348,20 +1375,43 @@ void logStatus() {
 
     delay(50);
 
+    unsigned int rawTemperature, rawHumidity;
+    float temperature, humidity;
+    bool temperatureOK = Wagman::getTemperature(&rawTemperature, &temperature);
+    bool humidityOK = Wagman::getHumidity(&rawHumidity, &humidity);
+
     Logger::begin("temperature");
-    Logger::log(Wagman::getRawTemperature());
+    Logger::log(rawTemperature);
     Logger::log(" ");
-    Logger::log(Wagman::getTemperature());
+    Logger::log(temperature);
+
+    if (!temperatureOK) {
+        Logger::log(" err");
+    }
+
     Logger::end();
 
     Logger::begin("humidity");
-    Logger::log(Wagman::getRawHumidity());
+    Logger::log(rawHumidity);
     Logger::log(" ");
-    Logger::log(Wagman::getHumidity());
+    Logger::log(humidity);
+
+    if (!humidityOK) {
+        Logger::log(" err");
+    }
+
     Logger::end();
 
+    unsigned int light;
+    bool lightOK = Wagman::getLight(&light);
+
     Logger::begin("light");
-    Logger::log(Wagman::getLight());
+    Logger::log(light);
+
+    if (!lightOK) {
+        Logger::log(" err");
+    }
+
     Logger::end();
 
     Logger::end();

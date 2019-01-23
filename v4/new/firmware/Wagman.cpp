@@ -83,8 +83,9 @@ unsigned int getThermistor(int port) {
     return analogRead(thermistorPins[port]);
 }
 
-unsigned int getLight() {
-    return analogRead(photoresistorPin);
+bool getLight(unsigned int *raw) {
+    *raw = analogRead(photoresistorPin);
+    return true;
 }
 
 void setLEDs(int mode) {
@@ -258,36 +259,20 @@ unsigned int getCurrent(byte port) {
     return mcp3428[device].readADC() >> 5;
 }
 
-float getHumidity()
-{
-    if (!getWireEnabled())
-        return NAN;
+bool getHumidity(unsigned int *raw, float *hrf) {
+    if (!getWireEnabled()) {
+        return false;
+    }
 
-    return htu21d.readHumidity();
+    return htu21d.readHumidity(raw, hrf);
 }
 
-float getTemperature()
-{
-    if (!getWireEnabled())
-        return NAN;
+bool getTemperature(unsigned int *raw, float *hrf) {
+    if (!getWireEnabled()) {
+        return false;
+    }
 
-    return htu21d.readTemperature();
-}
-
-unsigned int getRawHumidity()
-{
-    if (!getWireEnabled())
-        return NAN;
-
-    return htu21d.readRawHumidity();
-}
-
-unsigned int getRawTemperature()
-{
-    if (!getWireEnabled())
-        return NAN;
-
-    return htu21d.readRawTemperature();
+    return htu21d.readTemperature(raw, hrf);
 }
 
 byte getBootMedia(byte selector)

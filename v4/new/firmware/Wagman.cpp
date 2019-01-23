@@ -274,6 +274,22 @@ float getTemperature()
     return htu21d.readTemperature();
 }
 
+unsigned int getRawHumidity()
+{
+    if (!getWireEnabled())
+        return NAN;
+
+    return htu21d.readRawHumidity();
+}
+
+unsigned int getRawTemperature()
+{
+    if (!getWireEnabled())
+        return NAN;
+
+    return htu21d.readRawTemperature();
+}
+
 byte getBootMedia(byte selector)
 {
     if (!validBootSelector(selector))

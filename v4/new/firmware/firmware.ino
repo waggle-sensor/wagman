@@ -422,10 +422,14 @@ $ wagman-client env
 */
 byte commandEnvironment(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
 {
-    SerialUSB.print("temperature=");
+    SerialUSB.print("temperature ");
+    SerialUSB.print(Wagman::getRawTemperature());
+    SerialUSB.print(" ");
     SerialUSB.println(Wagman::getTemperature());
 
-    SerialUSB.print("humidity=");
+    SerialUSB.print("humidity ");
+    SerialUSB.print(Wagman::getRawHumidity());
+    SerialUSB.print(" ");
     SerialUSB.println(Wagman::getHumidity());
 
     return 0;
@@ -1344,17 +1348,15 @@ void logStatus() {
 
     delay(50);
 
-    Logger::begin("env");
-    Logger::log(Wagman::getTemperature());
-    Logger::log(' ');
-    Logger::log(Wagman::getHumidity());
-    Logger::end();
-
     Logger::begin("temperature");
+    Logger::log(Wagman::getRawTemperature());
+    Logger::log(" ");
     Logger::log(Wagman::getTemperature());
     Logger::end();
 
     Logger::begin("humidity");
+    Logger::log(Wagman::getRawHumidity());
+    Logger::log(" ");
     Logger::log(Wagman::getHumidity());
     Logger::end();
 

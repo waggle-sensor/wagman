@@ -51,6 +51,9 @@ namespace Wagman
     float getHumidity();
     float getTemperature();
 
+    unsigned int getRawHumidity();
+    unsigned int getRawTemperature();
+
     byte getBootMedia(byte selector);
     void setBootMedia(byte selector, byte media);
     void toggleBootMedia(byte selector);

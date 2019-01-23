@@ -37,6 +37,9 @@ public:
     float readTemperature(void);
     void setResolution(byte resBits);
 
+    unsigned int readRawHumidity(void);
+    unsigned int readRawTemperature(void);
+
     //Public Variables
 
 private:

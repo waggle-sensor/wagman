@@ -1,4 +1,9 @@
 #!/bin/sh
 
+cat << EOF > buildinfo.cpp
+#define BUILD_TIME $(date +%s)
+#define BUILD_GIT "$(git rev-parse HEAD)"
+EOF
+
 mkdir -p bin/
 arduino-cli compile -v -b arduino:sam:wagman_v2 -o bin/firmware-4.0.0

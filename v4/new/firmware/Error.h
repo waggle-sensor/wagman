@@ -1,3 +1,7 @@
+// This file is part of the Waggle Platform.Please see the file
+// LICENSE.waggle.txt for the legal details of the copyright and software
+// license.For more details on the Waggle project, visit:
+// http://www.wa8.gl
 const byte ERROR_INVALID_ACTION = 1;
 const byte ERROR_INVALID_ARGC = 2;
 const byte ERROR_INVALID_PORT = 3;

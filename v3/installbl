@@ -1,2 +1,6 @@
 #!/bin/bash
+# This file is part of the Waggle Platform.  Please see the file
+# LICENSE.waggle.txt for the legal details of the copyright and software
+# license.  For more details on the Waggle project, visit:
+#          http://www.wa8.gl
 avrdude -C ./bootloader/src/caterina/avrdude.conf -B 2 -p atmega32u4 -P usb -c avrispmkII -U efuse:w:0xcb:m  -U hfuse:w:0xd8:m -U lfuse:w:0xff:m -v -U flash:w:./bootloader/src/caterina/Caterina.hex

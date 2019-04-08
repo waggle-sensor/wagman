@@ -1,3 +1,10 @@
+// ANL:waggle-license
+// This file is part of the Waggle Platform.  Please see the file
+// LICENSE.waggle.txt for the legal details of the copyright and software
+// license.  For more details on the Waggle project, visit:
+//          http://www.wa8.gl
+// ANL:waggle-license
+//
 // The board has the following hardware -
 //     HIH4030 Sensor - Connected via A/D pin.
 //     MCP79412 RTC - Connected via I2C bus.
@@ -6,8 +13,6 @@
 //     Thermistor for Node Controller - Connected via A/D pin.
 //     Thermistors for other devices - via MCP3428 Chip.
 //     MCP3428 A/D Chip - Via I2C.
-
-
 
 #define SERIAL_COMMS_RATE 115200
 

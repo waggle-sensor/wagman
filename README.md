@@ -17,3 +17,8 @@ power-up of subsystems to avoid power spikes or to electrically isolate and disc
 WagMan can also manage boot image selection on the ODROID single-board computers. Each of the ODROIDs can boot from either an eMMC card (primary) or a microSD card (secondary), which are both installed. The selection is done via a board-level logic line that is routed to Wagman.  By using the heartbeat line and boot selector, WagMan becomes capable of sophisticated recovery schemes. For example, when the
 heartbeat is lost, WagMan can try to reboot the node.  After three failed attempts, WagMan can select the backup (secondary) boot image. The backup boot image can then determine how to rebuild or reinstall the image on the primary boot media. This approach allows for a “safe mode” that can reformat the media and reinstall a known configuration.
 
+## Firmware
+
+The latest release of the firmware targetting new v4 Wagman boards can be found [here](https://github.com/waggle-sensor/wagman/tree/master/v4/new/firmware).
+
+For archival purposes, the firmware for older v3 Wagman boards is kept [here](https://github.com/waggle-sensor/wagman/tree/master/v3/firmware).

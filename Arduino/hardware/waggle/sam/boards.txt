@@ -20,3 +20,4 @@ wagman_v2.build.ldscript=linker_scripts/gcc/flash.ld
 wagman_v2.build.variant=arduino_due_x
 wagman_v2.build.variant_system_lib=libsam_sam3x8e_gcc_rel.a
 wagman_v2.build.vid=0x2341
+wagman_v2.build.pid=0x003f

@@ -994,6 +994,9 @@ void checkPinHB() {
     lastHBPinState[2] = state;
     detectHB[2] = true;
     }
+
+    detectHB[3] = false;
+    detectHB[4] = false;
 }
 
 // extern MockEEPROM<4096> EEPROM;
@@ -1371,19 +1374,21 @@ void loop() {
         }
     }
 
-    // TODO Refactor blinking / lighting stuff later.
+    Wagman::setLED(0, LOW);
 
     for (int i = 0; i < 5; i++) {
-        if (shouldBlink[i]) {
-            Wagman::setLED(i, LOW);
+      if (shouldBlink[i]) {
+        Wagman::setLED(i + 1, LOW);
         }
     }
 
     delay(50);
 
+    Wagman::setLED(0, HIGH);
+
     for (int i = 0; i < 5; i++) {
         if (shouldBlink[i]) {
-            Wagman::setLED(i, HIGH);
+            Wagman::setLED(i + 1, HIGH);
         }
     }
 }

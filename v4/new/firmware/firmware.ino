@@ -99,6 +99,7 @@ Command commands[] = {
     { "ver", commandVersion },
     { "blf", commandBLFlag },
     { "sdinfo", commandSDInfo },
+    { "resetall", commandResetAll },
     { NULL, NULL },
 };
 
@@ -828,6 +829,36 @@ byte commandSDInfo(byte argc, const char **argv) {
     SerialUSB.println(volumesize);
     SerialUSB.print("Volume size (Gb):  ");
     SerialUSB.println((float)volumesize / 1024.0);
+
+    return 0;
+}
+
+const int NC_AUTO_DISABLE = 48;
+const int MR1 = 30;
+const int MR2 = 32;
+
+byte commandResetAll(byte argc, const char **argv) {
+    for (int i = 0; i < 3; i++) {
+        watchdogReset();
+
+        Logger::begin("nc");
+        Logger::log("stopping");
+        Logger::end();
+
+        Logger::begin("gn");
+        Logger::log("stopping");
+        Logger::end();
+
+        delay(10000);
+    }
+
+    pinMode(NC_AUTO_DISABLE, OUTPUT);
+    pinMode(MR1, OUTPUT);
+    pinMode(MR2, OUTPUT);
+
+    digitalWrite(NC_AUTO_DISABLE, HIGH);
+    digitalWrite(MR1, LOW);
+    digitalWrite(MR2, LOW);
 
     return 0;
 }

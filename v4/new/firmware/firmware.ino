@@ -837,29 +837,10 @@ const int NC_AUTO_DISABLE = 48;
 const int MR1 = 30;
 const int MR2 = 32;
 
+bool shouldResetAll = false;
+
 byte commandResetAll(byte argc, const char **argv) {
-    for (int i = 0; i < 3; i++) {
-        watchdogReset();
-
-        Logger::begin("nc");
-        Logger::log("stopping");
-        Logger::end();
-
-        Logger::begin("gn");
-        Logger::log("stopping");
-        Logger::end();
-
-        delay(10000);
-    }
-
-    pinMode(NC_AUTO_DISABLE, OUTPUT);
-    pinMode(MR1, OUTPUT);
-    pinMode(MR2, OUTPUT);
-
-    digitalWrite(NC_AUTO_DISABLE, HIGH);
-    digitalWrite(MR1, LOW);
-    digitalWrite(MR2, LOW);
-
+    shouldResetAll = true;
     return 0;
 }
 
@@ -1245,6 +1226,62 @@ bool HasPrefix(const char *s, const char *prefix) {
     return true;
 }
 
+void doResetBlink() {
+    for (int i = 0; i < 3; i++) {
+      Wagman::setLED(i, HIGH);
+    }
+
+  delay(200);
+
+  for (int i = 0; i < 3; i++) {
+    Wagman::setLED(i, LOW);
+  }
+
+  delay(200);
+}
+
+void doResetAll() {
+  for (int i = 0; i < 6; i++) {
+    watchdogReset();
+
+    Logger::begin("nc");
+    Logger::log("stopping");
+    Logger::end();
+
+    Logger::begin("gn");
+    Logger::log("stopping");
+    Logger::end();
+
+    doResetBlink();
+
+    delay(10000);
+  }
+
+  pinMode(NC_AUTO_DISABLE, OUTPUT);
+
+  for (int i = 0; i < 5; i++) {
+    watchdogReset();
+    Wagman::setRelay(i, false);
+    doResetBlink();
+    delay(5000);
+  }
+
+  for (int i = 0; i < 20; i++) {
+    watchdogReset();
+    doResetBlink();
+    delay(1000);
+  }
+
+  pinMode(MR1, OUTPUT);
+  pinMode(MR2, OUTPUT);
+  digitalWrite(MR1, LOW);
+  digitalWrite(MR2, LOW);
+
+  for (;;) {
+    doResetBlink();
+  }
+}
+
 void loop() {
     watchdogReset();
 
@@ -1260,6 +1297,10 @@ void loop() {
     }
 
     processCommands();
+
+    if (shouldResetAll) {
+        doResetAll();    
+    }
 
     if (statusTimer.exceeds(60000)) {
         statusTimer.reset();

@@ -955,6 +955,36 @@ void deviceKilled(Device &device)
     }
 }
 
+volatile bool detectHB[5] = {false, false, false, false, false};
+
+void checkSerialHB() {
+    byte heartbeatBuffer[33];
+
+    if (Serial1.available() >= 6) {
+        int n = Serial1.readBytesUntil('\n', heartbeatBuffer, 32);
+        heartbeatBuffer[n] = 0;
+
+        if (HasPrefix((const char *)heartbeatBuffer, "hello")) {
+            detectHB[0] = true;
+            Serial1.println("hello");
+        }
+    }
+
+    if (Serial2.available() >= 6) {
+        int n = Serial2.readBytesUntil('\n', heartbeatBuffer, 32);
+        heartbeatBuffer[n] = 0;
+
+        if (HasPrefix((const char *)heartbeatBuffer, "hello")) {
+            detectHB[1] = true;
+            Serial2.println("hello");
+        }
+    }
+}
+
+void handlerHB2() { detectHB[2] = true; }
+void handlerHB3() { detectHB[3] = true; }
+void handlerHB4() { detectHB[4] = true; }
+
 // extern MockEEPROM<4096> EEPROM;
 extern ExternalEEPROM EEPROM;
 
@@ -1015,6 +1045,9 @@ void setup() {
     }
 
     watchdogReset();
+
+    pinMode(28, INPUT);
+    attachInterrupt(digitalPinToInterrupt(28), handlerHB2, CHANGE);
 }
 
 void setupDevices() {
@@ -1038,7 +1071,7 @@ void setupDevices() {
     devices[2].port = 2;
     devices[2].primaryMedia = MEDIA_SD;
     devices[2].secondaryMedia = MEDIA_EMMC;
-    devices[2].watchHeartbeat = false; // TODO Change back to true.
+    devices[2].watchHeartbeat = true;
     devices[2].watchCurrent = false;
 
     devices[3].name = "x1";
@@ -1054,24 +1087,6 @@ void setupDevices() {
     for (byte i = 0; i < DEVICE_COUNT; i++) {
         devices[i].init();
     }
-
-    // Check for any incomplete relays which may have killed the system.
-    // An assumption here is that if one of these devices killed the system
-    // when starting, then there should only be one incomplete relay state.
-    // for (byte i = 0; i < DEVICE_COUNT; i++) {
-    //     byte state = Record::getRelayState(i);
-    //
-    //     if (state == RELAY_TURNING_ON || state == RELAY_TURNING_OFF) {
-    //         Record::setRelayState(i, RELAY_OFF);
-    //
-    //         // Plausible that power off was caused by toggling this relay.
-    //         if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
-    //             devices[i].disable();
-    //         } else {
-    //             devices[i].kill();
-    //         }
-    //     }
-    // }
 }
 
 void checkSensors() {
@@ -1313,10 +1328,9 @@ void loop() {
     }
 
     watchdogReset();
+    checkSerialHB();
 
-    // IDEA Can apply a nonlinear curve so we ramp up more quickly.
-    // TODO Fix led mapping.
-    // TODO Blink on RX / TX (heartbeat) values.
+    watchdogReset();
 
     bool devicePowered[5];
 
@@ -1335,36 +1349,19 @@ void loop() {
         Wagman::setLED(i + 1, devicePowered[i] ? HIGH : LOW);
     }
 
-    byte heartbeatBuffer[33];
     bool shouldBlink[5] = {true, false, false, false, false};
 
-    // TODO Cache a "powered on" level.
-
-    if (devicePowered[0] && (Serial1.available() > 0)) {
-        int n = Serial1.readBytesUntil('\n', heartbeatBuffer, 32);
-        heartbeatBuffer[n] = 0;
-
-        if (HasPrefix((const char *)heartbeatBuffer, "hello")) {
-            shouldBlink[1] = true;
-            heartbeatCounters[0]++;
-            Serial1.println("hello");
-        }
-    }
-
-    if (devicePowered[1] && (Serial2.available() > 0)) {
-        int n = Serial2.readBytesUntil('\n', heartbeatBuffer, 32);
-        heartbeatBuffer[n] = 0;
-
-        if (HasPrefix((const char *)heartbeatBuffer, "hello")) {
-            shouldBlink[2] = true;
-            heartbeatCounters[1]++;
-            Serial2.println("hello");
+    for (int i = 0; i < 5; i++) {
+        if (devicePowered[i] && detectHB[i]) {
+            detectHB[i] = false;
+            shouldBlink[i] = true;
+            heartbeatCounters[i]++;
         }
     }
 
     // TODO Refactor blinking / lighting stuff later.
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 5; i++) {
         if (shouldBlink[i]) {
             Wagman::setLED(i, LOW);
         }
@@ -1372,7 +1369,7 @@ void loop() {
 
     delay(50);
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 5; i++) {
         if (shouldBlink[i]) {
             Wagman::setLED(i, HIGH);
         }

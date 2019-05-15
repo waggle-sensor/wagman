@@ -5,18 +5,15 @@
 #include "Timer.h"
 #include <Arduino.h>
 
-void Timer::reset()
-{
+void DurationTimer::reset() {
     start = millis();
 }
 
-unsigned long Timer::elapsed() const
-{
+unsigned long DurationTimer::elapsed() const {
     return millis() - start;
 }
 
-bool Timer::exceeds(unsigned long time) const
-{
-    return (millis() - start) > time;
+bool DurationTimer::exceeds(unsigned long time) const {
+  return (millis() - start) > time;
 }
 

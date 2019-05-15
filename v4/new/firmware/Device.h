@@ -96,11 +96,11 @@ class Device
         bool shouldRestart;
 
         byte currentLevel;
-        Timer currentLevelTimer;
+        DurationTimer currentLevelTimer;
 
-        Timer stateTimer;
-        Timer stopMessageTimer;
-        Timer heartbeatTimer;
+        DurationTimer stateTimer;
+        DurationTimer stopMessageTimer;
+        DurationTimer heartbeatTimer;
 
         unsigned long startDelay;
 

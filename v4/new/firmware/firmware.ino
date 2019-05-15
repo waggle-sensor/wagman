@@ -14,6 +14,8 @@
 #include "MCP79412RTC.h"
 #include "EEPROM.h"
 
+#include "DueTimer.h"
+
 #include <SPI.h>
 #include <SD.h>
 #define SD_CS 42
@@ -60,14 +62,14 @@ static const byte MAX_ARGC = 8;
 byte bootflags = 0;
 bool shouldResetSystem = false;
 unsigned long shouldResetTimeout = 0;
-Timer shouldResetTimer;
+DurationTimer shouldResetTimer;
 bool logging = true;
 byte deviceWantsStart = 255;
 
 Device devices[DEVICE_COUNT];
 
-Timer startTimer;
-static Timer statusTimer;
+DurationTimer startTimer;
+static DurationTimer statusTimer;
 
 static char buffer[BUFFER_SIZE];
 static byte bufferSize = 0;
@@ -981,9 +983,18 @@ void checkSerialHB() {
     }
 }
 
-void handlerHB2() { detectHB[2] = true; }
-void handlerHB3() { detectHB[3] = true; }
-void handlerHB4() { detectHB[4] = true; }
+volatile int lastHBPinState[5] = {LOW, LOW, LOW, LOW, LOW};
+
+const int CS_HB_PIN = 28;
+
+void checkPinHB() {
+  int state = digitalRead(CS_HB_PIN);
+
+  if (state != lastHBPinState[2]) {
+    lastHBPinState[2] = state;
+    detectHB[2] = true;
+    }
+}
 
 // extern MockEEPROM<4096> EEPROM;
 extern ExternalEEPROM EEPROM;
@@ -1046,8 +1057,9 @@ void setup() {
 
     watchdogReset();
 
-    pinMode(28, INPUT);
-    attachInterrupt(digitalPinToInterrupt(28), handlerHB2, CHANGE);
+    pinMode(CS_HB_PIN, INPUT);
+
+    Timer3.attachInterrupt(checkPinHB).setFrequency(10).start();
 }
 
 void setupDevices() {

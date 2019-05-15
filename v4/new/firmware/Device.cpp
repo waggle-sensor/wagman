@@ -209,8 +209,7 @@ void Device::update()
 
 void Device::updateHeartbeat()
 {
-    // ...this is probably all we'd like exposed from the outside...not this combination...
-    if (heartbeatCounters[port] >= 8) {
+    if (heartbeatCounters[port] >= 3) {
         heartbeatCounters[port] = 0;
         onHeartbeat();
     }

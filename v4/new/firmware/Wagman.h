@@ -18,7 +18,7 @@ const byte RELAY_TURNING_ON = 2;
 const byte RELAY_TURNING_OFF = 3;
 
 extern unsigned int heartbeatCounters[5];
-extern Timer startTimer;
+extern DurationTimer startTimer;
 
 struct DateTime
 {

@@ -11,7 +11,7 @@ const unsigned long MINUTES = 60L * SECONDS;
 const unsigned long HOURS = 60L * MINUTES;
 const unsigned long DAYS = 24L * HOURS;
 
-class Timer
+class DurationTimer
 {
     public:
 

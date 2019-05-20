@@ -939,11 +939,8 @@ const int CS_HB_PIN = 28;
 
 void checkPinHB() {
   int state = digitalRead(CS_HB_PIN);
-
-  if (state != lastHBPinState[2]) {
-    lastHBPinState[2] = state;
-    detectHB[2] = true;
-  }
+  detectHB[2] = state != lastHBPinState[2];
+  lastHBPinState[2] = state;
 
   detectHB[3] = false;
   detectHB[4] = false;
@@ -1297,7 +1294,7 @@ void loop() {
   bool devicePowered[5];
 
   unsigned int currentLevel[5];
-  const unsigned int currentBaseline[5] = {200, 200, 169, 200, 200};
+  const unsigned int currentBaseline[5] = {200, 200, 150, 200, 200};
 
   for (int i = 0; i < 5; i++) {
     currentLevel[i] = Wagman::getCurrent(i);

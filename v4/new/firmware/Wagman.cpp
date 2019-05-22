@@ -211,7 +211,8 @@ void setRelay(int port, int mode) {
 //
 unsigned int getCurrent() {
   mcp3428[0].selectChannel(MCP342X::CHANNEL_0, MCP342X::GAIN_1);
-  return mcp3428[0].readADC() >> 5;
+  // return mcp3428[0].readADC() >> 5;
+  return mcp3428[0].readADC();
 }
 
 struct CurrentADCConfig {
@@ -241,7 +242,7 @@ unsigned int getCurrent(byte port) {
   int gain = currentADCConfigs[port].gain;
 
   mcp3428[device].selectChannel(channel, gain);
-  return mcp3428[device].readADC() >> 5;
+  return mcp3428[device].readADC();
 }
 
 bool getHumidity(unsigned int *raw, float *hrf) {

@@ -75,19 +75,33 @@ static byte bufferSize = 0;
 static time_t setupTime;
 
 Command commands[] = {
-    {"rtc", commandRTC},           {"ping", commandPing},
-    {"start", commandStart},       {"stop", commandStop},
-    {"reset", commandReset},       {"id", commandID},
-    {"cu", commandCurrent},        {"hb", commandHeartbeat},
-    {"env", commandEnvironment},   {"bs", commandBootMedia},
-    {"th", commandThermistor},     {"date", commandDate},
-    {"bf", commandBootFlags},      {"fc", commandFailCount},
-    {"up", commandUptime},         {"enable", commandEnable},
-    {"disable", commandDisable},   {"watch", commandWatch},
-    {"log", commandLog},           {"eereset", commandResetEEPROM},
-    {"boots", commandBoots},       {"ver", commandVersion},
-    {"blf", commandBLFlag},        {"sdinfo", commandSDInfo},
-    {"resetall", commandResetAll}, {NULL, NULL},
+    {"rtc", commandRTC},
+    {"ping", commandPing},
+    {"start", commandStart},
+    {"stop", commandStop},
+    {"reset", commandReset},
+    {"id", commandID},
+    {"cu", commandCurrent},
+    {"hb", commandHeartbeat},
+    {"env", commandEnvironment},
+    {"bs", commandBootMedia},
+    {"th", commandThermistor},
+    {"date", commandDate},
+    {"bf", commandBootFlags},
+    {"fc", commandFailCount},
+    {"up", commandUptime},
+    {"enable", commandEnable},
+    {"disable", commandDisable},
+    {"watch", commandWatch},
+    {"log", commandLog},
+    {"eereset", commandResetEEPROM},
+    {"boots", commandBoots},
+    {"ver", commandVersion},
+    {"blf", commandBLFlag},
+    {"sdinfo", commandSDInfo},
+    {"state", commandState},
+    {"resetall", commandResetAll},
+    {NULL, NULL},
 };
 
 void printDate(const DateTime &dt) {
@@ -565,6 +579,17 @@ byte commandEnable(byte argc, const char **argv) {
   return 0;
 }
 
+byte commandState(byte argc, const char **argv) {
+  for (byte i = 0; i < 5; i++) {
+    SerialUSB.print(devices[i].getState());
+    SerialUSB.print(' ');
+  }
+
+  SerialUSB.println();
+
+  return 0;
+}
+
 /*
 Command:
 Disable Device
@@ -1007,7 +1032,7 @@ void setup() {
 
   watchdogReset();
 
-  pinMode(CS_HB_PIN, INPUT);
+  pinMode(CS_HB_PIN, INPUT_PULLUP);
 
   Timer3.attachInterrupt(checkPinHB).setFrequency(10).start();
 }
@@ -1467,6 +1492,15 @@ void logStatus() {
 
   for (byte i = 0; i < 5; i++) {
     Logger::log(Record::getDeviceEnabled(i));
+    Logger::log(' ');
+  }
+
+  Logger::end();
+
+  Logger::begin("state");
+
+  for (byte i = 0; i < 5; i++) {
+    Logger::log(devices[i].getState());
     Logger::log(' ');
   }
 

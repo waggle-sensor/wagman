@@ -16,95 +16,93 @@ const byte CURRENT_STRESSED = 1;
 const byte CURRENT_LOW = 2;
 const byte CURRENT_HIGH = 3;
 
-const byte STATE_DISABLED = 0;
-const byte STATE_STOPPED = 1;
-const byte STATE_STARTING = 2;
-const byte STATE_STARTED = 3;
-const byte STATE_STOPPING = 4;
+const int STATE_DISABLED = 0;
+const int STATE_STOPPED = 1;
+// const int STATE_STARTING = 2;
+const int STATE_STARTED = 3;
+const int STATE_STOPPING = 4;
 
-class Device
-{
-    public:
+class Device {
+ public:
+  void init();
+  void update();
 
-        void init();
-        void update();
+  // device commands
+  byte start();
+  byte stop();
+  byte kill();
+  byte enable();
+  byte disable();
 
-        // device commands
-        byte start();
-        byte stop();
-        byte kill();
-        byte enable();
-        byte disable();
+  bool canStart() const;
 
-        bool canStart() const;
+  bool warning() const;
 
-        bool warning() const;
+  byte getNextBootMedia() const;
+  void setNextBootMedia(byte media);
 
-        byte getNextBootMedia() const;
-        void setNextBootMedia(byte media);
+  void sendExternalHeartbeat();
 
-        void sendExternalHeartbeat();
+  unsigned long getStopTimeout() const;
+  void setStopTimeout(unsigned long timeout);
 
-        unsigned long getStopTimeout() const;
-        void setStopTimeout(unsigned long timeout);
+  unsigned long timeSinceHeartbeat() const;
+  unsigned long lastHeartbeatTime() const;
 
-        unsigned long timeSinceHeartbeat() const;
-        unsigned long lastHeartbeatTime() const;
+  const char *name;
+  byte port;
+  byte bootSelector;
+  byte primaryMedia;
+  byte secondaryMedia;
 
-        const char *name;
-        byte port;
-        byte bootSelector;
-        byte primaryMedia;
-        byte secondaryMedia;
+  bool watchHeartbeat;
+  bool watchCurrent;
 
-        bool watchHeartbeat;
-        bool watchCurrent;
+  unsigned long getStartDelay() const;
+  void setStartDelay(unsigned long t);
 
-        unsigned long getStartDelay() const;
-        void setStartDelay(unsigned long t);
+  int getState() const { return state; }
 
-    private:
+ private:
+  bool shouldForceBootMedia;
+  byte forceBootMedia;
 
-        bool shouldForceBootMedia;
-        byte forceBootMedia;
+  int state;
 
-        byte state;
+  void changeState(int newState);
 
-        void changeState(byte newState);
+  void updateHeartbeat();
+  void updateFault();
+  void updateState();
 
-        void updateHeartbeat();
-        void updateFault();
-        void updateState();
+  void updateUnknown();
+  void updateDisabled();
+  void updateStopped();
 
-        void updateUnknown();
-        void updateDisabled();
-        void updateStopped();
-        void updateStarting();
+  void updateStarted();
+  void updateStartedManaged();
+  void updateStartedUnmanaged();
 
-        void updateStarted();
-        void updateStartedManaged();
-        void updateStartedUnmanaged();
+  void updateStopping();
 
-        void updateStopping();
+  void onHeartbeat();
 
-        void onHeartbeat();
+  bool managed;
 
-        bool managed;
+  byte repeatedResetCount;
 
-        byte repeatedResetCount;
+  bool shouldRestart;
 
-        bool shouldRestart;
+  byte currentLevel;
+  DurationTimer currentLevelTimer;
 
-        byte currentLevel;
-        DurationTimer currentLevelTimer;
+  DurationTimer stateTimer;
+  DurationTimer stopMessageTimer;
+  DurationTimer heartbeatTimer;
 
-        DurationTimer stateTimer;
-        DurationTimer stopMessageTimer;
-        DurationTimer heartbeatTimer;
+  unsigned long startDelay;
 
-        unsigned long startDelay;
-
-        unsigned long stopTimeout;
+  unsigned long stopTimeout;
 };
 
 #endif

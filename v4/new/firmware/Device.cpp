@@ -188,7 +188,7 @@ void Device::update() {
 }
 
 void Device::updateHeartbeat() {
-  if (heartbeatCounters[port] >= 3) {
+  if (heartbeatCounters[port] >= 4) {
     heartbeatCounters[port] = 0;
     onHeartbeat();
   }
@@ -228,9 +228,6 @@ void Device::updateState() {
     case STATE_STOPPED:
       updateStopped();
       break;
-    case STATE_STARTING:
-      updateStarting();
-      break;
     case STATE_STARTED:
       updateStarted();
       break;
@@ -248,17 +245,6 @@ void Device::updateDisabled() {
 }
 
 void Device::updateStopped() {}
-
-void Device::updateStarting() {
-  if (stateTimer.exceeds(300000)) {
-    Logger::begin(name);
-    Logger::log("starting timeout");
-    Logger::end();
-
-    Record::incrementBootFailures(port);
-    kill();
-  }
-}
 
 void Device::updateStarted() {
   if (managed) {
@@ -335,7 +321,7 @@ void Device::updateStopping() {
   }
 }
 
-void Device::changeState(byte newState) {
+void Device::changeState(int newState) {
   // reset all timers
   stateTimer.reset();
   stopMessageTimer.reset();
@@ -364,8 +350,8 @@ void Device::onHeartbeat() {
                   // case...
       break;
     case STATE_STOPPED:
-    case STATE_STARTING:
-      changeState(STATE_STARTED);
+      changeState(STATE_STARTED);  // if device is heartbeat, assume it's
+                                   // stated. need to decide how to handle this.
       break;
   }
 }

@@ -1033,8 +1033,9 @@ void setup() {
   watchdogReset();
 
   pinMode(CS_HB_PIN, INPUT_PULLUP);
-
   Timer3.attachInterrupt(checkPinHB).setFrequency(10).start();
+
+  devices[0].start();
 }
 
 void setupDevices() {
@@ -1201,6 +1202,8 @@ void startNextDevice() {
     return;
   }
 
+  // NOTE We should have already started the NC during setup. But, just in case,
+  // we do it again here.
   if (startTimer.exceeds(60000)) {
     for (byte i = 0; i < DEVICE_COUNT; i++) {
       if (devices[i].canStart()) {  // include !started in canStart() call.

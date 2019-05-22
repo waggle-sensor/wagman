@@ -75,7 +75,13 @@ void Device::setNextBootMedia(byte media) {
 }
 
 byte Device::start() {
-  if (state != STATE_STOPPED) return ERROR_INVALID_ACTION;
+  if (state == STATE_STOPPING) {
+    Logger::begin(name);
+    Logger::log("will not start stopping device");
+    Logger::end();
+
+    return ERROR_INVALID_ACTION;
+  }
 
   managed = Record::getBootFailures(port) < 30;
 

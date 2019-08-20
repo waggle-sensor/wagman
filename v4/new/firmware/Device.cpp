@@ -17,6 +17,8 @@ const unsigned long FAULT_TIMEOUT = 10000L;
 const unsigned long DETECT_CURRENT_TIMEOUT = 10000L;
 const unsigned long STOP_MESSAGE_TIMEOUT = 10000L;
 
+const unsigned int FAIL_COUNT_THRESHHOLD = 1024;
+
 void Device::init() {
   shouldForceBootMedia = false;
   forceBootMedia = MEDIA_SD;

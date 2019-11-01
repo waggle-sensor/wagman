@@ -237,7 +237,6 @@ byte commandID(writer &w) {
   Wagman::getID(id);
 
   sensorgram_encoder<64> e(w);
-  e.info.timestamp = millis();
   e.info.id = 1;
   e.encode_bytes(id, 8);
   e.encode();
@@ -296,7 +295,6 @@ $ wagman-client cu
 */
 byte commandCurrent(writer &w) {
   sensorgram_encoder<64> e(w);
-  e.info.timestamp = millis();
   e.info.id = 2;
   e.encode_uint(Wagman::getCurrent());
   e.encode_uint(Wagman::getCurrent(0));
@@ -310,7 +308,6 @@ byte commandCurrent(writer &w) {
 
 byte commandVoltage(writer &w) {
   sensorgram_encoder<64> e(w);
-  e.info.timestamp = millis();
   e.info.id = 11;
   e.encode_uint(Wagman::getVoltage(0));
   e.encode_uint(Wagman::getVoltage(1));
@@ -336,7 +333,6 @@ $ wagman-client hb
 */
 byte commandHeartbeat(writer &w) {
   sensorgram_encoder<64> e(w);
-  e.info.timestamp = millis();
   e.info.id = 3;
   e.encode_uint(devices[0].timeSinceHeartbeat());
   e.encode_uint(devices[1].timeSinceHeartbeat());
@@ -362,7 +358,6 @@ $ wagman-client fc
 */
 byte commandFailCount(writer &w) {
   sensorgram_encoder<64> e(w);
-  e.info.timestamp = millis();
   e.info.id = 10;
   e.encode_uint(Record::getBootFailures(0));
   e.encode_uint(Record::getBootFailures(1));
@@ -389,7 +384,6 @@ $ wagman-client th
 */
 byte commandThermistor(writer &w) {
   sensorgram_encoder<64> e(w);
-  e.info.timestamp = millis();
   e.info.id = 12;
   e.encode_uint(Wagman::getThermistor(0));
   e.encode_uint(Wagman::getThermistor(1));
@@ -667,11 +661,9 @@ byte commandBoots(writer &w) {
   Record::getBootCount(count);
 
   sensorgram_encoder<64> e(w);
-  e.info.timestamp = millis();
   e.info.id = 5;
   e.encode_uint(count);
   e.encode();
-
   return 0;
 }
 

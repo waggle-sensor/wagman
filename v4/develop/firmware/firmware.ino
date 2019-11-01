@@ -287,10 +287,6 @@ Examples:
 $ wagman-client cu
 */
 byte commandCurrent(writer &w) {
-  unsigned int cu[6] = {Wagman::getCurrent(),  Wagman::getCurrent(0),
-                        Wagman::getCurrent(1), Wagman::getCurrent(2),
-                        Wagman::getCurrent(3), Wagman::getCurrent(4)};
-
   sensorgram_encoder<64> e(w);
   e.info.timestamp = millis();
   e.info.id = 2;
@@ -300,6 +296,19 @@ byte commandCurrent(writer &w) {
   e.encode_uint(Wagman::getCurrent(2));
   e.encode_uint(Wagman::getCurrent(3));
   e.encode_uint(Wagman::getCurrent(4));
+  e.encode();
+  return 0;
+}
+
+byte commandVoltage(writer &w) {
+  sensorgram_encoder<64> e(w);
+  e.info.timestamp = millis();
+  e.info.id = 11;
+  e.encode_uint(Wagman::getVoltage(0));
+  e.encode_uint(Wagman::getVoltage(1));
+  e.encode_uint(Wagman::getVoltage(2));
+  e.encode_uint(Wagman::getVoltage(3));
+  e.encode_uint(Wagman::getVoltage(4));
   e.encode();
   return 0;
 }
@@ -370,12 +379,16 @@ Device4
 Examples:
 $ wagman-client th
 */
-byte commandThermistor(__attribute__((unused)) byte argc,
-                       __attribute__((unused)) const char **argv) {
-  for (byte i = 0; i < DEVICE_COUNT; i++) {
-    SerialUSB.println(Wagman::getThermistor(i));
-  }
-
+byte commandThermistor(writer &w) {
+  sensorgram_encoder<64> e(w);
+  e.info.timestamp = millis();
+  e.info.id = 12;
+  e.encode_uint(Wagman::getThermistor(0));
+  e.encode_uint(Wagman::getThermistor(1));
+  e.encode_uint(Wagman::getThermistor(2));
+  e.encode_uint(Wagman::getThermistor(3));
+  e.encode_uint(Wagman::getThermistor(4));
+  e.encode();
   return 0;
 }
 
@@ -1349,30 +1362,10 @@ void logStatus() {
   commandID(b64e);
   commandCurrent(b64e);
   commandFailCount(b64e);
+  commandVoltage(b64e);
+  commandThermistor(b64e);
   b64e.close();
   serial_writer.writebyte('\n');
-
-  // Logger::begin("vdc");
-
-  // for (byte i = 0; i < 5; i++) {
-  //   Logger::log(Wagman::getVoltage(i));
-  //   Logger::log(' ');
-  // }
-
-  // Logger::end();
-
-  // delay(50);
-
-  // Logger::begin("th");
-
-  // for (byte i = 0; i < 5; i++) {
-  //   Logger::log(Wagman::getThermistor(i));
-  //   Logger::log(' ');
-  // }
-
-  // Logger::end();
-
-  // delay(50);
 
   // unsigned int rawTemperature, rawHumidity;
   // float temperature, humidity;
@@ -1414,19 +1407,6 @@ void logStatus() {
   // Logger::end();
 
   // Logger::end();
-
-  // delay(50);
-
-  // Logger::begin("fails");
-
-  // for (byte i = 0; i < 5; i++) {
-  //   Logger::log(Record::getBootFailures(i));
-  //   Logger::log(' ');
-  // }
-
-  // Logger::end();
-
-  // delay(50);
 
   // Logger::begin("enabled");
 

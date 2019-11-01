@@ -76,7 +76,15 @@ static byte bufferSize = 0;
 static time_t setupTime;
 
 struct : public writer {
-  int write(const byte *s, int n) { return SerialUSB.write(s, n); }
+  int write(const byte *s, int n) {
+    int maxn = SerialUSB.availableForWrite();
+
+    if (n > maxn) {
+      n = maxn;
+    }
+
+    return SerialUSB.write(s, n);
+  }
 } serial_writer;
 
 void printDate(const DateTime &dt) {

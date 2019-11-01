@@ -1,0 +1,6 @@
+{
+    "programmer": "AVRISP mkII",
+    "board": "arduino:sam:wagman_v2",
+    "port": "/dev/cu.usbmodem1422301",
+    "sketch": "firmware.ino"
+}

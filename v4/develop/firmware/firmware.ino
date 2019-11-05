@@ -118,8 +118,11 @@ Gets the milliseconds since epoch from the RTC.
 Examples:
 $ wagman-client rtc
 */
-byte commandRTC(byte argc, const char **argv) {
-  SerialUSB.println(Wagman::Clock.get());
+byte commandRTC(writer &w) {
+  sensorgram_encoder<64> e(w);
+  e.info.id = 20;
+  e.encode_uint(Wagman::Clock.get());
+  e.encode();
   return 0;
 }
 
@@ -134,15 +137,10 @@ Examples:
 # resets heartbeat timeout on device 1
 $ wagman-client ping 1
 */
-byte commandPing(byte argc, const char **argv) {
-  if (argc != 2) return ERROR_INVALID_ARGC;
-
-  byte port = atoi(argv[1]);
-
-  if (!Wagman::validPort(port)) return ERROR_INVALID_PORT;
-
-  devices[port].sendExternalHeartbeat();
-
+byte commandPing(writer &w, int port) {
+  if (Wagman::validPort(port)) {
+    devices[port].sendExternalHeartbeat();
+  }
   return 0;
 }
 
@@ -208,16 +206,10 @@ $ wagman-client reset
 # resets the wagman after 90 seconds
 $ wagman-client reset 90
 */
-byte commandReset(byte argc, const char **argv) {
+byte commandReset(writer &w) {
   shouldResetSystem = true;
   shouldResetTimer.reset();
-
-  if (argc == 1) {
-    shouldResetTimeout = 0;
-  } else if (argc == 2) {
-    shouldResetTimeout = (unsigned long)atoi(argv[1]) * 1000;
-  }
-
+  shouldResetTimeout = 0;
   return 0;
 }
 
@@ -404,44 +396,45 @@ Gets the onboard temperature and humidity sensor values.
 Examples:
 $ wagman-client env
 */
-byte commandEnvironment(__attribute__((unused)) byte argc,
-                        __attribute__((unused)) const char **argv) {
-  unsigned int rawTemperature, rawHumidity, rawLight;
-  float temperature, humidity;
-  bool temperatureOK = Wagman::getTemperature(&rawTemperature, &temperature);
-  bool humidityOK = Wagman::getHumidity(&rawHumidity, &humidity);
-  bool lightOK = Wagman::getLight(&rawLight);
+byte commandEnvironment(writer &w) {
+  // split into individual sensors
+  {
+    unsigned int raw;
+    float hrf;
+    bool ok = Wagman::getTemperature(&raw, &hrf);
 
-  SerialUSB.print("temperature ");
-  SerialUSB.print(rawTemperature);
-  SerialUSB.print(" ");
-  SerialUSB.print(temperature);
-
-  if (!temperatureOK) {
-    SerialUSB.println(" err");
+    if (ok) {
+      sensorgram_encoder<64> e(w);
+      e.info.id = 31;
+      e.encode_uint(raw);
+      e.encode();
+    }
   }
 
-  SerialUSB.println();
+  {
+    unsigned int raw;
+    float hrf;
+    bool ok = Wagman::getHumidity(&raw, &hrf);
 
-  SerialUSB.print("humidity ");
-  SerialUSB.print(rawHumidity);
-  SerialUSB.print(" ");
-  SerialUSB.print(humidity);
-
-  if (!humidityOK) {
-    SerialUSB.println(" err");
+    if (ok) {
+      sensorgram_encoder<64> e(w);
+      e.info.id = 32;
+      e.encode_uint(raw);
+      e.encode();
+    }
   }
 
-  SerialUSB.println();
+  {
+    unsigned int raw;
+    bool ok = Wagman::getLight(&raw);
 
-  SerialUSB.print("light ");
-  SerialUSB.print(rawLight);
-
-  if (!humidityOK) {
-    SerialUSB.println(" err");
+    if (ok) {
+      sensorgram_encoder<64> e(w);
+      e.info.id = 33;
+      e.encode_uint(raw);
+      e.encode();
+    }
   }
-
-  SerialUSB.println();
 
   return 0;
 }
@@ -464,34 +457,35 @@ $ wagman-client bs 1 sd
 # set the selected boot media for the guest node to emmc
 $ wagman-client bs 1 emmc
 */
-byte commandBootMedia(byte argc, const char **argv) {
-  if (argc != 2 && argc != 3) return ERROR_INVALID_ARGC;
+// TODO split as get vs set
+byte commandBootMedia(writer &w) {
+  // if (argc != 2 && argc != 3) return ERROR_INVALID_ARGC;
 
-  byte index = atoi(argv[1]);
+  // byte index = atoi(argv[1]);
 
-  if (!Wagman::validPort(index)) return ERROR_INVALID_PORT;
+  // if (!Wagman::validPort(index)) return ERROR_INVALID_PORT;
 
-  if (argc == 3) {
-    if (strcmp(argv[2], "sd") == 0) {
-      devices[index].setNextBootMedia(MEDIA_SD);
-      SerialUSB.println("set sd");
-    } else if (strcmp(argv[2], "emmc") == 0) {
-      devices[index].setNextBootMedia(MEDIA_EMMC);
-      SerialUSB.println("set emmc");
-    } else {
-      SerialUSB.println("invalid media");
-    }
-  } else if (argc == 2) {
-    byte bootMedia = devices[index].getNextBootMedia();
+  // if (argc == 3) {
+  //   if (strcmp(argv[2], "sd") == 0) {
+  //     devices[index].setNextBootMedia(MEDIA_SD);
+  //     SerialUSB.println("set sd");
+  //   } else if (strcmp(argv[2], "emmc") == 0) {
+  //     devices[index].setNextBootMedia(MEDIA_EMMC);
+  //     SerialUSB.println("set emmc");
+  //   } else {
+  //     SerialUSB.println("invalid media");
+  //   }
+  // } else if (argc == 2) {
+  //   byte bootMedia = devices[index].getNextBootMedia();
 
-    if (bootMedia == MEDIA_SD) {
-      SerialUSB.println("sd");
-    } else if (bootMedia == MEDIA_EMMC) {
-      SerialUSB.println("emmc");
-    } else {
-      SerialUSB.println("invalid media");
-    }
-  }
+  //   if (bootMedia == MEDIA_SD) {
+  //     SerialUSB.println("sd");
+  //   } else if (bootMedia == MEDIA_EMMC) {
+  //     SerialUSB.println("emmc");
+  //   } else {
+  //     SerialUSB.println("invalid media");
+  //   }
+  // }
 
   return 0;
 }
@@ -541,10 +535,11 @@ Gets the system uptime in seconds.
 Examples:
 $ wagman-client up
 */
-byte commandUptime(__attribute__((unused)) byte argc,
-                   __attribute__((unused)) const char **argv) {
-  unsigned long uptimeSeconds = millis() / 1000;
-  SerialUSB.println(uptimeSeconds);
+byte commandUptime(writer &w) {
+  sensorgram_encoder<64> e(w);
+  e.info.id = 40;
+  e.encode_uint(millis() / 1000);
+  e.encode();
   return 0;
 }
 
@@ -872,6 +867,9 @@ void processCommand() {
         } else {
           SerialUSB.println("err command stop");
         }
+      } break;
+      case 7: {
+        commandUptime(b64e);
       } break;
     }
 

@@ -108,22 +108,27 @@ void printID(byte id[8]) {
   }
 }
 
-/*
-Command:
-Get RTC
+#define COMMAND_ID 1
+#define COMMAND_CU 2
+#define COMMAND_HB 3
+#define COMMAND_BOOTS 4
+#define COMMAND_UPTIME 7
+#define COMMAND_FC 10
+#define COMMAND_START 5
+#define COMMAND_STOP 6
+#define COMMAND_ENABLE 40
+#define COMMAND_EERESET 30
+#define COMMAND_RESET 31
+#define COMMAND_PING 32
+#define COMMAND_VOLTAGE 33
+#define COMMAND_TH 34
+#define COMMAND_STATE 50
 
-Description:
-Gets the milliseconds since epoch from the RTC.
-
-Examples:
-$ wagman-client rtc
-*/
-byte commandRTC(writer &w) {
+void basicResp(writer &w, int id, int err) {
   sensorgram_encoder<64> e(w);
-  e.info.id = 20;
-  e.encode_uint(Wagman::Clock.get());
+  e.info.id = id;
+  e.encode_uint(err);
   e.encode();
-  return 0;
 }
 
 /*
@@ -140,7 +145,11 @@ $ wagman-client ping 1
 byte commandPing(writer &w, int port) {
   if (Wagman::validPort(port)) {
     devices[port].sendExternalHeartbeat();
+    basicResp(w, COMMAND_PING, 0);
+  } else {
+    basicResp(w, COMMAND_PING, 1);
   }
+
   return 0;
 }
 
@@ -159,11 +168,13 @@ $ wagman-client start 0
 $ wagman-client start 1
 */
 byte commandStart(writer &w, int port) {
-  if (!Wagman::validPort(port)) {
-    return ERROR_INVALID_PORT;
+  if (Wagman::validPort(port)) {
+    deviceWantsStart = port;
+    basicResp(w, COMMAND_START, 0);
+  } else {
+    basicResp(w, COMMAND_START, 1);
   }
 
-  deviceWantsStart = port;
   return 0;
 }
 
@@ -182,12 +193,13 @@ $ wagman-client stop 1 30
 $ wagman-client stop 1 0
 */
 byte commandStop(writer &w, int port, int dur) {
-  if (!Wagman::validPort(port)) {
-    return ERROR_INVALID_PORT;
+  if (Wagman::validPort(port)) {
+    devices[port].setStopTimeout((unsigned long)dur * 1000);
+    devices[port].stop();
+    basicResp(w, COMMAND_STOP, 0);
+  } else {
+    basicResp(w, COMMAND_STOP, 1);
   }
-
-  devices[port].setStopTimeout((unsigned long)dur * 1000);
-  devices[port].stop();
 
   return 0;
 }
@@ -210,6 +222,7 @@ byte commandReset(writer &w) {
   shouldResetSystem = true;
   shouldResetTimer.reset();
   shouldResetTimeout = 0;
+  basicResp(w, COMMAND_RESET, 0);
   return 0;
 }
 
@@ -229,7 +242,7 @@ byte commandID(writer &w) {
   Wagman::getID(id);
 
   sensorgram_encoder<64> e(w);
-  e.info.id = 1;
+  e.info.id = COMMAND_ID;
   e.encode_bytes(id, 8);
   e.encode();
 
@@ -287,7 +300,7 @@ $ wagman-client cu
 */
 byte commandCurrent(writer &w) {
   sensorgram_encoder<64> e(w);
-  e.info.id = 2;
+  e.info.id = COMMAND_CU;
   e.encode_uint(Wagman::getCurrent());
   e.encode_uint(Wagman::getCurrent(0));
   e.encode_uint(Wagman::getCurrent(1));
@@ -300,7 +313,7 @@ byte commandCurrent(writer &w) {
 
 byte commandVoltage(writer &w) {
   sensorgram_encoder<64> e(w);
-  e.info.id = 11;
+  e.info.id = COMMAND_VOLTAGE;
   e.encode_uint(Wagman::getVoltage(0));
   e.encode_uint(Wagman::getVoltage(1));
   e.encode_uint(Wagman::getVoltage(2));
@@ -325,7 +338,7 @@ $ wagman-client hb
 */
 byte commandHeartbeat(writer &w) {
   sensorgram_encoder<64> e(w);
-  e.info.id = 3;
+  e.info.id = COMMAND_HB;
   e.encode_uint(devices[0].timeSinceHeartbeat());
   e.encode_uint(devices[1].timeSinceHeartbeat());
   e.encode_uint(devices[2].timeSinceHeartbeat());
@@ -350,7 +363,7 @@ $ wagman-client fc
 */
 byte commandFailCount(writer &w) {
   sensorgram_encoder<64> e(w);
-  e.info.id = 10;
+  e.info.id = COMMAND_FC;
   e.encode_uint(Record::getBootFailures(0));
   e.encode_uint(Record::getBootFailures(1));
   e.encode_uint(Record::getBootFailures(2));
@@ -376,7 +389,7 @@ $ wagman-client th
 */
 byte commandThermistor(writer &w) {
   sensorgram_encoder<64> e(w);
-  e.info.id = 12;
+  e.info.id = COMMAND_TH;
   e.encode_uint(Wagman::getThermistor(0));
   e.encode_uint(Wagman::getThermistor(1));
   e.encode_uint(Wagman::getThermistor(2));
@@ -490,18 +503,6 @@ byte commandBootMedia(writer &w) {
   return 0;
 }
 
-byte commandLog(byte argc, const char **argv) {
-  if (argc == 2) {
-    if (strcmp(argv[1], "on") == 0) {
-      logging = true;
-    } else if (strcmp(argv[1], "off") == 0) {
-      logging = false;
-    }
-  }
-
-  return 0;
-}
-
 /*
 Command:
 Get Boot Flags
@@ -516,14 +517,14 @@ Gets the system boot flags. The possible results are:
 Examples:
 $ wagman-client bf
 */
-byte commandBootFlags(__attribute__((unused)) byte argc,
-                      __attribute__((unused)) const char **argv) {
-  if (bootflags & _BV(WDRF)) SerialUSB.println("WDRF");
-  if (bootflags & _BV(BORF)) SerialUSB.println("BORF");
-  if (bootflags & _BV(EXTRF)) SerialUSB.println("EXTRF");
-  if (bootflags & _BV(PORF)) SerialUSB.println("PORF");
-  return 0;
-}
+// byte commandBootFlags(__attribute__((unused)) byte argc,
+//                       __attribute__((unused)) const char **argv) {
+//   if (bootflags & _BV(WDRF)) SerialUSB.println("WDRF");
+//   if (bootflags & _BV(BORF)) SerialUSB.println("BORF");
+//   if (bootflags & _BV(EXTRF)) SerialUSB.println("EXTRF");
+//   if (bootflags & _BV(PORF)) SerialUSB.println("PORF");
+//   return 0;
+// }
 
 /*
 Command:
@@ -537,7 +538,7 @@ $ wagman-client up
 */
 byte commandUptime(writer &w) {
   sensorgram_encoder<64> e(w);
-  e.info.id = 40;
+  e.info.id = COMMAND_UPTIME;
   e.encode_uint(millis() / 1000);
   e.encode();
   return 0;
@@ -555,89 +556,26 @@ Examples:
 # enable the coresense
 $ wagman-client enable 2
 */
-byte commandEnable(byte argc, const char **argv) {
-  for (byte i = 1; i < argc; i++) {
-    byte port = atoi(argv[i]);
-
-    if (!Wagman::validPort(port)) {
-      continue;
-    }
-
+byte commandEnable(writer &w, int port) {
+  if (Wagman::validPort(port)) {
     devices[port].enable();
+    basicResp(w, COMMAND_ENABLE, 0);
+  } else {
+    basicResp(w, COMMAND_ENABLE, 1);
   }
 
   return 0;
 }
 
-byte commandState(byte argc, const char **argv) {
-  for (byte i = 0; i < 5; i++) {
-    SerialUSB.print(devices[i].getState());
-    SerialUSB.print(' ');
-  }
-
-  SerialUSB.println();
-
-  return 0;
-}
-
-/*
-Command:
-Disable Device
-
-Description:
-Disables a device from being powered on automatically. Note that this doesn't
-immediately stop a device.
-
-Examples:
-# disable the coresense
-$ wagman-client disable 2
-*/
-byte commandDisable(byte argc, const char **argv) {
-  for (byte i = 1; i < argc; i++) {
-    byte port = atoi(argv[i]);
-
-    if (!Wagman::validPort(port)) {
-      continue;
-    }
-
-    devices[port].disable();
-  }
-
-  return 0;
-}
-
-/*
-Command:
-Change Device Timeout Behavior
-
-Description:
-Change the timeout behavior for the heartbeat and current. Currently, only
-heartbeat timeouts are supported.
-
-Examples:
-# disable watching the coresense heartbeat
-$ wagman-client watch 2 hb f
-
-# enable watching the coresense heartbeat
-$ wagman-client watch 2 hb t
-*/
-byte commandWatch(byte argc, const char **argv) {
-  //    if (argc != 4)
-  //        return ERROR_USAGE;
-
-  if (argc == 4) {
-    byte index = atoi(argv[1]);
-    if (Wagman::validPort(index)) {
-      bool mode = strcmp(argv[3], "t") == 0;
-
-      if (strcmp(argv[2], "hb") == 0) {
-        devices[index].watchHeartbeat = mode;
-      } else if (strcmp(argv[2], "cu")) {
-        devices[index].watchCurrent = mode;
-      }
-    }
-  }
-
+byte commandState(writer &w) {
+  sensorgram_encoder<64> e(w);
+  e.info.id = COMMAND_STATE;
+  e.encode_uint(devices[0].getState());
+  e.encode_uint(devices[1].getState());
+  e.encode_uint(devices[2].getState());
+  e.encode_uint(devices[3].getState());
+  e.encode_uint(devices[4].getState());
+  e.encode();
   return 0;
 }
 
@@ -656,7 +594,7 @@ byte commandBoots(writer &w) {
   Record::getBootCount(count);
 
   sensorgram_encoder<64> e(w);
-  e.info.id = 5;
+  e.info.id = COMMAND_BOOTS;
   e.encode_uint(count);
   e.encode();
   return 0;
@@ -747,8 +685,9 @@ $ wagman-client eereset
 # reset the wagman
 $ wagman-client reset
 */
-byte commandResetEEPROM(byte argc, const char **argv) {
+byte commandResetEEPROM(writer &w) {
   Record::clearMagic();
+  basicResp(w, COMMAND_EERESET, 0);
   return 0;
 }
 
@@ -834,42 +773,48 @@ void processCommand() {
     base64_encoder b64e(serial_writer);
 
     switch (d.info.id) {
-      case 1: {
+      case COMMAND_ID: {
         commandID(b64e);
       } break;
-      case 2: {
+      case COMMAND_CU: {
         commandCurrent(b64e);
       } break;
-      case 3: {
+      case COMMAND_HB: {
         commandHeartbeat(b64e);
       } break;
-      case 4: {
+      case COMMAND_BOOTS: {
         commandBoots(b64e);
       } break;
-      case 10: {
+      case COMMAND_FC: {
         commandFailCount(b64e);
       } break;
-      case 5: {
+      case COMMAND_START: {
         int port = d.decode_uint();
 
         if (!d.err) {
           commandStart(b64e, port);
         } else {
-          SerialUSB.println("err command start");
+          basicResp(b64e, COMMAND_START, 2);
         }
       } break;
-      case 6: {
+      case COMMAND_STOP: {
         int port = d.decode_uint();
         int after = d.decode_uint();
 
         if (!d.err) {
           commandStop(b64e, port, after);
         } else {
-          SerialUSB.println("err command stop");
+          basicResp(b64e, COMMAND_STOP, 2);
         }
       } break;
-      case 7: {
+      case COMMAND_UPTIME: {
         commandUptime(b64e);
+      } break;
+      case COMMAND_EERESET: {
+        commandResetEEPROM(b64e);
+      } break;
+      case COMMAND_RESET: {
+        commandReset(b64e);
       } break;
     }
 

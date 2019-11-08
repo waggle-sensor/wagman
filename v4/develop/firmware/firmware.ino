@@ -788,6 +788,9 @@ void processCommand() {
       case COMMAND_FC: {
         commandFailCount(b64e);
       } break;
+      case COMMAND_TH: {
+        commandThermistor(b64e);
+      } break;
       case COMMAND_START: {
         int port = d.decode_uint();
 

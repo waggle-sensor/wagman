@@ -108,26 +108,57 @@ void printID(byte id[8]) {
   }
 }
 
-#define COMMAND_ID 1
-#define COMMAND_CU 2
-#define COMMAND_HB 3
-#define COMMAND_BOOTS 4
-#define COMMAND_UPTIME 7
-#define COMMAND_FC 10
-#define COMMAND_START 5
-#define COMMAND_STOP 6
-#define COMMAND_ENABLE 40
-#define COMMAND_EERESET 30
-#define COMMAND_RESET 31
-#define COMMAND_PING 32
-#define COMMAND_VOLTAGE 33
-#define COMMAND_TH 34
-#define COMMAND_STATE 50
+// no...let's just move the port stuff into the subid to standardize it
 
-void basicResp(writer &w, int id, int err) {
+#define REQ_WAGMAN_ID 0xc000
+#define REQ_WAGMAN_CU 0xc001
+#define REQ_WAGMAN_HB 0xc002
+#define REQ_WAGMAN_TH 0xc003
+#define REQ_WAGMAN_UPTIME 0xc004
+#define REQ_WAGMAN_BOOTS 0xc005
+#define REQ_WAGMAN_FC 0xc006
+#define REQ_WAGMAN_START 0xc007
+#define REQ_WAGMAN_STOP 0xc008
+#define REQ_WAGMAN_RESET 0xc009
+#define REQ_WAGMAN_EERESET 0xc00a
+#define REQ_WAGMAN_DEVICE_STATE 0xc00b
+
+#define PUB_WAGMAN_ID 0xff1a
+#define PUB_WAGMAN_CU 0xff06
+#define PUB_WAGMAN_HB 0xff09
+#define PUB_WAGMAN_BOOTS 0xff1a
+#define PUB_WAGMAN_UPTIME 0xff14
+#define PUB_WAGMAN_FC 0xff05
+#define PUB_WAGMAN_START 0xff0b
+#define PUB_WAGMAN_STOP 0xff0a
+#define PUB_WAGMAN_ENABLE 40
+#define PUB_WAGMAN_EERESET 0xc00a
+#define PUB_WAGMAN_RESET 0xc009
+#define PUB_WAGMAN_PING 0xff1e
+#define PUB_WAGMAN_VOLTAGE 0xff08
+#define PUB_WAGMAN_TH 0xff10
+#define PUB_WAGMAN_DEVICE_STATE 0xff1f
+#define PUB_WAGMAN_DEVICE_ENABLE 0xff20
+
+void basicResp(writer &w, int id, int sub_id, int value) {
   sensorgram_encoder<64> e(w);
   e.info.id = id;
-  e.encode_uint(err);
+  e.info.sub_id = sub_id;
+  e.info.inst = 0;
+  e.info.source_id = 1;
+  e.info.source_inst = 0;
+  e.encode_uint(value);
+  e.encode();
+}
+
+void basicResp(writer &w, int id, int sub_id, const byte *value, int n) {
+  sensorgram_encoder<64> e(w);
+  e.info.id = id;
+  e.info.sub_id = sub_id;
+  e.info.inst = 0;
+  e.info.source_id = 1;
+  e.info.source_inst = 0;
+  e.encode_bytes(value, n);
   e.encode();
 }
 
@@ -145,9 +176,9 @@ $ wagman-client ping 1
 byte commandPing(writer &w, int port) {
   if (Wagman::validPort(port)) {
     devices[port].sendExternalHeartbeat();
-    basicResp(w, COMMAND_PING, 0);
+    basicResp(w, PUB_WAGMAN_PING, 0xff, 0);
   } else {
-    basicResp(w, COMMAND_PING, 1);
+    basicResp(w, PUB_WAGMAN_PING, 0xff, 1);
   }
 
   return 0;
@@ -170,9 +201,9 @@ $ wagman-client start 1
 byte commandStart(writer &w, int port) {
   if (Wagman::validPort(port)) {
     deviceWantsStart = port;
-    basicResp(w, COMMAND_START, 0);
+    basicResp(w, PUB_WAGMAN_START, 0xff, 0);
   } else {
-    basicResp(w, COMMAND_START, 1);
+    basicResp(w, PUB_WAGMAN_START, 0xff, 1);
   }
 
   return 0;
@@ -196,9 +227,9 @@ byte commandStop(writer &w, int port, int dur) {
   if (Wagman::validPort(port)) {
     devices[port].setStopTimeout((unsigned long)dur * 1000);
     devices[port].stop();
-    basicResp(w, COMMAND_STOP, 0);
+    basicResp(w, PUB_WAGMAN_STOP, 0xff, 0);
   } else {
-    basicResp(w, COMMAND_STOP, 1);
+    basicResp(w, PUB_WAGMAN_STOP, 0xff, 1);
   }
 
   return 0;
@@ -222,7 +253,7 @@ byte commandReset(writer &w) {
   shouldResetSystem = true;
   shouldResetTimer.reset();
   shouldResetTimeout = 0;
-  basicResp(w, COMMAND_RESET, 0);
+  basicResp(w, PUB_WAGMAN_RESET, 0xff, 0);
   return 0;
 }
 
@@ -238,14 +269,8 @@ $ wagman-client id
 */
 byte commandID(writer &w) {
   byte id[8];
-
   Wagman::getID(id);
-
-  sensorgram_encoder<64> e(w);
-  e.info.id = COMMAND_ID;
-  e.encode_bytes(id, 8);
-  e.encode();
-
+  basicResp(w, PUB_WAGMAN_ID, 1, id, 8);
   return 0;
 }
 
@@ -298,22 +323,19 @@ System Device0 Device1 ... Device4
 Examples:
 $ wagman-client cu
 */
-byte commandCurrent(writer &w) {
-  sensorgram_encoder<64> e(w);
-  e.info.id = COMMAND_CU;
-  e.encode_uint(Wagman::getCurrent());
-  e.encode_uint(Wagman::getCurrent(0));
-  e.encode_uint(Wagman::getCurrent(1));
-  e.encode_uint(Wagman::getCurrent(2));
-  e.encode_uint(Wagman::getCurrent(3));
-  e.encode_uint(Wagman::getCurrent(4));
-  e.encode();
+byte commandCurrent(writer &w, int port) {
+  if (port == 1) {
+    basicResp(w, PUB_WAGMAN_CU, port, Wagman::getCurrent());
+  } else {
+    basicResp(w, PUB_WAGMAN_CU, port, Wagman::getCurrent(port - 2));
+  }
+
   return 0;
 }
 
 byte commandVoltage(writer &w) {
   sensorgram_encoder<64> e(w);
-  e.info.id = COMMAND_VOLTAGE;
+  e.info.id = PUB_WAGMAN_VOLTAGE;
   e.encode_uint(Wagman::getVoltage(0));
   e.encode_uint(Wagman::getVoltage(1));
   e.encode_uint(Wagman::getVoltage(2));
@@ -338,7 +360,7 @@ $ wagman-client hb
 */
 byte commandHeartbeat(writer &w) {
   sensorgram_encoder<64> e(w);
-  e.info.id = COMMAND_HB;
+  e.info.id = PUB_WAGMAN_HB;
   e.encode_uint(devices[0].timeSinceHeartbeat());
   e.encode_uint(devices[1].timeSinceHeartbeat());
   e.encode_uint(devices[2].timeSinceHeartbeat());
@@ -361,15 +383,8 @@ Device4
 Examples:
 $ wagman-client fc
 */
-byte commandFailCount(writer &w) {
-  sensorgram_encoder<64> e(w);
-  e.info.id = COMMAND_FC;
-  e.encode_uint(Record::getBootFailures(0));
-  e.encode_uint(Record::getBootFailures(1));
-  e.encode_uint(Record::getBootFailures(2));
-  e.encode_uint(Record::getBootFailures(3));
-  e.encode_uint(Record::getBootFailures(4));
-  e.encode();
+byte commandFailCount(writer &w, int port) {
+  basicResp(w, PUB_WAGMAN_FC, port, Record::getBootFailures(port - 1));
   return 0;
 }
 
@@ -389,7 +404,7 @@ $ wagman-client th
 */
 byte commandThermistor(writer &w) {
   sensorgram_encoder<64> e(w);
-  e.info.id = COMMAND_TH;
+  e.info.id = PUB_WAGMAN_TH;
   e.encode_uint(Wagman::getThermistor(0));
   e.encode_uint(Wagman::getThermistor(1));
   e.encode_uint(Wagman::getThermistor(2));
@@ -537,10 +552,7 @@ Examples:
 $ wagman-client up
 */
 byte commandUptime(writer &w) {
-  sensorgram_encoder<64> e(w);
-  e.info.id = COMMAND_UPTIME;
-  e.encode_uint(millis() / 1000);
-  e.encode();
+  basicResp(w, PUB_WAGMAN_UPTIME, 1, millis() / 1000);
   return 0;
 }
 
@@ -559,25 +571,25 @@ $ wagman-client enable 2
 byte commandEnable(writer &w, int port) {
   if (Wagman::validPort(port)) {
     devices[port].enable();
-    basicResp(w, COMMAND_ENABLE, 0);
+    basicResp(w, PUB_WAGMAN_ENABLE, 0xff, 0);
   } else {
-    basicResp(w, COMMAND_ENABLE, 1);
+    basicResp(w, PUB_WAGMAN_ENABLE, 0xff, 1);
   }
 
   return 0;
 }
 
-byte commandState(writer &w) {
-  sensorgram_encoder<64> e(w);
-  e.info.id = COMMAND_STATE;
-  e.encode_uint(devices[0].getState());
-  e.encode_uint(devices[1].getState());
-  e.encode_uint(devices[2].getState());
-  e.encode_uint(devices[3].getState());
-  e.encode_uint(devices[4].getState());
-  e.encode();
-  return 0;
-}
+// byte commandState(writer &w) {
+//   sensorgram_encoder<64> e(w);
+//   e.info.id = PUB_WAGMAN_DEVICE_STATE;
+//   e.encode_uint(devices[0].getState());
+//   e.encode_uint(devices[1].getState());
+//   e.encode_uint(devices[2].getState());
+//   e.encode_uint(devices[3].getState());
+//   e.encode_uint(devices[4].getState());
+//   e.encode();
+//   return 0;
+// }
 
 /*
 Command:
@@ -592,11 +604,7 @@ $ wagman-client boots
 byte commandBoots(writer &w) {
   unsigned long count;
   Record::getBootCount(count);
-
-  sensorgram_encoder<64> e(w);
-  e.info.id = COMMAND_BOOTS;
-  e.encode_uint(count);
-  e.encode();
+  basicResp(w, PUB_WAGMAN_BOOTS, 1, count);
   return 0;
 }
 
@@ -687,7 +695,7 @@ $ wagman-client reset
 */
 byte commandResetEEPROM(writer &w) {
   Record::clearMagic();
-  basicResp(w, COMMAND_EERESET, 0);
+  basicResp(w, PUB_WAGMAN_EERESET, 0xff, 0);
   return 0;
 }
 
@@ -763,8 +771,6 @@ byte commandResetAll(byte argc, const char **argv) {
 
 bytebuffer<128> msgbuf;
 
-// ah...could even stream this the other way to save on internal data usage...
-
 void processCommand() {
   base64_decoder b64d(msgbuf);
   sensorgram_decoder<64> d(b64d);
@@ -773,50 +779,50 @@ void processCommand() {
     base64_encoder b64e(serial_writer);
 
     switch (d.info.id) {
-      case COMMAND_ID: {
+      case REQ_WAGMAN_ID: {
         commandID(b64e);
       } break;
-      case COMMAND_CU: {
-        commandCurrent(b64e);
+      case REQ_WAGMAN_CU: {
+        commandCurrent(b64e, d.info.sub_id);
       } break;
-      case COMMAND_HB: {
+      case REQ_WAGMAN_HB: {
         commandHeartbeat(b64e);
       } break;
-      case COMMAND_BOOTS: {
+      case REQ_WAGMAN_BOOTS: {
         commandBoots(b64e);
       } break;
-      case COMMAND_FC: {
-        commandFailCount(b64e);
+      case REQ_WAGMAN_FC: {
+        commandFailCount(b64e, d.info.sub_id);
       } break;
-      case COMMAND_TH: {
+      case REQ_WAGMAN_TH: {
         commandThermistor(b64e);
       } break;
-      case COMMAND_START: {
+      case REQ_WAGMAN_START: {
         int port = d.decode_uint();
 
         if (!d.err) {
           commandStart(b64e, port);
         } else {
-          basicResp(b64e, COMMAND_START, 2);
+          basicResp(b64e, PUB_WAGMAN_START, 0xff, 2);
         }
       } break;
-      case COMMAND_STOP: {
+      case REQ_WAGMAN_STOP: {
         int port = d.decode_uint();
         int after = d.decode_uint();
 
         if (!d.err) {
           commandStop(b64e, port, after);
         } else {
-          basicResp(b64e, COMMAND_STOP, 2);
+          basicResp(b64e, PUB_WAGMAN_STOP, 0xff, 2);
         }
       } break;
-      case COMMAND_UPTIME: {
+      case REQ_WAGMAN_UPTIME: {
         commandUptime(b64e);
       } break;
-      case COMMAND_EERESET: {
+      case REQ_WAGMAN_EERESET: {
         commandResetEEPROM(b64e);
       } break;
-      case COMMAND_RESET: {
+      case REQ_WAGMAN_RESET: {
         commandReset(b64e);
       } break;
     }
@@ -1306,8 +1312,15 @@ void logStatus() {
   // send batched status sensorgrams
   base64_encoder b64e(serial_writer);
   commandID(b64e);
-  commandCurrent(b64e);
-  commandFailCount(b64e);
+
+  for (int port = 1; port <= 6; port++) {
+    commandCurrent(b64e, port);
+  }
+
+  for (int port = 1; port <= 5; port++) {
+    commandFailCount(b64e, port);
+  }
+
   commandVoltage(b64e);
   commandThermistor(b64e);
   b64e.close();

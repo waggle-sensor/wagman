@@ -762,7 +762,7 @@ void processCommand() {
         commandThermistor(b64e, d.info.sub_id);
       } break;
       case REQ_WAGMAN_START: {
-        int port = d.decode_uint();
+        int port = d.info.sub_id;
 
         if (!d.err) {
           commandStart(b64e, port);
@@ -771,7 +771,7 @@ void processCommand() {
         }
       } break;
       case REQ_WAGMAN_STOP: {
-        int port = d.decode_uint();
+        int port = d.info.sub_id;
         int after = d.decode_uint();
 
         if (!d.err) {

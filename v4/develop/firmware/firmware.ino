@@ -96,6 +96,8 @@ struct : public writer {
 #define REQ_WAGMAN_RESET 0xc009
 #define REQ_WAGMAN_EERESET 0xc00a
 #define REQ_WAGMAN_DEVICE_STATE 0xc00b
+#define REQ_WAGMAN_DEVICE_ENABLE 0xc00c
+#define REQ_WAGMAN_MEDIA_SELECT 0xc00d
 
 #define PUB_WAGMAN_ID 0xff1a
 #define PUB_WAGMAN_CU 0xff06
@@ -113,6 +115,7 @@ struct : public writer {
 #define PUB_WAGMAN_TH 0xff10
 #define PUB_WAGMAN_DEVICE_STATE 0xff1f
 #define PUB_WAGMAN_DEVICE_ENABLE 0xff20
+#define PUB_WAGMAN_MEDIA_SELECT 0xff21
 
 void basicResp(writer &w, int id, int sub_id, int value) {
   sensorgram_encoder<64> e(w);
@@ -136,6 +139,9 @@ void basicResp(writer &w, int id, int sub_id, const byte *value, int n) {
   e.encode();
 }
 
+// struct command_table_item {
+// };
+
 /*
 Command:
 Send Ping
@@ -147,14 +153,18 @@ Examples:
 # resets heartbeat timeout on device 1
 $ wagman-client ping 1
 */
-void commandPing(writer &w, int port) {
-  int ok = Wagman::validPort(port);
+int commandPingMain(int device) {
+  int ok = Wagman::validPort(device);
 
   if (ok) {
-    devices[port].sendExternalHeartbeat();
+    devices[device].sendExternalHeartbeat();
   }
 
-  basicResp(w, PUB_WAGMAN_PING, port, ok);
+  return ok;
+}
+
+void commandPing(writer &w, int sub_id) {
+  basicResp(w, PUB_WAGMAN_PING, sub_id, commandPingMain(sub_id - 1));
 }
 
 /*
@@ -171,14 +181,18 @@ $ wagman-client start 0
 # start the guest node
 $ wagman-client start 1
 */
-void commandStart(writer &w, int port) {
+int commandStartMain(int port) {
   int ok = Wagman::validPort(port);
 
   if (ok) {
     deviceWantsStart = port;
   }
 
-  basicResp(w, PUB_WAGMAN_START, port, ok);
+  return ok;
+}
+
+void commandStart(writer &w, int sub_id) {
+  basicResp(w, PUB_WAGMAN_START, sub_id, commandStartMain(sub_id - 1));
 }
 
 /*
@@ -195,15 +209,19 @@ $ wagman-client stop 1 30
 # stop guest node immediately
 $ wagman-client stop 1 0
 */
-void commandStop(writer &w, int port, int dur) {
+int commandStopMain(int port, int after) {
   int ok = Wagman::validPort(port);
 
   if (ok) {
-    devices[port].setStopTimeout((unsigned long)dur * 1000);
+    devices[port].setStopTimeout((unsigned long)after * 1000);
     devices[port].stop();
   }
 
-  basicResp(w, PUB_WAGMAN_STOP, port, ok);
+  return ok;
+}
+
+void commandStop(writer &w, int sub_id, int after) {
+  basicResp(w, PUB_WAGMAN_STOP, sub_id, commandStopMain(sub_id - 1, after));
 }
 
 /*
@@ -292,28 +310,34 @@ System Device0 Device1 ... Device4
 Examples:
 $ wagman-client cu
 */
-void commandCurrent(writer &w, int port) {
-  int value = 0;
-
-  if (port == 1) {
-    // get wagman current
-    value = Wagman::getCurrent();
-  } else if (port >= 2 && port <= 6) {
-    // get device current
-    value = Wagman::getCurrent(port - 2);
+int commandCurrentMain(int port) {
+  // get wagman current
+  if (port == 0) {
+    return Wagman::getCurrent();
+  }
+  
+  // get attached device current
+  if (Wagman::validPort(port - 1)) {
+    return Wagman::getCurrent(port - 1);
   }
 
-  basicResp(w, PUB_WAGMAN_CU, port, value);
+  return 0;
 }
 
-void commandVoltage(writer &w, int port) {
-  int value = 0;
+void commandCurrent(writer &w, int sub_id) {
+  basicResp(w, PUB_WAGMAN_CU, sub_id, commandCurrentMain(sub_id - 1));
+}
 
-  if (port >= 1 || port <= 5) {
-    value = Wagman::getVoltage(port - 1);
+int commandVoltageMain(int port) {
+  if (Wagman::validPort(port)) {
+    return Wagman::getVoltage(port);
   }
 
-  basicResp(w, PUB_WAGMAN_VOLTAGE, port, value);
+  return 0;
+}
+
+void commandVoltage(writer &w, int sub_id) {
+  basicResp(w, PUB_WAGMAN_VOLTAGE, sub_id, commandVoltageMain(sub_id - 1));
 }
 
 /*
@@ -329,14 +353,16 @@ Device4
 Examples:
 $ wagman-client hb
 */
-void commandHeartbeat(writer &w, int port) {
-  int value = 0;
-
-  if (port >= 1 || port <= 5) {
-    value = devices[port].timeSinceHeartbeat();
+int commandHeartbeatMain(int port) {
+  if (Wagman::validPort(port)) {
+    return devices[port].timeSinceHeartbeat();
   }
 
-  basicResp(w, PUB_WAGMAN_HB, port, value);
+  return 0;
+}
+
+void commandHeartbeat(writer &w, int sub_id) {
+  basicResp(w, PUB_WAGMAN_HB, sub_id, commandHeartbeatMain(sub_id - 1));
 }
 
 /*
@@ -352,14 +378,16 @@ Device4
 Examples:
 $ wagman-client fc
 */
-void commandFailCount(writer &w, int port) {
-  int value = 0;
-
-  if (port >= 1 && port <= 5) {
-    value = Record::getBootFailures(port - 1);
+int commandFailCountMain(int port) {
+  if (Wagman::validPort(port)) {
+    return Record::getBootFailures(port);
   }
 
-  basicResp(w, PUB_WAGMAN_FC, port, value);
+  return 0;
+}
+
+void commandFailCount(writer &w, int sub_id) {
+  basicResp(w, PUB_WAGMAN_FC, sub_id, commandFailCountMain(sub_id));
 }
 
 /*
@@ -376,14 +404,16 @@ Device4
 Examples:
 $ wagman-client th
 */
-void commandThermistor(writer &w, int port) {
-  int value = 0;
-
-  if (port >= 1 || port <= 5) {
-    value = Wagman::getThermistor(port);
+int commandThermistorMain(int port) {
+  if (Wagman::validPort(port)) {
+    return Wagman::getThermistor(port);
   }
 
-  basicResp(w, PUB_WAGMAN_TH, port, value);
+  return 0;
+}
+
+void commandThermistor(writer &w, int sub_id) {
+  basicResp(w, PUB_WAGMAN_TH, sub_id, commandThermistorMain(sub_id));
 }
 
 /*
@@ -455,13 +485,16 @@ $ wagman-client bs 1 sd
 # set the selected boot media for the guest node to emmc
 $ wagman-client bs 1 emmc
 */
-// TODO split as get vs set
-byte commandBootMedia(writer &w) {
-  // if (argc != 2 && argc != 3) return ERROR_INVALID_ARGC;
+void commandSetBootMedia(writer &w, int port, int media) {
+  // ...
+}
 
-  // byte index = atoi(argv[1]);
+void commandGetBootMedia(writer &w, int port) {
+  int value = 0;
 
-  // if (!Wagman::validPort(index)) return ERROR_INVALID_PORT;
+  if (port == 1 || port == 2) {
+    int media = devices[port].getNextBootMedia();
+  }
 
   // if (argc == 3) {
   //   if (strcmp(argv[2], "sd") == 0) {
@@ -485,7 +518,7 @@ byte commandBootMedia(writer &w) {
   //   }
   // }
 
-  return 0;
+  // return 0;
 }
 
 /*
@@ -537,24 +570,30 @@ Examples:
 # enable the coresense
 $ wagman-client enable 2
 */
-void commandEnable(writer &w, int port) {
+int commandEnableMain(int port) {
   int ok = Wagman::validPort(port);
 
   if (ok) {
     devices[port].enable();
   }
 
-  basicResp(w, PUB_WAGMAN_ENABLE, port, ok);
+  return ok;
 }
 
-void commandState(writer &w, int port) {
-  int value = 0;
+void commandEnable(writer &w, int sub_id) {
+  basicResp(w, PUB_WAGMAN_DEVICE_ENABLE, sub_id, commandEnableMain(sub_id - 1));
+}
 
-  if (port >= 1 && port <= 5) {
-    value = devices[port].getState();
+int commandStateMain(int port) {
+  if (Wagman::validPort(port)) {
+    return devices[port].getState();
   }
 
-  basicResp(w, PUB_WAGMAN_DEVICE_STATE, port, value);
+  return 0;
+}
+
+void commandState(writer &w, int sub_id) {
+  basicResp(w, PUB_WAGMAN_DEVICE_STATE, sub_id, commandStateMain(sub_id - 1));
 }
 
 /*
@@ -762,23 +801,19 @@ void processCommand() {
         commandThermistor(b64e, d.info.sub_id);
       } break;
       case REQ_WAGMAN_START: {
-        int port = d.info.sub_id;
-
-        if (!d.err) {
-          commandStart(b64e, port);
-        } else {
-          basicResp(b64e, PUB_WAGMAN_START, port, 0);
-        }
+        commandStart(b64e, d.info.sub_id);
       } break;
       case REQ_WAGMAN_STOP: {
-        int port = d.info.sub_id;
         int after = d.decode_uint();
 
         if (!d.err) {
-          commandStop(b64e, port, after);
+          commandStop(b64e, d.info.sub_id, after);
         } else {
-          basicResp(b64e, PUB_WAGMAN_STOP, port, 0);
+          basicResp(b64e, PUB_WAGMAN_STOP, d.info.sub_id, 0);
         }
+      } break;
+      case REQ_WAGMAN_DEVICE_ENABLE: {
+        commandEnable(b64e, d.info.sub_id);
       } break;
       case REQ_WAGMAN_UPTIME: {
         commandUptime(b64e);
@@ -1096,7 +1131,7 @@ void startNextDevice() {
       if (devices[i].canStart()) {  // include !started in canStart() call.
         startTimer.reset();
         devices[i].start();
-        showBootLog(Record::bootLogs[i]);
+        // showBootLog(Record::bootLogs[i]);
         break;
       }
     }
@@ -1295,81 +1330,4 @@ void logStatus() {
 
   b64e.close();
   serial_writer.writebyte('\n');
-
-  // unsigned int rawTemperature, rawHumidity;
-  // float temperature, humidity;
-  // bool temperatureOK = Wagman::getTemperature(&rawTemperature, &temperature);
-  // bool humidityOK = Wagman::getHumidity(&rawHumidity, &humidity);
-
-  // Logger::begin("temperature");
-  // Logger::log(rawTemperature);
-  // Logger::log(" ");
-  // Logger::log(temperature);
-
-  // if (!temperatureOK) {
-  //   Logger::log(" err");
-  // }
-
-  // Logger::end();
-
-  // Logger::begin("humidity");
-  // Logger::log(rawHumidity);
-  // Logger::log(" ");
-  // Logger::log(humidity);
-
-  // if (!humidityOK) {
-  //   Logger::log(" err");
-  // }
-
-  // Logger::end();
-
-  // unsigned int light;
-  // bool lightOK = Wagman::getLight(&light);
-
-  // Logger::begin("light");
-  // Logger::log(light);
-
-  // if (!lightOK) {
-  //   Logger::log(" err");
-  // }
-
-  // Logger::end();
-
-  // Logger::end();
-
-  // Logger::begin("enabled");
-
-  // for (byte i = 0; i < 5; i++) {
-  //   Logger::log(Record::getDeviceEnabled(i));
-  //   Logger::log(' ');
-  // }
-
-  // Logger::end();
-
-  // Logger::begin("state");
-
-  // for (byte i = 0; i < 5; i++) {
-  //   Logger::log(devices[i].getState());
-  //   Logger::log(' ');
-  // }
-
-  // Logger::end();
-
-  // delay(50);
-
-  // Logger::begin("media");
-
-  // for (byte i = 0; i < 2; i++) {
-  //   byte bootMedia = devices[i].getNextBootMedia();
-
-  //   if (bootMedia == MEDIA_SD) {
-  //     Logger::log("sd ");
-  //   } else if (bootMedia == MEDIA_EMMC) {
-  //     Logger::log("emmc ");
-  //   } else {
-  //     Logger::log("? ");
-  //   }
-  // }
-
-  // Logger::end();
 }

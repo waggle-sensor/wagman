@@ -97,7 +97,8 @@ struct : public writer {
 #define REQ_WAGMAN_EERESET 0xc00a
 #define REQ_WAGMAN_DEVICE_STATE 0xc00b
 #define REQ_WAGMAN_DEVICE_ENABLE 0xc00c
-#define REQ_WAGMAN_MEDIA_SELECT 0xc00d
+#define REQ_WAGMAN_GET_MEDIA_SELECT 0xc00d
+#define REQ_WAGMAN_SET_MEDIA_SELECT 0xc00e
 
 #define PUB_WAGMAN_ID 0xff1a
 #define PUB_WAGMAN_CU 0xff06
@@ -115,7 +116,8 @@ struct : public writer {
 #define PUB_WAGMAN_TH 0xff10
 #define PUB_WAGMAN_DEVICE_STATE 0xff1f
 #define PUB_WAGMAN_DEVICE_ENABLE 0xff20
-#define PUB_WAGMAN_MEDIA_SELECT 0xff21
+#define PUB_WAGMAN_GET_MEDIA_SELECT 0xff21
+#define PUB_WAGMAN_SET_MEDIA_SELECT 0xff22
 
 void basicResp(writer &w, int id, int sub_id, int value) {
   sensorgram_encoder<64> e(w);
@@ -315,7 +317,7 @@ int commandCurrentMain(int port) {
   if (port == 0) {
     return Wagman::getCurrent();
   }
-  
+
   // get attached device current
   if (Wagman::validPort(port - 1)) {
     return Wagman::getCurrent(port - 1);
@@ -485,40 +487,38 @@ $ wagman-client bs 1 sd
 # set the selected boot media for the guest node to emmc
 $ wagman-client bs 1 emmc
 */
-void commandSetBootMedia(writer &w, int port, int media) {
-  // ...
-}
-
-void commandGetBootMedia(writer &w, int port) {
-  int value = 0;
-
-  if (port == 1 || port == 2) {
-    int media = devices[port].getNextBootMedia();
+int commandSetMediaSelectMain(int port, int media) {
+  if (port != 0 && port != 1) {
+    return 0;
   }
 
-  // if (argc == 3) {
-  //   if (strcmp(argv[2], "sd") == 0) {
-  //     devices[index].setNextBootMedia(MEDIA_SD);
-  //     SerialUSB.println("set sd");
-  //   } else if (strcmp(argv[2], "emmc") == 0) {
-  //     devices[index].setNextBootMedia(MEDIA_EMMC);
-  //     SerialUSB.println("set emmc");
-  //   } else {
-  //     SerialUSB.println("invalid media");
-  //   }
-  // } else if (argc == 2) {
-  //   byte bootMedia = devices[index].getNextBootMedia();
+  if (media == 0) {
+    devices[port].setNextBootMedia(MEDIA_SD);
+  } else if (media == 1) {
+    devices[port].setNextBootMedia(MEDIA_EMMC);
+  } else {
+    return 0;
+  }
 
-  //   if (bootMedia == MEDIA_SD) {
-  //     SerialUSB.println("sd");
-  //   } else if (bootMedia == MEDIA_EMMC) {
-  //     SerialUSB.println("emmc");
-  //   } else {
-  //     SerialUSB.println("invalid media");
-  //   }
-  // }
+  return 1;
+}
 
-  // return 0;
+void commandSetMediaSelect(writer &w, int sub_id, int media) {
+  basicResp(w, PUB_WAGMAN_SET_MEDIA_SELECT, sub_id,
+            commandSetMediaSelectMain(sub_id - 1, media));
+}
+
+int commandGetMediaSelectMain(int port) {
+  if (port == 0 || port == 1) {
+    return devices[port].getNextBootMedia();
+  }
+
+  return 255;
+}
+
+void commandGetMediaSelect(writer &w, int sub_id) {
+  basicResp(w, PUB_WAGMAN_GET_MEDIA_SELECT, sub_id,
+            commandGetMediaSelectMain(sub_id - 1));
 }
 
 /*
@@ -814,6 +814,21 @@ void processCommand() {
       } break;
       case REQ_WAGMAN_DEVICE_ENABLE: {
         commandEnable(b64e, d.info.sub_id);
+      } break;
+      case REQ_WAGMAN_DEVICE_STATE: {
+        commandState(b64e, d.info.sub_id);
+      } break;
+      case REQ_WAGMAN_GET_MEDIA_SELECT: {
+        commandGetMediaSelect(b64e, d.info.sub_id);
+      } break;
+      case REQ_WAGMAN_SET_MEDIA_SELECT: {
+        int media = d.decode_uint();
+
+        if (!d.err) {
+          commandSetMediaSelect(b64e, d.info.sub_id, media);
+        } else {
+          basicResp(b64e, PUB_WAGMAN_SET_MEDIA_SELECT, d.info.sub_id, 0);
+        }
       } break;
       case REQ_WAGMAN_UPTIME: {
         commandUptime(b64e);

@@ -1,15 +1,16 @@
-#include <avr/wdt.h>
 #include <EEPROM.h>
-#include "Wagman.h"
-#include "Record.h"
+#include <avr/wdt.h>
 #include "Device.h"
-#include "Logger.h"
 #include "Error.h"
+#include "Logger.h"
+#include "MCP79412RTC.h"
+#include "Record.h"
 #include "Timer.h"
+#include "Wagman.h"
+#include "buildinfo.cpp"
 #include "commands.h"
 #include "verinfo.cpp"
-#include "buildinfo.cpp"
-#include "MCP79412RTC.h"
+#include "waggle.h"
 
 void setupDevices();
 void checkSensors();
@@ -41,70 +42,75 @@ static byte bufferSize = 0;
 
 static time_t setupTime;
 
-Command commands[] = {
-    { "rtc", commandRTC },
-    { "ping", commandPing },
-    { "start", commandStart },
-    { "stop", commandStop },
-    // { "stop!", commandKill },
-    { "reset", commandReset },
-    { "id", commandID },
-    { "cu", commandCurrent },
-    { "hb", commandHeartbeat },
-    { "env", commandEnvironment},
-    { "bs", commandBootMedia },
-    { "th", commandThermistor },
-    { "date", commandDate },
-    { "bf", commandBootFlags },
-    { "fc", commandFailCount },
-    { "up", commandUptime },
-    { "enable", commandEnable },
-    { "disable", commandDisable },
-    { "watch", commandWatch },
-    { "log", commandLog },
-    { "eereset", commandResetEEPROM },
-    { "boots", commandBoots },
-    { "ver", commandVersion },
-    { "blf", commandBLFlag },
-    { NULL, NULL },
-};
+// start command impl
 
-void printDate(const DateTime &dt)
-{
-    Serial.print(dt.year);
-    Serial.print(' ');
-    Serial.print(dt.month);
-    Serial.print(' ');
-    Serial.print(dt.day);
-    Serial.print(' ');
-    Serial.print(dt.hour);
-    Serial.print(' ');
-    Serial.print(dt.minute);
-    Serial.print(' ');
-    Serial.print(dt.second);
-}
+struct : public writer {
+  int write(const byte *s, int n) {
+    int maxn = Serial.availableForWrite();
 
-void printID(byte id[8])
-{
-    for (byte i = 2; i < 8; i++) {
-        Serial.print(id[i] >> 4, HEX);
-        Serial.print(id[i] & 0x0F, HEX);
+    if (n > maxn) {
+      n = maxn;
     }
+
+    return Serial.write(s, n);
+  }
+} serial_writer;
+
+#define REQ_WAGMAN_ID 0xc000
+#define REQ_WAGMAN_CU 0xc001
+#define REQ_WAGMAN_HB 0xc002
+#define REQ_WAGMAN_TH 0xc003
+#define REQ_WAGMAN_UPTIME 0xc004
+#define REQ_WAGMAN_BOOTS 0xc005
+#define REQ_WAGMAN_FC 0xc006
+#define REQ_WAGMAN_START 0xc007
+#define REQ_WAGMAN_STOP 0xc008
+#define REQ_WAGMAN_RESET 0xc009
+#define REQ_WAGMAN_EERESET 0xc00a
+#define REQ_WAGMAN_DEVICE_STATE 0xc00b
+#define REQ_WAGMAN_DEVICE_ENABLE 0xc00c
+#define REQ_WAGMAN_GET_MEDIA_SELECT 0xc00d
+#define REQ_WAGMAN_SET_MEDIA_SELECT 0xc00e
+
+#define PUB_WAGMAN_ID 0xff1a
+#define PUB_WAGMAN_CU 0xff06
+#define PUB_WAGMAN_HB 0xff09
+#define PUB_WAGMAN_BOOTS 0xff1a
+#define PUB_WAGMAN_UPTIME 0xff14
+#define PUB_WAGMAN_FC 0xff05
+#define PUB_WAGMAN_START 0xff0b
+#define PUB_WAGMAN_STOP 0xff0a
+#define PUB_WAGMAN_ENABLE 40
+#define PUB_WAGMAN_EERESET 0xc00a
+#define PUB_WAGMAN_RESET 0xc009
+#define PUB_WAGMAN_PING 0xff1e
+#define PUB_WAGMAN_VOLTAGE 0xff08
+#define PUB_WAGMAN_TH 0xff10
+#define PUB_WAGMAN_DEVICE_STATE 0xff1f
+#define PUB_WAGMAN_DEVICE_ENABLE 0xff20
+#define PUB_WAGMAN_GET_MEDIA_SELECT 0xff21
+#define PUB_WAGMAN_SET_MEDIA_SELECT 0xff22
+
+void basicResp(writer &w, int id, int sub_id, int value) {
+  sensorgram_encoder<64> e(w);
+  e.info.id = id;
+  e.info.sub_id = sub_id;
+  e.info.inst = 0;
+  e.info.source_id = 1;
+  e.info.source_inst = 0;
+  e.encode_uint(value);
+  e.encode();
 }
 
-/*
-Command:
-Get RTC
-
-Description:
-Gets the milliseconds since epoch from the RTC.
-
-Examples:
-$ wagman-client rtc
-*/
-byte commandRTC(byte argc, const char **argv) {
-    Serial.println(RTC.get());
-    return 0;
+void basicResp(writer &w, int id, int sub_id, const byte *value, int n) {
+  sensorgram_encoder<64> e(w);
+  e.info.id = id;
+  e.info.sub_id = sub_id;
+  e.info.inst = 0;
+  e.info.source_id = 1;
+  e.info.source_inst = 0;
+  e.encode_bytes(value, n);
+  e.encode();
 }
 
 /*
@@ -118,19 +124,18 @@ Examples:
 # resets heartbeat timeout on device 1
 $ wagman-client ping 1
 */
-byte commandPing(byte argc, const char **argv)
-{
-    if (argc != 2)
-        return ERROR_INVALID_ARGC;
+int commandPingMain(int device) {
+  int ok = Wagman::validPort(device);
 
-    byte port = atoi(argv[1]);
+  if (ok) {
+    devices[device].sendExternalHeartbeat();
+  }
 
-    if (!Wagman::validPort(port))
-        return ERROR_INVALID_PORT;
+  return ok;
+}
 
-    devices[port].sendExternalHeartbeat();
-
-    return 0;
+void commandPing(writer &w, int sub_id) {
+  basicResp(w, PUB_WAGMAN_PING, sub_id, commandPingMain(sub_id - 1));
 }
 
 /*
@@ -147,19 +152,18 @@ $ wagman-client start 0
 # start the guest node
 $ wagman-client start 1
 */
-byte commandStart(byte argc, const char **argv)
-{
-    if (argc != 2)
-        return ERROR_INVALID_ARGC;
+int commandStartMain(int port) {
+  int ok = Wagman::validPort(port);
 
-    byte port = atoi(argv[1]);
-
-    if (!Wagman::validPort(port))
-        return ERROR_INVALID_PORT;
-
+  if (ok) {
     deviceWantsStart = port;
+  }
 
-    return 0;
+  return ok;
+}
+
+void commandStart(writer &w, int sub_id) {
+  basicResp(w, PUB_WAGMAN_START, sub_id, commandStartMain(sub_id - 1));
 }
 
 /*
@@ -176,25 +180,19 @@ $ wagman-client stop 1 30
 # stop guest node immediately
 $ wagman-client stop 1 0
 */
-byte commandStop(byte argc, const char **argv)
-{
-    if (argc <= 1)
-        return ERROR_INVALID_ARGC;
+int commandStopMain(int port, int after) {
+  int ok = Wagman::validPort(port);
 
-    byte port = atoi(argv[1]);
+  if (ok) {
+    devices[port].setStopTimeout((unsigned long)after * 1000);
+    devices[port].stop();
+  }
 
-    if (!Wagman::validPort(port))
-        return ERROR_INVALID_PORT;
+  return ok;
+}
 
-    if (argc == 2) {
-        devices[port].setStopTimeout(60000);
-        devices[port].stop();
-    } else if (argc == 3) {
-        devices[port].setStopTimeout((unsigned long)atoi(argv[2]) * 1000);
-        devices[port].stop();
-    }
-
-    return 0;
+void commandStop(writer &w, int sub_id, int after) {
+  basicResp(w, PUB_WAGMAN_STOP, sub_id, commandStopMain(sub_id - 1, after));
 }
 
 /*
@@ -211,18 +209,11 @@ $ wagman-client reset
 # resets the wagman after 90 seconds
 $ wagman-client reset 90
 */
-byte commandReset(byte argc, const char **argv)
-{
-    shouldResetSystem = true;
-    shouldResetTimer.reset();
-
-    if (argc == 1) {
-        shouldResetTimeout = 0;
-    } else if (argc == 2) {
-        shouldResetTimeout = (unsigned long)atoi(argv[1]) * 1000;
-    }
-
-    return 0;
+void commandReset(writer &w) {
+  shouldResetSystem = true;
+  shouldResetTimer.reset();
+  shouldResetTimeout = 0;
+  basicResp(w, PUB_WAGMAN_RESET, 1, 1);
 }
 
 /*
@@ -235,15 +226,10 @@ Gets the onboard Wagman ID.
 Examples:
 $ wagman-client id
 */
-byte commandID(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
-{
-    byte id[8];
-
-    Wagman::getID(id);
-    printID(id);
-    Serial.println();
-
-    return 0;
+void commandID(writer &w) {
+  byte wagman_id[8];
+  Wagman::getID(wagman_id);
+  basicResp(w, PUB_WAGMAN_ID, 1, wagman_id, 8);
 }
 
 /*
@@ -260,31 +246,29 @@ $ wagman-client date
 # sets the date
 $ wagman-client date 2016 03 15 13 00 00
 */
-byte commandDate(byte argc, const char **argv)
-{
-    if (argc != 1 && argc != 7)
-        return ERROR_INVALID_ARGC;
+// void commandDate(byte argc, const char **argv) {
+//   if (argc != 1 && argc != 7) return ERROR_INVALID_ARGC;
 
-    if (argc == 1) {
-        DateTime dt;
-        Wagman::getDateTime(dt);
-        printDate(dt);
-        Serial.println();
-    } else if (argc == 7) {
-        DateTime dt;
+//   if (argc == 1) {
+//     DateTime dt;
+//     Wagman::getDateTime(dt);
+//     // printDate(dt);
+//     SerialUSB.println();
+//   } else if (argc == 7) {
+//     DateTime dt;
 
-        dt.year = atoi(argv[1]);
-        dt.month = atoi(argv[2]);
-        dt.day = atoi(argv[3]);
-        dt.hour = atoi(argv[4]);
-        dt.minute = atoi(argv[5]);
-        dt.second = atoi(argv[6]);
+//     dt.year = atoi(argv[1]);
+//     dt.month = atoi(argv[2]);
+//     dt.day = atoi(argv[3]);
+//     dt.hour = atoi(argv[4]);
+//     dt.minute = atoi(argv[5]);
+//     dt.second = atoi(argv[6]);
 
-        Wagman::setDateTime(dt);
-    }
+//     Wagman::setDateTime(dt);
+//   }
 
-    return 0;
-}
+//   return 0;
+// }
 
 /*
 Command:
@@ -297,18 +281,22 @@ System Device0 Device1 ... Device4
 Examples:
 $ wagman-client cu
 */
-byte commandCurrent(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
-{
-    Serial.print(Wagman::getCurrent());
+int commandCurrentMain(int port) {
+  // get wagman current
+  if (port == 0) {
+    return Wagman::getCurrent();
+  }
 
-    for (byte i = 0; i < DEVICE_COUNT; i++) {
-        Serial.print(' ');
-        Serial.print(Wagman::getCurrent(i));
-    }
+  // get attached device current
+  if (Wagman::validPort(port - 1)) {
+    return Wagman::getCurrent(port - 1);
+  }
 
-    Serial.println();
+  return 0;
+}
 
-    return 0;
+void commandCurrent(writer &w, int sub_id) {
+  basicResp(w, PUB_WAGMAN_CU, sub_id, commandCurrentMain(sub_id - 1));
 }
 
 /*
@@ -316,22 +304,24 @@ Command:
 Get Heartbeats
 
 Description:
-Gets the time since last seeing a heartbeat for each device. The outputs are formatted as:
-Device0
-Device1
+Gets the time since last seeing a heartbeat for each device. The outputs are
+formatted as: Device0 Device1
 ...
 Device4
 
 Examples:
 $ wagman-client hb
 */
-byte commandHeartbeat(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
-{
-    for (byte i = 0; i < DEVICE_COUNT; i++) {
-        Serial.println(devices[i].timeSinceHeartbeat());
-    }
+int commandHeartbeatMain(int port) {
+  if (Wagman::validPort(port)) {
+    return devices[port].timeSinceHeartbeat();
+  }
 
-    return 0;
+  return 0;
+}
+
+void commandHeartbeat(writer &w, int sub_id) {
+  basicResp(w, PUB_WAGMAN_HB, sub_id, commandHeartbeatMain(sub_id - 1));
 }
 
 /*
@@ -339,23 +329,24 @@ Command:
 Get Fail Counts
 
 Description:
-Gets the number of device failures for each device. Currently, this only includes
-heartbeat timeouts.
-Device0
-Device1
+Gets the number of device failures for each device. Currently, this only
+includes heartbeat timeouts. Device0 Device1
 ...
 Device4
 
 Examples:
 $ wagman-client fc
 */
-byte commandFailCount(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
-{
-    for (byte i = 0; i < DEVICE_COUNT; i++) {
-        Serial.println(Record::getBootFailures(i));
-    }
+int commandFailCountMain(int port) {
+  if (Wagman::validPort(port)) {
+    return Record::getBootFailures(port);
+  }
 
-    return 0;
+  return 0;
+}
+
+void commandFailCount(writer &w, int sub_id) {
+  basicResp(w, PUB_WAGMAN_FC, sub_id, commandFailCountMain(sub_id));
 }
 
 /*
@@ -372,34 +363,16 @@ Device4
 Examples:
 $ wagman-client th
 */
-byte commandThermistor(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
-{
-    for (byte i = 0; i < DEVICE_COUNT; i++) {
-        Serial.println(Wagman::getThermistor(i));
-    }
+int commandThermistorMain(int port) {
+  if (Wagman::validPort(port)) {
+    return Wagman::getThermistor(port);
+  }
 
-    return 0;
+  return 0;
 }
 
-/*
-Command:
-Get Environment Sensor Values
-
-Description:
-Gets the onboard temperature and humidity sensor values.
-
-Examples:
-$ wagman-client env
-*/
-byte commandEnvironment(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
-{
-    Serial.print("temperature=");
-    Serial.println(Wagman::getTemperature());
-
-    Serial.print("humidity=");
-    Serial.println(Wagman::getHumidity());
-
-    return 0;
+void commandThermistor(writer &w, int sub_id) {
+  basicResp(w, PUB_WAGMAN_TH, sub_id, commandThermistorMain(sub_id));
 }
 
 /*
@@ -420,52 +393,38 @@ $ wagman-client bs 1 sd
 # set the selected boot media for the guest node to emmc
 $ wagman-client bs 1 emmc
 */
-byte commandBootMedia(byte argc, const char **argv)
-{
-    if (argc != 2 && argc != 3)
-        return ERROR_INVALID_ARGC;
-
-    byte index = atoi(argv[1]);
-
-    if (!Wagman::validPort(index))
-        return ERROR_INVALID_PORT;
-
-    if (argc == 3) {
-        if (strcmp(argv[2], "sd") == 0) {
-            devices[index].setNextBootMedia(MEDIA_SD);
-            Serial.println("set sd");
-        } else if (strcmp(argv[2], "emmc") == 0) {
-            devices[index].setNextBootMedia(MEDIA_EMMC);
-            Serial.println("set emmc");
-        } else {
-            Serial.println("invalid media");
-        }
-    } else if (argc == 2) {
-        byte bootMedia = devices[index].getNextBootMedia();
-
-        if (bootMedia == MEDIA_SD) {
-            Serial.println("sd");
-        } else if (bootMedia == MEDIA_EMMC) {
-            Serial.println("emmc");
-        } else {
-            Serial.println("invalid media");
-        }
-    }
-
+int commandSetMediaSelectMain(int port, int media) {
+  if (port != 0 && port != 1) {
     return 0;
+  }
+
+  if (media == 0) {
+    devices[port].setNextBootMedia(MEDIA_SD);
+  } else if (media == 1) {
+    devices[port].setNextBootMedia(MEDIA_EMMC);
+  } else {
+    return 0;
+  }
+
+  return 1;
 }
 
-byte commandLog(byte argc, const char **argv)
-{
-    if (argc == 2) {
-        if (strcmp(argv[1], "on") == 0) {
-            logging = true;
-        } else if (strcmp(argv[1], "off") == 0) {
-            logging = false;
-        }
-    }
+void commandSetMediaSelect(writer &w, int sub_id, int media) {
+  basicResp(w, PUB_WAGMAN_SET_MEDIA_SELECT, sub_id,
+            commandSetMediaSelectMain(sub_id - 1, media));
+}
 
-    return 0;
+int commandGetMediaSelectMain(int port) {
+  if (port == 0 || port == 1) {
+    return devices[port].getNextBootMedia();
+  }
+
+  return 255;
+}
+
+void commandGetMediaSelect(writer &w, int sub_id) {
+  basicResp(w, PUB_WAGMAN_GET_MEDIA_SELECT, sub_id,
+            commandGetMediaSelectMain(sub_id - 1));
 }
 
 /*
@@ -482,18 +441,14 @@ Gets the system boot flags. The possible results are:
 Examples:
 $ wagman-client bf
 */
-byte commandBootFlags(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
-{
-    if (bootflags & _BV(WDRF))
-        Serial.println("WDRF");
-    if (bootflags & _BV(BORF))
-        Serial.println("BORF");
-    if (bootflags & _BV(EXTRF))
-        Serial.println("EXTRF");
-    if (bootflags & _BV(PORF))
-        Serial.println("PORF");
-    return 0;
-}
+// byte commandBootFlags(__attribute__((unused)) byte argc,
+//                       __attribute__((unused)) const char **argv) {
+//   if (bootflags & _BV(WDRF)) SerialUSB.println("WDRF");
+//   if (bootflags & _BV(BORF)) SerialUSB.println("BORF");
+//   if (bootflags & _BV(EXTRF)) SerialUSB.println("EXTRF");
+//   if (bootflags & _BV(PORF)) SerialUSB.println("PORF");
+//   return 0;
+// }
 
 /*
 Command:
@@ -505,12 +460,8 @@ Gets the system uptime in seconds.
 Examples:
 $ wagman-client up
 */
-byte commandUptime(__attribute__ ((unused)) byte argc, __attribute__ ((unused)) const char **argv)
-{
-    time_t time;
-    Wagman::getTime(time);
-    Serial.println(time - setupTime);
-    return 0;
+void commandUptime(writer &w) {
+  basicResp(w, PUB_WAGMAN_UPTIME, 1, millis() / 1000);
 }
 
 /*
@@ -525,82 +476,30 @@ Examples:
 # enable the coresense
 $ wagman-client enable 2
 */
-byte commandEnable(byte argc, const char **argv)
-{
-    for (byte i = 1; i < argc; i++) {
-        byte port = atoi(argv[i]);
+int commandEnableMain(int port) {
+  int ok = Wagman::validPort(port);
 
-        if (!Wagman::validPort(port)) {
-            continue;
-        }
+  if (ok) {
+    devices[port].enable();
+  }
 
-        devices[port].enable();
-    }
-
-    return 0;
+  return ok;
 }
 
-/*
-Command:
-Disable Device
-
-Description:
-Disables a device from being powered on automatically. Note that this doesn't
-immediately stop a device.
-
-Examples:
-# disable the coresense
-$ wagman-client disable 2
-*/
-byte commandDisable(byte argc, const char **argv)
-{
-    for (byte i = 1; i < argc; i++) {
-        byte port = atoi(argv[i]);
-
-        if (!Wagman::validPort(port)) {
-            continue;
-        }
-
-        devices[port].disable();
-    }
-
-    return 0;
+void commandEnable(writer &w, int sub_id) {
+  basicResp(w, PUB_WAGMAN_DEVICE_ENABLE, sub_id, commandEnableMain(sub_id - 1));
 }
 
-/*
-Command:
-Change Device Timeout Behavior
+int commandStateMain(int port) {
+  if (Wagman::validPort(port)) {
+    return devices[port].getState();
+  }
 
-Description:
-Change the timeout behavior for the heartbeat and current. Currently, only heartbeat
-timeouts are supported.
+  return 0;
+}
 
-Examples:
-# disable watching the coresense heartbeat
-$ wagman-client watch 2 hb f
-
-# enable watching the coresense heartbeat
-$ wagman-client watch 2 hb t
-*/
-byte commandWatch(byte argc, const char **argv)
-{
-//    if (argc != 4)
-//        return ERROR_USAGE;
-
-    if (argc == 4) {
-        byte index = atoi(argv[1]);
-        if (Wagman::validPort(index)) {
-            bool mode = strcmp(argv[3], "t") == 0;
-
-            if (strcmp(argv[2], "hb") == 0) {
-                devices[index].watchHeartbeat = mode;
-            } else if (strcmp(argv[2], "cu")) {
-                devices[index].watchCurrent = mode;
-            }
-        }
-    }
-
-    return 0;
+void commandState(writer &w, int sub_id) {
+  basicResp(w, PUB_WAGMAN_DEVICE_STATE, sub_id, commandStateMain(sub_id - 1));
 }
 
 /*
@@ -613,46 +512,43 @@ Gets the number of times the system has booted.
 Examples:
 $ wagman-client boots
 */
-byte commandBoots(byte argc, const char **argv)
-{
-    unsigned long count;
-    Record::getBootCount(count);
-    Serial.println(count);
-    return 0;
+void commandBoots(writer &w) {
+  unsigned long count;
+  Record::getBootCount(count);
+  basicResp(w, PUB_WAGMAN_BOOTS, 1, count);
 }
 
-/*
-Command:
-Get Wagman Version
+// /*
+// Command:
+// Get Wagman Version
 
-Description:
-Gets the hardware / firmware versions of the system.
+// Description:
+// Gets the hardware / firmware versions of the system.
 
-Examples:
-$ wagman-client ver
-*/
-byte commandVersion(byte argc, const char **argv)
-{
-    Serial.print("hw ");
-    Serial.print(WAGMAN_HW_VER_MAJ);
-    Serial.print('.');
-    Serial.println(WAGMAN_HW_VER_MIN);
+// Examples:
+// $ wagman-client ver
+// */
+// byte commandVersion(byte argc, const char **argv) {
+//   SerialUSB.print("hw ");
+//   SerialUSB.print(WAGMAN_HW_VER_MAJ);
+//   SerialUSB.print('.');
+//   SerialUSB.println(WAGMAN_HW_VER_MIN);
 
-    Serial.print("ker ");
-    Serial.print(WAGMAN_KERNEL_MAJ);
-    Serial.print('.');
-    Serial.print(WAGMAN_KERNEL_MIN);
-    Serial.print('.');
-    Serial.println(WAGMAN_KERNEL_SUB);
+//   SerialUSB.print("ker ");
+//   SerialUSB.print(WAGMAN_KERNEL_MAJ);
+//   SerialUSB.print('.');
+//   SerialUSB.print(WAGMAN_KERNEL_MIN);
+//   SerialUSB.print('.');
+//   SerialUSB.println(WAGMAN_KERNEL_SUB);
 
-    Serial.print("time ");
-    Serial.println(BUILD_TIME);
+//   SerialUSB.print("time ");
+//   SerialUSB.println(BUILD_TIME);
 
-    Serial.print("git ");
-    Serial.println(BUILD_GIT);
+//   SerialUSB.print("git ");
+//   SerialUSB.println(BUILD_GIT);
 
-    return 0;
-}
+//   return 0;
+// }
 
 /*
 Command:
@@ -666,33 +562,32 @@ and if so, with which boot media.
 Examples:
 $ wagman-client blf
 */
-byte commandBLFlag(byte argc, const char **argv)
-{
-    if (argc == 1) {
-        byte mode = Record::getBootloaderNodeController();
+byte commandBLFlag(byte argc, const char **argv) {
+  if (argc == 1) {
+    byte mode = Record::getBootloaderNodeController();
 
-        if (mode == 0) {
-            Serial.println("off");
-        } else if (mode == 1) {
-            Serial.println("sd");
-        } else if (mode == 2) {
-            Serial.println("emmc");
-        } else {
-            Serial.println("?");
-        }
-    } else if (argc == 2) {
-        if (strcmp(argv[1], "off") == 0) {
-            Record::setBootloaderNodeController(0);
-        } else if (strcmp(argv[1], "sd") == 0) {
-            Record::setBootloaderNodeController(1);
-        } else if (strcmp(argv[1], "emmc") == 0) {
-            Record::setBootloaderNodeController(2);
-        } else {
-            Serial.println("invalid mode");
-        }
+    if (mode == 0) {
+      SerialUSB.println("off");
+    } else if (mode == 1) {
+      SerialUSB.println("sd");
+    } else if (mode == 2) {
+      SerialUSB.println("emmc");
+    } else {
+      SerialUSB.println("?");
     }
+  } else if (argc == 2) {
+    if (strcmp(argv[1], "off") == 0) {
+      Record::setBootloaderNodeController(0);
+    } else if (strcmp(argv[1], "sd") == 0) {
+      Record::setBootloaderNodeController(1);
+    } else if (strcmp(argv[1], "emmc") == 0) {
+      Record::setBootloaderNodeController(2);
+    } else {
+      SerialUSB.println("invalid mode");
+    }
+  }
 
-    return 0;
+  return 0;
 }
 
 /*
@@ -708,556 +603,478 @@ $ wagman-client eereset
 # reset the wagman
 $ wagman-client reset
 */
-byte commandResetEEPROM(byte argc, const char **argv)
-{
-    Record::clearMagic();
-    return 0;
+void commandResetEEPROM(writer &w) {
+  Record::clearMagic();
+  basicResp(w, PUB_WAGMAN_EERESET, 1, 1);
 }
 
-void executeCommand(const char *sid, byte argc, const char **argv)
-{
-    byte (*func)(byte, const char **) = NULL;
+bool shouldResetAll = false;
 
-    // search for command and execute if found
-    for (byte i = 0; commands[i].name != NULL; i++) {
-        if (strcmp(commands[i].name, argv[0]) == 0) {
-            func = commands[i].func;
-            break;
-        }
-    }
-
-    // marks the beginning of a response packet.
-    Serial.print("<<<- sid=");
-    Serial.print(sid);
-    Serial.print(' ');
-    Serial.println(argv[0]);
-
-    if (func != NULL) {
-        func(argc, argv);
-    } else {
-        Serial.println("invalid command");
-    }
-
-    // marks the end of a response packet.
-    Serial.println("->>>");
+byte commandResetAll(byte argc, const char **argv) {
+  shouldResetAll = true;
+  return 0;
 }
 
-void processCommand()
-{
-    byte argc = 0;
-    const char *argv[MAX_ARGC];
+bytebuffer<128> msgbuf;
 
-    char *s = buffer;
+void processCommand() {
+  base64_decoder b64d(msgbuf);
+  sensorgram_decoder<64> d(b64d);
 
-    while (argc < MAX_ARGC) {
+  while (d.decode()) {
+    base64_encoder b64e(serial_writer);
 
-        // skip whitespace
-        while (isspace(*s)) {
-            s++;
-        }
+    switch (d.info.id) {
+      case REQ_WAGMAN_ID: {
+        commandID(b64e);
+      } break;
+      case REQ_WAGMAN_CU: {
+        commandCurrent(b64e, d.info.sub_id);
+      } break;
+      case REQ_WAGMAN_HB: {
+        commandHeartbeat(b64e, d.info.sub_id);
+      } break;
+      case REQ_WAGMAN_BOOTS: {
+        commandBoots(b64e);
+      } break;
+      case REQ_WAGMAN_FC: {
+        commandFailCount(b64e, d.info.sub_id);
+      } break;
+      case REQ_WAGMAN_TH: {
+        commandThermistor(b64e, d.info.sub_id);
+      } break;
+      case REQ_WAGMAN_START: {
+        commandStart(b64e, d.info.sub_id);
+      } break;
+      case REQ_WAGMAN_STOP: {
+        int after = d.decode_uint();
 
-        // check if next character is an argument
-        if (isgraph(*s)) {
-
-            // mark start of argument.
-            argv[argc++] = s;
-
-            // scan remainder of argument.
-            while (isgraph(*s)) {
-                s++;
-            }
-        }
-
-        // end of buffer?
-        if (*s == '\0') {
-            break;
-        }
-
-        // mark end of argument.
-        *s++ = '\0';
-    }
-
-    if (argc > 0) {
-        // this sid case was suggested by wolfgang to help identify the source of certain messages.
-        if (argv[0][0] == '@') {
-            executeCommand(argv[0] + 1, argc - 1, argv + 1);
+        if (!d.err) {
+          commandStop(b64e, d.info.sub_id, after);
         } else {
-            executeCommand("0", argc, argv);
+          basicResp(b64e, PUB_WAGMAN_STOP, d.info.sub_id, 0);
         }
+      } break;
+      case REQ_WAGMAN_DEVICE_ENABLE: {
+        commandEnable(b64e, d.info.sub_id);
+      } break;
+      case REQ_WAGMAN_DEVICE_STATE: {
+        commandState(b64e, d.info.sub_id);
+      } break;
+      case REQ_WAGMAN_GET_MEDIA_SELECT: {
+        commandGetMediaSelect(b64e, d.info.sub_id);
+      } break;
+      case REQ_WAGMAN_SET_MEDIA_SELECT: {
+        int media = d.decode_uint();
+
+        if (!d.err) {
+          commandSetMediaSelect(b64e, d.info.sub_id, media);
+        } else {
+          basicResp(b64e, PUB_WAGMAN_SET_MEDIA_SELECT, d.info.sub_id, 0);
+        }
+      } break;
+      case REQ_WAGMAN_UPTIME: {
+        commandUptime(b64e);
+      } break;
+      case REQ_WAGMAN_EERESET: {
+        commandResetEEPROM(b64e);
+      } break;
+      case REQ_WAGMAN_RESET: {
+        commandReset(b64e);
+      } break;
     }
+
+    b64e.close();
+    serial_writer.writebyte('\n');
+  }
 }
 
-void processCommands()
-{
-    byte dataread = 0; // using this instead of a timer to reduce delay in processing byte stream
+void processCommands() {
+  int n = Serial.available();
 
-    while (Serial.available() > 0 && dataread < 240) {
-        char c = Serial.read();
+  for (int i = 0; i < n; i++) {
+    int c = Serial.read();
 
-        buffer[bufferSize++] = c;
-        dataread++;
-
-        if (bufferSize >= BUFFER_SIZE) { // exceeds buffer! dangerous!
-            bufferSize = 0;
-
-            // flush remainder of line.
-            while (Serial.available() > 0 && dataread < 240) {
-                if (Serial.read() == '\n')
-                    break;
-                dataread++;
-            }
-        } else if (c == '\n') {
-            buffer[bufferSize] = '\0';
-            bufferSize = 0;
-            processCommand();
-        }
+    if (c == '\n') {
+      processCommand();
+      msgbuf.reset();
+    } else {
+      msgbuf.writebyte(c);
     }
+  }
 }
 
-void deviceKilled(Device &device)
-{
-    if (meanBootDelta(Record::bootLogs[device.port], 3) < 240) {
-        device.setStartDelay(300000);
-        Logger::begin("backoff");
-        Logger::log("backing off of ");
-        Logger::log(device.name);
-        Logger::end();
-    }
+// end command impl
+
+void printDate(const DateTime &dt) {
+  Serial.print(dt.year);
+  Serial.print(' ');
+  Serial.print(dt.month);
+  Serial.print(' ');
+  Serial.print(dt.day);
+  Serial.print(' ');
+  Serial.print(dt.hour);
+  Serial.print(' ');
+  Serial.print(dt.minute);
+  Serial.print(' ');
+  Serial.print(dt.second);
+}
+
+void printID(byte id[8]) {
+  for (byte i = 2; i < 8; i++) {
+    Serial.print(id[i] >> 4, HEX);
+    Serial.print(id[i] & 0x0F, HEX);
+  }
+}
+
+void deviceKilled(Device &device) {
+  if (meanBootDelta(Record::bootLogs[device.port], 3) < 240) {
+    device.setStartDelay(300000);
+    Logger::begin("backoff");
+    Logger::log("backing off of ");
+    Logger::log(device.name);
+    Logger::end();
+  }
 }
 
 // #pragma optimize( "", off )
-void setup()
-{
-    MCUSR = 0;
-    wdt_disable();
-    bootflags = EEPROM.read(0x41);
-    delay(4000);
-    wdt_enable(WDTO_8S);
-    wdt_reset(); // watchdog reset in setup after power up.
+void setup() {
+  MCUSR = 0;
+  wdt_disable();
+  bootflags = EEPROM.read(0x41);
+  delay(4000);
+  wdt_enable(WDTO_8S);
+  wdt_reset();  // watchdog reset in setup after power up.
 
-    Serial.begin(57600);
+  Serial.begin(57600);
 
-    // show init light sequence
-    for (byte i = 0; i < 8; i++) {
-        Wagman::setLED(0, true);
-        delay(100);
-        Wagman::setLED(1, true);
-        delay(100);
-        Wagman::setLED(0, false);
-        delay(100);
-        Wagman::setLED(1, false);
-        delay(100);
+  // show init light sequence
+  for (byte i = 0; i < 8; i++) {
+    Wagman::setLED(0, true);
+    delay(100);
+    Wagman::setLED(1, true);
+    delay(100);
+    Wagman::setLED(0, false);
+    delay(100);
+    Wagman::setLED(1, false);
+    delay(100);
+  }
+
+  wdt_reset();  // Watchdog reset in setup after light sequence.
+
+  if (!Record::initialized()) {
+    Record::init();
+    Wagman::init();
+
+    for (byte i = 0; i < 16; i++) {
+      Wagman::setLED(0, true);
+      delay(20);
+      Wagman::setLED(1, true);
+      delay(20);
+      Wagman::setLED(0, false);
+      delay(20);
+      Wagman::setLED(1, false);
+      delay(20);
     }
+  } else {
+    Wagman::init();
+  }
 
-    wdt_reset(); // Watchdog reset in setup after light sequence.
+  Wagman::getTime(setupTime);
+  Record::setLastBootTime(setupTime);
+  Record::incrementBootCount();
 
-    if (!Record::initialized()) {
-        Record::init();
-        Wagman::init();
+  wdt_reset();  // Watchdog reset in setup after incrementing boot count.
 
-        for (byte i = 0; i < 16; i++) {
-            Wagman::setLED(0, true);
-            delay(20);
-            Wagman::setLED(1, true);
-            delay(20);
-            Wagman::setLED(0, false);
-            delay(20);
-            Wagman::setLED(1, false);
-            delay(20);
-        }
-    } else {
-        Wagman::init();
-    }
+  if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
+    checkSensors();
+  }
 
-    Wagman::getTime(setupTime);
-    Record::setLastBootTime(setupTime);
-    Record::incrementBootCount();
+  setupDevices();
+  deviceWantsStart = 0;
 
-    wdt_reset(); // Watchdog reset in setup after incrementing boot count.
+  bufferSize = 0;
+  startTimer.reset();
+  statusTimer.reset();
 
-    if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
-        checkSensors();
-    }
+  shouldResetSystem = false;
+  shouldResetTimeout = 0;
 
-    setupDevices();
-    deviceWantsStart = 0;
+  if (RTC.get() < BUILD_TIME) {
+    RTC.set(BUILD_TIME);
+  }
 
-    bufferSize = 0;
-    startTimer.reset();
-    statusTimer.reset();
-
-    shouldResetSystem = false;
-    shouldResetTimeout = 0;
-
-    if (RTC.get() < BUILD_TIME) {
-        RTC.set(BUILD_TIME);
-    }
-
-    wdt_reset(); // Watchdog reset in setup, right at exit.
+  wdt_reset();  // Watchdog reset in setup, right at exit.
 }
 // #pragma optimize( "", on )
 
+void setupDevices() {
+  devices[0].name = "nc";
+  devices[0].port = 0;
+  devices[0].bootSelector = 0;
+  devices[0].primaryMedia = MEDIA_SD;
+  devices[0].secondaryMedia = MEDIA_EMMC;
+  devices[0].watchHeartbeat = true;
+  devices[0].watchCurrent = false;
 
-void setupDevices()
-{
-    devices[0].name = "nc";
-    devices[0].port = 0;
-    devices[0].bootSelector = 0;
-    devices[0].primaryMedia = MEDIA_SD;
-    devices[0].secondaryMedia = MEDIA_EMMC;
-    devices[0].watchHeartbeat = true;
-    devices[0].watchCurrent = false;
+  devices[1].name = "gn";
+  devices[1].port = 1;
+  devices[1].bootSelector = 1;
+  devices[1].primaryMedia = MEDIA_SD;
+  devices[1].secondaryMedia = MEDIA_EMMC;
+  devices[1].watchHeartbeat = true;
+  devices[1].watchCurrent = false;
 
-    devices[1].name = "gn";
-    devices[1].port = 1;
-    devices[1].bootSelector = 1;
-    devices[1].primaryMedia = MEDIA_SD;
-    devices[1].secondaryMedia = MEDIA_EMMC;
-    devices[1].watchHeartbeat = true;
-    devices[1].watchCurrent = false;
+  devices[2].name = "cs";
+  devices[2].port = 2;
+  devices[2].primaryMedia = MEDIA_SD;
+  devices[2].secondaryMedia = MEDIA_EMMC;
+  devices[2].watchHeartbeat = true;
+  devices[2].watchCurrent = false;
 
-    devices[2].name = "cs";
-    devices[2].port = 2;
-    devices[2].primaryMedia = MEDIA_SD;
-    devices[2].secondaryMedia = MEDIA_EMMC;
-    devices[2].watchHeartbeat = true;
-    devices[2].watchCurrent = false;
+  devices[3].name = "x1";
+  devices[3].port = 3;
+  devices[3].watchHeartbeat = false;
+  devices[3].watchCurrent = false;
 
-    devices[3].name = "x1";
-    devices[3].port = 3;
-    devices[3].watchHeartbeat = false;
-    devices[3].watchCurrent = false;
+  devices[4].name = "x2";
+  devices[4].port = 4;
+  devices[4].watchHeartbeat = false;
+  devices[4].watchCurrent = false;
 
-    devices[4].name = "x2";
-    devices[4].port = 4;
-    devices[4].watchHeartbeat = false;
-    devices[4].watchCurrent = false;
+  for (byte i = 0; i < DEVICE_COUNT; i++) {
+    devices[i].init();
+  }
 
-    for (byte i = 0; i < DEVICE_COUNT; i++) {
-        devices[i].init();
+  // Check for any incomplete relays which may have killed the system.
+  // An assumption here is that if one of these devices killed the system
+  // when starting, then there should only be one incomplete relay state.
+  for (byte i = 0; i < DEVICE_COUNT; i++) {
+    byte state = Record::getRelayState(i);
+
+    if (state == RELAY_TURNING_ON || state == RELAY_TURNING_OFF) {
+      Record::setRelayState(i, RELAY_OFF);
+
+      // Plausible that power off was caused by toggling this relay.
+      if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
+        devices[i].disable();
+      } else {
+        devices[i].kill();
+      }
     }
-
-    // Check for any incomplete relays which may have killed the system.
-    // An assumption here is that if one of these devices killed the system
-    // when starting, then there should only be one incomplete relay state.
-    for (byte i = 0; i < DEVICE_COUNT; i++) {
-        byte state = Record::getRelayState(i);
-
-        if (state == RELAY_TURNING_ON || state == RELAY_TURNING_OFF) {
-            Record::setRelayState(i, RELAY_OFF);
-
-            // Plausible that power off was caused by toggling this relay.
-            if (bootflags & _BV(PORF) || bootflags & _BV(BORF)) {
-                devices[i].disable();
-            } else {
-                devices[i].kill();
-            }
-        }
-    }
+  }
 }
 
-void checkSensors()
-{
-    checkCurrentSensors();
-    checkThermistors();
+void checkSensors() {
+  checkCurrentSensors();
+  checkThermistors();
 }
 
-void checkCurrentSensors()
-{
-    for (byte i = 0; i < DEVICE_COUNT; i++) {
-        byte attempt;
+void checkCurrentSensors() {
+  for (byte i = 0; i < DEVICE_COUNT; i++) {
+    byte attempt;
 
-        if (Record::getPortCurrentSensorHealth(i) >= 5) {
-            // Printf("post: current sensor %d too many faults\n", i);
-            Logger::begin("post");
-            Logger::log("current sensor ");
-            Logger::log(i);
-            Logger::log(" too many faults");
-            Logger::end();
-            continue;
-        }
-
-        for (attempt = 0; attempt < 3; attempt++) {
-            Record::setPortCurrentSensorHealth(i, Record::getPortCurrentSensorHealth(i) + 1);
-            delay(20);
-            unsigned int value = Wagman::getCurrent(i);
-            delay(50);
-            Record::setPortCurrentSensorHealth(i, Record::getPortCurrentSensorHealth(i) - 1);
-            delay(20);
-
-            if (value <= 5000)
-                break;
-        }
-
-        if (attempt == 3) {
-            Logger::begin("post");
-            Logger::log("current sensor ");
-            Logger::log(i);
-            Logger::log(" out of range.");
-            Logger::end();
-        }
+    if (Record::getPortCurrentSensorHealth(i) >= 5) {
+      // Printf("post: current sensor %d too many faults\n", i);
+      Logger::begin("post");
+      Logger::log("current sensor ");
+      Logger::log(i);
+      Logger::log(" too many faults");
+      Logger::end();
+      continue;
     }
+
+    for (attempt = 0; attempt < 3; attempt++) {
+      Record::setPortCurrentSensorHealth(
+          i, Record::getPortCurrentSensorHealth(i) + 1);
+      delay(20);
+      unsigned int value = Wagman::getCurrent(i);
+      delay(50);
+      Record::setPortCurrentSensorHealth(
+          i, Record::getPortCurrentSensorHealth(i) - 1);
+      delay(20);
+
+      if (value <= 5000) break;
+    }
+
+    if (attempt == 3) {
+      Logger::begin("post");
+      Logger::log("current sensor ");
+      Logger::log(i);
+      Logger::log(" out of range.");
+      Logger::end();
+    }
+  }
 }
 
-void checkThermistors()
-{
-    for (byte i = 0; i < DEVICE_COUNT; i++) {
-        byte attempt;
+void checkThermistors() {
+  for (byte i = 0; i < DEVICE_COUNT; i++) {
+    byte attempt;
 
-        if (Record::getThermistorSensorHealth(i) >= 5) {
-            Logger::begin("post");
-            Logger::log("thermistor ");
-            Logger::log(i);
-            Logger::log(" too many faults");
-            Logger::end();
-            continue;
-        }
-
-        for (attempt = 0; attempt < 3; attempt++) {
-            Record::setThermistorSensorHealth(i, Record::getThermistorSensorHealth(i) + 1);
-            delay(20);
-            unsigned int value = Wagman::getThermistor(i);
-            delay(50);
-            Record::setThermistorSensorHealth(i, Record::getThermistorSensorHealth(i) - 1);
-            delay(20);
-
-            if (value <= 10000)
-                break;
-        }
-
-        if (attempt == 3) {
-            Logger::begin("post");
-            Logger::log("thermistor ");
-            Logger::log(i);
-            Logger::log(" out of range.");
-            Logger::end();
-        }
+    if (Record::getThermistorSensorHealth(i) >= 5) {
+      Logger::begin("post");
+      Logger::log("thermistor ");
+      Logger::log(i);
+      Logger::log(" too many faults");
+      Logger::end();
+      continue;
     }
+
+    for (attempt = 0; attempt < 3; attempt++) {
+      Record::setThermistorSensorHealth(
+          i, Record::getThermistorSensorHealth(i) + 1);
+      delay(20);
+      unsigned int value = Wagman::getThermistor(i);
+      delay(50);
+      Record::setThermistorSensorHealth(
+          i, Record::getThermistorSensorHealth(i) - 1);
+      delay(20);
+
+      if (value <= 10000) break;
+    }
+
+    if (attempt == 3) {
+      Logger::begin("post");
+      Logger::log("thermistor ");
+      Logger::log(i);
+      Logger::log(" out of range.");
+      Logger::end();
+    }
+  }
 }
 
-unsigned long meanBootDelta(const Record::BootLog &bootLog, byte maxSamples)
-{
-    byte count = min(maxSamples, bootLog.getCount());
-    unsigned long total = 0;
+unsigned long meanBootDelta(const Record::BootLog &bootLog, byte maxSamples) {
+  byte count = min(maxSamples, bootLog.getCount());
+  unsigned long total = 0;
 
-    for (byte i = 1; i < count; i++) {
-        total += bootLog.getEntry(i) - bootLog.getEntry(i-1);
-    }
+  for (byte i = 1; i < count; i++) {
+    total += bootLog.getEntry(i) - bootLog.getEntry(i - 1);
+  }
 
-    return total / count;
+  return total / count;
 }
 
-void showBootLog(const Record::BootLog &bootLog)
-{
-    Logger::begin("bootlog");
-    for (byte i = 0; i < bootLog.getCount(); i++) {
-        Logger::log(" ");
-        Logger::log(bootLog.getEntry(i));
+void showBootLog(const Record::BootLog &bootLog) {
+  Logger::begin("bootlog");
+  for (byte i = 0; i < bootLog.getCount(); i++) {
+    Logger::log(" ");
+    Logger::log(bootLog.getEntry(i));
+  }
+  Logger::end();
+
+  if (bootLog.getCount() > 1) {
+    Logger::begin("bootdt");
+    for (byte i = 1; i < min(4, bootLog.getCount()); i++) {
+      unsigned long bootdt = bootLog.getEntry(i) - bootLog.getEntry(i - 1);
+      Logger::log(" ");
+      Logger::log(bootdt);
     }
+
+    if (meanBootDelta(bootLog, 3) < 200) {
+      Logger::log(" !");
+    }
+
     Logger::end();
-
-    if (bootLog.getCount() > 1) {
-        Logger::begin("bootdt");
-        for (byte i = 1; i < min(4, bootLog.getCount()); i++) {
-            unsigned long bootdt = bootLog.getEntry(i) - bootLog.getEntry(i-1);
-            Logger::log(" ");
-            Logger::log(bootdt);
-        }
-
-        if (meanBootDelta(bootLog, 3) < 200) {
-            Logger::log(" !");
-        }
-
-        Logger::end();
-    }
+  }
 }
 
-void startNextDevice()
-{
-    // if we've asked for a specific device, start that device.
-    if (Wagman::validPort(deviceWantsStart)) {
+void startNextDevice() {
+  // if we've asked for a specific device, start that device.
+  if (Wagman::validPort(deviceWantsStart)) {
+    startTimer.reset();
+    devices[deviceWantsStart].start();
+    deviceWantsStart = 255;
+    return;
+  }
+
+  if (startTimer.exceeds(60000)) {
+    for (byte i = 0; i < DEVICE_COUNT; i++) {
+      if (devices[i].canStart()) {  // include !started in canStart() call.
         startTimer.reset();
-        devices[deviceWantsStart].start();
-        deviceWantsStart = 255;
-        return;
+        devices[i].start();
+        showBootLog(Record::bootLogs[i]);
+        break;
+      }
     }
-
-    if (startTimer.exceeds(60000)) {
-        for (byte i = 0; i < DEVICE_COUNT; i++) {
-            if (devices[i].canStart()) { // include !started in canStart() call.
-                startTimer.reset();
-                devices[i].start();
-                showBootLog(Record::bootLogs[i]);
-                break;
-            }
-        }
-    }
+  }
 }
 
-void loop()
-{
-    // ensure that the watchdog is always enabled
+void loop() {
+  // ensure that the watchdog is always enabled
 
-    // don't bother starting any new devices once we've decided to reset
-    if (!shouldResetSystem) {
-        startNextDevice();
+  // don't bother starting any new devices once we've decided to reset
+  if (!shouldResetSystem) {
+    startNextDevice();
+  }
+
+  for (byte i = 0; i < DEVICE_COUNT; i++) {
+    devices[i].update();
+    wdt_reset();  // Watchdog reset in loop, device update loop.
+  }
+
+  processCommands();
+
+  if (statusTimer.exceeds(60000)) {
+    statusTimer.reset();
+    wdt_reset();  // Watchdog reset in loop, logstatus.
+    logStatus();
+  }
+
+  if (shouldResetSystem && shouldResetTimer.exceeds(shouldResetTimeout)) {
+    resetSystem();
+  }
+
+  Wagman::toggleLED(0);
+
+  if (shouldResetSystem) {
+    Wagman::setLED(1, Wagman::getLED(0));
+  }
+
+  wdt_reset();  // Watchdog reset in loop, at the end of the loop.
+  delay(200);
+}
+
+void resetSystem() {
+  // ensure that watchdog is set!
+  wdt_enable(WDTO_8S);
+  wdt_reset();  // Watchdog reset in resetSystem.
+
+  for (;;) {
+    for (byte i = 0; i < 5; i++) {
+      Wagman::setLED(0, true);
+      Wagman::setLED(1, true);
+      delay(80);
+      Wagman::setLED(0, false);
+      Wagman::setLED(1, false);
+      delay(80);
     }
 
-    for (byte i = 0; i < DEVICE_COUNT; i++) {
-        devices[i].update();
-        wdt_reset(); // Watchdog reset in loop, device update loop.
-    }
-
-    processCommands();
-
-    if (statusTimer.exceeds(60000)) {
-        statusTimer.reset();
-        wdt_reset(); // Watchdog reset in loop, logstatus.
-        logStatus();
-    }
-
-    if (shouldResetSystem && shouldResetTimer.exceeds(shouldResetTimeout)) {
-        resetSystem();
-    }
-
-    Wagman::toggleLED(0);
-
-    if (shouldResetSystem) {
-        Wagman::setLED(1, Wagman::getLED(0));
-    }
-
-    wdt_reset(); // Watchdog reset in loop, at the end of the loop.
+    Wagman::setLED(0, true);
+    Wagman::setLED(1, true);
     delay(200);
+    Wagman::setLED(0, false);
+    Wagman::setLED(1, false);
+    delay(200);
+  }
 }
 
-void resetSystem()
-{
-    // ensure that watchdog is set!
-    wdt_enable(WDTO_8S);
-    wdt_reset(); // Watchdog reset in resetSystem.
+void logStatus() {
+  // send batched status sensorgrams
+  base64_encoder b64e(serial_writer);
+  commandID(b64e);
 
-    for (;;) {
-        for (byte i = 0; i < 5; i++) {
-            Wagman::setLED(0, true);
-            Wagman::setLED(1, true);
-            delay(80);
-            Wagman::setLED(0, false);
-            Wagman::setLED(1, false);
-            delay(80);
-        }
+  for (int port = 1; port <= 6; port++) {
+    commandCurrent(b64e, port);
+  }
 
-        Wagman::setLED(0, true);
-        Wagman::setLED(1, true);
-        delay(200);
-        Wagman::setLED(0, false);
-        Wagman::setLED(1, false);
-        delay(200);
-    }
-}
+  for (int port = 1; port <= 5; port++) {
+    commandFailCount(b64e, port);
+  }
 
-void logStatus()
-{
-    byte id[8];
-    Wagman::getID(id);
+  for (int port = 1; port <= 5; port++) {
+    commandThermistor(b64e, port);
+  }
 
-    // assume we'll always miss the first message.
-
-    // cmd
-    // sid
-    // ...
-    // \0
-
-    // log
-    // id.heartbeat
-    // 2032
-    // 123
-    // 1234
-    // 1111
-    // 3221
-    // \0
-
-    Logger::begin("id");
-    printID(id);
-    Logger::end();
-
-    delay(50);
-
-    DateTime dt;
-    Wagman::getDateTime(dt);
-
-    Logger::begin("date");
-    printDate(dt);
-    Serial.println();
-
-    delay(50);
-
-    Logger::begin("cu");
-
-    Logger::log(Wagman::getCurrent());
-
-    for (byte i = 0; i < 5; i++) {
-        Logger::log(' ');
-        Logger::log(Wagman::getCurrent(i));
-    }
-
-    Logger::end();
-
-    delay(50);
-
-    Logger::begin("th");
-
-    for (byte i = 0; i < 5; i++) {
-        Logger::log(Wagman::getThermistor(i));
-        Logger::log(' ');
-    }
-
-    Logger::end();
-
-    delay(50);
-
-    Logger::begin("env");
-    Logger::log(Wagman::getTemperature());
-    Logger::log(' ');
-    Logger::log(Wagman::getHumidity());
-    Logger::end();
-
-    delay(50);
-
-    Logger::begin("fails");
-
-    for (byte i = 0; i < 5; i++) {
-        Logger::log(Record::getBootFailures(i));
-        Logger::log(' ');
-    }
-
-    Logger::end();
-
-    delay(50);
-
-    Logger::begin("enabled");
-
-    for (byte i = 0; i < 5; i++) {
-        Logger::log(Record::getDeviceEnabled(i));
-        Logger::log(' ');
-    }
-
-    Logger::end();
-
-    delay(50);
-
-    Logger::begin("media");
-
-    for (byte i = 0; i < 2; i++) {
-        byte bootMedia = devices[i].getNextBootMedia();
-
-        if (bootMedia == MEDIA_SD) {
-            Logger::log("sd ");
-        } else if (bootMedia == MEDIA_EMMC) {
-            Logger::log("emmc ");
-        } else {
-            Logger::log("? ");
-        }
-    }
-
-    Logger::end();
+  b64e.close();
+  serial_writer.writebyte('\n');
 }

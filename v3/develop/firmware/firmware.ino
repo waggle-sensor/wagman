@@ -90,7 +90,8 @@ struct : public writer {
 #define PUB_WAGMAN_GET_MEDIA_SELECT 0xff21
 #define PUB_WAGMAN_SET_MEDIA_SELECT 0xff22
 
-void basicResp(writer &w, int id, int sub_id, int value) {
+template <class T>
+void basicResp(writer &w, int id, int sub_id, T value) {
   sensorgram_encoder<64> e(w);
   e.info.id = id;
   e.info.sub_id = sub_id;
@@ -460,7 +461,7 @@ Examples:
 $ wagman-client up
 */
 void commandUptime(writer &w) {
-  basicResp(w, PUB_WAGMAN_UPTIME, 1, millis() / 1000);
+  basicResp(w, PUB_WAGMAN_UPTIME, 1, (uint32_t)(millis() / 1000));
 }
 
 /*
@@ -614,7 +615,7 @@ byte commandResetAll(byte argc, const char **argv) {
   return 0;
 }
 
-bytebuffer<100> msgbuf;
+bytebuffer<128> msgbuf;
 
 void processCommand() {
   base64_decoder b64d(msgbuf);
@@ -684,8 +685,7 @@ void processCommand() {
     }
 
     b64e.close();
-    // serial_writer.writebyte('\n');
-    Serial.println();
+    serial_writer.writebyte('\n');
   }
 }
 
@@ -1070,4 +1070,5 @@ void logStatus() {
 
   b64e.close();
   serial_writer.writebyte('\n');
+  Serial.flush();
 }

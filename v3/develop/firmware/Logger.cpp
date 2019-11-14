@@ -6,24 +6,20 @@
 // ANL:waggle-license
 #include "Logger.h"
 
-namespace Logger
-{
+namespace Logger {
 
-void begin(const char *name)
-{
-    if (logging) {
-        Serial.print("log: ");
-        Serial.print(name);
-        Serial.print(' ');
-    }
+void begin(const char *name) {
+  if (logging) {
+    Serial.print("log: ");
+    Serial.print(name);
+    Serial.print(' ');
+  }
 }
 
-void end()
-{
-    if (logging) {
-        Serial.println();
-    }
+void end() {
+  if (logging) {
+    Serial.println();
+  }
 }
 
-};
-
+};  // namespace Logger

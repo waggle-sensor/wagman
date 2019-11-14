@@ -19,7 +19,6 @@ void checkThermistors();
 unsigned long meanBootDelta(const Record::BootLog &bootLog, byte maxSamples);
 
 void printDate(const DateTime &dt);
-void printID(byte mac[8]);
 
 static const byte DEVICE_COUNT = 5;
 static const byte BUFFER_SIZE = 80;
@@ -29,7 +28,7 @@ byte bootflags = 0;
 bool shouldResetSystem = false;
 unsigned long shouldResetTimeout = 0;
 Timer shouldResetTimer;
-bool logging = true;
+bool logging = false;
 byte deviceWantsStart = 255;
 
 Device devices[DEVICE_COUNT];
@@ -615,7 +614,7 @@ byte commandResetAll(byte argc, const char **argv) {
   return 0;
 }
 
-bytebuffer<128> msgbuf;
+bytebuffer<100> msgbuf;
 
 void processCommand() {
   base64_decoder b64d(msgbuf);
@@ -685,7 +684,8 @@ void processCommand() {
     }
 
     b64e.close();
-    serial_writer.writebyte('\n');
+    // serial_writer.writebyte('\n');
+    Serial.println();
   }
 }
 
@@ -718,13 +718,6 @@ void printDate(const DateTime &dt) {
   Serial.print(dt.minute);
   Serial.print(' ');
   Serial.print(dt.second);
-}
-
-void printID(byte id[8]) {
-  for (byte i = 2; i < 8; i++) {
-    Serial.print(id[i] >> 4, HEX);
-    Serial.print(id[i] & 0x0F, HEX);
-  }
 }
 
 void deviceKilled(Device &device) {

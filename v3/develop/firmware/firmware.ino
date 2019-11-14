@@ -746,7 +746,7 @@ void setup() {
   wdt_enable(WDTO_8S);
   wdt_reset();  // watchdog reset in setup after power up.
 
-  Serial.begin(57600);
+  Serial.begin(115200);
 
   // show init light sequence
   for (byte i = 0; i < 8; i++) {

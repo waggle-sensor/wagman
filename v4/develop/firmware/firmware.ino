@@ -119,7 +119,8 @@ struct : public writer {
 #define PUB_WAGMAN_GET_MEDIA_SELECT 0xff21
 #define PUB_WAGMAN_SET_MEDIA_SELECT 0xff22
 
-void basicResp(writer &w, int id, int sub_id, int value) {
+template <class T>
+void basicResp(writer &w, int id, int sub_id, T value) {
   sensorgram_encoder<64> e(w);
   e.info.id = id;
   e.info.sub_id = sub_id;
@@ -309,7 +310,7 @@ System Device0 Device1 ... Device4
 Examples:
 $ wagman-client cu
 */
-int commandCurrentMain(int port) {
+unsigned int commandCurrentMain(int port) {
   // get wagman current
   if (port == 0) {
     return Wagman::getCurrent();
@@ -327,7 +328,7 @@ void commandCurrent(writer &w, int sub_id) {
   basicResp(w, PUB_WAGMAN_CU, sub_id, commandCurrentMain(sub_id - 1));
 }
 
-int commandVoltageMain(int port) {
+unsigned int commandVoltageMain(int port) {
   if (Wagman::validPort(port)) {
     return Wagman::getVoltage(port);
   }
@@ -352,7 +353,7 @@ Device4
 Examples:
 $ wagman-client hb
 */
-int commandHeartbeatMain(int port) {
+unsigned int commandHeartbeatMain(int port) {
   if (Wagman::validPort(port)) {
     return devices[port].timeSinceHeartbeat();
   }
@@ -377,7 +378,7 @@ Device4
 Examples:
 $ wagman-client fc
 */
-int commandFailCountMain(int port) {
+unsigned int commandFailCountMain(int port) {
   if (Wagman::validPort(port)) {
     return Record::getBootFailures(port);
   }

@@ -1,0 +1,13 @@
+#!/bin/sh
+# This file is part of the Waggle Platform.  Please see the file
+# LICENSE.waggle.txt for the legal details of the copyright and software
+# license.  For more details on the Waggle project, visit:
+#          http://www.wa8.gl
+
+cat << EOF > buildinfo.cpp
+#define BUILD_TIME $(date +%s)
+#define BUILD_GIT "$(git rev-parse HEAD)"
+EOF
+
+mkdir -p bin/
+arduino-cli compile -v -b arduino:avr:micro -o bin/firmware-3.2.0

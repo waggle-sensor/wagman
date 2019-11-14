@@ -141,9 +141,6 @@ void basicResp(writer &w, int id, int sub_id, const byte *value, int n) {
   e.encode();
 }
 
-// struct command_table_item {
-// };
-
 /*
 Command:
 Send Ping
@@ -918,7 +915,7 @@ void setup() {
 
   Wire.begin();
 
-  SerialUSB.begin(57600);
+  SerialUSB.begin(115200);
   SerialUSB.setTimeout(100);
 
   Serial1.begin(115200);
@@ -1321,8 +1318,6 @@ void resetSystem() {
 }
 
 void logStatus() {
-  SerialUSB.println("testing async logging");
-
   // send batched status sensorgrams
   base64_encoder b64e(serial_writer);
   commandID(b64e);

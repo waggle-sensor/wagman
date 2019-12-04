@@ -10,4 +10,4 @@ cat << EOF > buildinfo.cpp
 EOF
 
 mkdir -p bin/
-arduino-cli compile -v -b arduino:sam:wagman_v2 -o bin/firmware-4.2.0
+arduino-cli compile --warnings all -v -b arduino:sam:wagman_v2 -o bin/firmware-4.2.0

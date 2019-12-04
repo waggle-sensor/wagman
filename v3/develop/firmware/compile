@@ -10,4 +10,4 @@ cat << EOF > buildinfo.cpp
 EOF
 
 mkdir -p bin/
-arduino-cli compile -v -b arduino:avr:micro -o bin/firmware-3.2.0
+arduino-cli compile --warnings all -v -b arduino:avr:micro -o bin/firmware-3.2.0

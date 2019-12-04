@@ -21,7 +21,7 @@ unsigned long meanBootDelta(const Record::BootLog &bootLog, byte maxSamples);
 void printDate(const DateTime &dt);
 
 static const byte DEVICE_COUNT = 5;
-static const byte BUFFER_SIZE = 80;
+// static const byte BUFFER_SIZE = 80;
 static const byte MAX_ARGC = 8;
 
 byte bootflags = 0;
@@ -36,8 +36,8 @@ Device devices[DEVICE_COUNT];
 Timer startTimer;
 static Timer statusTimer;
 
-static char buffer[BUFFER_SIZE];
-static byte bufferSize = 0;
+// static char buffer[BUFFER_SIZE];
+// static byte bufferSize = 0;
 
 static time_t setupTime;
 
@@ -55,44 +55,44 @@ struct : public writer {
   }
 } serial_writer;
 
-#define REQ_WAGMAN_ID 0xc000
-#define REQ_WAGMAN_CU 0xc001
-#define REQ_WAGMAN_HB 0xc002
-#define REQ_WAGMAN_TH 0xc003
-#define REQ_WAGMAN_UPTIME 0xc004
-#define REQ_WAGMAN_BOOTS 0xc005
-#define REQ_WAGMAN_FC 0xc006
-#define REQ_WAGMAN_START 0xc007
-#define REQ_WAGMAN_STOP 0xc008
-#define REQ_WAGMAN_RESET 0xc009
-#define REQ_WAGMAN_EERESET 0xc00a
-#define REQ_WAGMAN_DEVICE_STATE 0xc00b
-#define REQ_WAGMAN_DEVICE_ENABLE 0xc00c
-#define REQ_WAGMAN_GET_MEDIA_SELECT 0xc00d
-#define REQ_WAGMAN_SET_MEDIA_SELECT 0xc00e
+const uint16_t REQ_WAGMAN_ID = (uint16_t)(0xc000);
+const uint16_t REQ_WAGMAN_CU = (uint16_t)(0xc001);
+const uint16_t REQ_WAGMAN_HB = (uint16_t)(0xc002);
+const uint16_t REQ_WAGMAN_TH = (uint16_t)(0xc003);
+const uint16_t REQ_WAGMAN_UPTIME = (uint16_t)(0xc004);
+const uint16_t REQ_WAGMAN_BOOTS = (uint16_t)(0xc005);
+const uint16_t REQ_WAGMAN_FC = (uint16_t)(0xc006);
+const uint16_t REQ_WAGMAN_START = (uint16_t)(0xc007);
+const uint16_t REQ_WAGMAN_STOP = (uint16_t)(0xc008);
+const uint16_t REQ_WAGMAN_RESET = (uint16_t)(0xc009);
+const uint16_t REQ_WAGMAN_EERESET = (uint16_t)(0xc00a);
+const uint16_t REQ_WAGMAN_DEVICE_STATE = (uint16_t)(0xc00b);
+const uint16_t REQ_WAGMAN_DEVICE_ENABLE = (uint16_t)(0xc00c);
+const uint16_t REQ_WAGMAN_GET_MEDIA_SELECT = (uint16_t)(0xc00d);
+const uint16_t REQ_WAGMAN_SET_MEDIA_SELECT = (uint16_t)(0xc00e);
 
-#define PUB_WAGMAN_ID 0xff1a
-#define PUB_WAGMAN_CU 0xff06
-#define PUB_WAGMAN_HB 0xff09
-#define PUB_WAGMAN_BOOTS 0xff1a
-#define PUB_WAGMAN_UPTIME 0xff14
-#define PUB_WAGMAN_FC 0xff05
-#define PUB_WAGMAN_START 0xff0b
-#define PUB_WAGMAN_STOP 0xff0a
-#define PUB_WAGMAN_ENABLE 40
-#define PUB_WAGMAN_EERESET 0xc00a
-#define PUB_WAGMAN_RESET 0xc009
-#define PUB_WAGMAN_PING 0xff1e
-#define PUB_WAGMAN_VOLTAGE 0xff08
-#define PUB_WAGMAN_TH 0xff10
-#define PUB_WAGMAN_DEVICE_STATE 0xff1f
-#define PUB_WAGMAN_DEVICE_ENABLE 0xff20
-#define PUB_WAGMAN_GET_MEDIA_SELECT 0xff21
-#define PUB_WAGMAN_SET_MEDIA_SELECT 0xff22
+const uint16_t PUB_WAGMAN_ID = (uint16_t)(0xff1a);
+const uint16_t PUB_WAGMAN_CU = (uint16_t)(0xff06);
+const uint16_t PUB_WAGMAN_HB = (uint16_t)(0xff09);
+const uint16_t PUB_WAGMAN_BOOTS = (uint16_t)(0xff1a);
+const uint16_t PUB_WAGMAN_UPTIME = (uint16_t)(0xff14);
+const uint16_t PUB_WAGMAN_FC = (uint16_t)(0xff05);
+const uint16_t PUB_WAGMAN_START = (uint16_t)(0xff0b);
+const uint16_t PUB_WAGMAN_STOP = (uint16_t)(0xff0a);
+const uint16_t PUB_WAGMAN_EERESET = (uint16_t)(0xc00a);
+const uint16_t PUB_WAGMAN_RESET = (uint16_t)(0xc009);
+const uint16_t PUB_WAGMAN_PING = (uint16_t)(0xff1e);
+const uint16_t PUB_WAGMAN_VOLTAGE = (uint16_t)(0xff08);
+const uint16_t PUB_WAGMAN_TH = (uint16_t)(0xff10);
+const uint16_t PUB_WAGMAN_DEVICE_STATE = (uint16_t)(0xff1f);
+const uint16_t PUB_WAGMAN_DEVICE_ENABLE = (uint16_t)(0xff20);
+const uint16_t PUB_WAGMAN_GET_MEDIA_SELECT = (uint16_t)(0xff21);
+const uint16_t PUB_WAGMAN_SET_MEDIA_SELECT = (uint16_t)(0xff22);
 
 template <class T>
-void basicResp(writer &w, int id, int sub_id, T value) {
-  sensorgram_encoder<64> e(w);
+void basicResp(writer &w, uint16_t id, uint8_t sub_id, T value) {
+  sensorgram_encoder<32> e(w);
+  e.info.timestamp = 0;
   e.info.id = id;
   e.info.sub_id = sub_id;
   e.info.inst = 0;
@@ -102,8 +102,10 @@ void basicResp(writer &w, int id, int sub_id, T value) {
   e.encode();
 }
 
-void basicResp(writer &w, int id, int sub_id, const byte *value, int n) {
-  sensorgram_encoder<64> e(w);
+void basicResp(writer &w, uint16_t id, uint8_t sub_id, const byte *value,
+               int n) {
+  sensorgram_encoder<32> e(w);
+  e.info.timestamp = 0;
   e.info.id = id;
   e.info.sub_id = sub_id;
   e.info.inst = 0;
@@ -513,9 +515,9 @@ Examples:
 $ wagman-client boots
 */
 void commandBoots(writer &w) {
-  unsigned long count;
-  Record::getBootCount(count);
-  basicResp(w, PUB_WAGMAN_BOOTS, 1, count);
+  // uint32_t count;
+  // Record::getBootCount(count);
+  basicResp(w, PUB_WAGMAN_BOOTS, 1, 7);
 }
 
 // /*
@@ -786,7 +788,6 @@ void setup() {
   setupDevices();
   deviceWantsStart = 0;
 
-  bufferSize = 0;
   startTimer.reset();
   statusTimer.reset();
 

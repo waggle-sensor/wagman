@@ -84,6 +84,18 @@ struct : public writer {
   }
 } serial_writer;
 
+struct : public writer {
+  int write(const byte *s, int n) {
+    int maxn = SerialUSB.availableForWrite();
+
+    if (n > maxn) {
+      n = maxn;
+    }
+
+    return Serial.write(s, n);
+  }
+} serial1_writer;
+
 #define REQ_WAGMAN_ID 0xc000
 #define REQ_WAGMAN_CU 0xc001
 #define REQ_WAGMAN_HB 0xc002
@@ -108,7 +120,6 @@ struct : public writer {
 #define PUB_WAGMAN_FC 0xff05
 #define PUB_WAGMAN_START 0xff0b
 #define PUB_WAGMAN_STOP 0xff0a
-#define PUB_WAGMAN_ENABLE 40
 #define PUB_WAGMAN_EERESET 0xc00a
 #define PUB_WAGMAN_RESET 0xc009
 #define PUB_WAGMAN_PING 0xff1e
@@ -836,6 +847,9 @@ void processCommand() {
       } break;
       case REQ_WAGMAN_RESET: {
         commandReset(b64e);
+      } break;
+      case PUB_WAGMAN_PING: {
+        commandPing(b64e, d.info.sub_id);
       } break;
     }
 

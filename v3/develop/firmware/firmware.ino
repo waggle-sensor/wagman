@@ -684,6 +684,9 @@ void processCommand() {
       case REQ_WAGMAN_RESET: {
         commandReset(b64e);
       } break;
+      case PUB_WAGMAN_PING: {
+        commandPing(b64e, d.info.sub_id);
+      } break;
     }
 
     b64e.close();

@@ -1242,10 +1242,10 @@ void loop() {
   }
 
   processCommands(SerialUSB, msgbuf, true, 0);
-  processCommands(Serial, msgbuf0, true, 0);
-  processCommands(Serial1, msgbuf1, false, 1);
-  processCommands(Serial2, msgbuf2, false, 2);
-  processCommands(Serial3, msgbuf3, false, 3);
+  processCommands(Serial1, msgbuf1, true, 0);
+  processCommands(Serial2, msgbuf2, false, 1);
+  processCommands(Serial3, msgbuf3, false, 2);
+  processCommands(Serial, msgbuf0, false, 0);
 
   if (shouldResetAll) {
     doResetAll();

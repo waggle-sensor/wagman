@@ -1242,7 +1242,7 @@ void loop() {
   }
 
   processCommands(SerialUSB, msgbuf);
-  processCommands(Serial1, msgbuf);
+  processCommands(Serial1, msgbuf1);
 
   if (shouldResetAll) {
     doResetAll();

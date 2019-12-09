@@ -781,7 +781,7 @@ bytebuffer<128> msgbuf2;
 bytebuffer<128> msgbuf3;
 
 template <class bufferT, class writerT>
-void processCommand(bufferT &buffer, writerT &wout) {
+void processCommand(bufferT &buffer, writerT &wout, bool isadmin, int port) {
   base64_decoder b64d(buffer);
   sensorgram_decoder<64> d(b64d);
 
@@ -808,19 +808,25 @@ void processCommand(bufferT &buffer, writerT &wout) {
         commandThermistor(b64e, d.info.sub_id);
       } break;
       case REQ_WAGMAN_START: {
-        commandStart(b64e, d.info.sub_id);
+        if (isadmin) {
+          commandStart(b64e, d.info.sub_id);
+        }
       } break;
       case REQ_WAGMAN_STOP: {
-        int after = d.decode_uint();
+        if (isadmin) {
+          int after = d.decode_uint();
 
-        if (!d.err) {
-          commandStop(b64e, d.info.sub_id, after);
-        } else {
-          basicResp(b64e, PUB_WAGMAN_STOP, d.info.sub_id, 0);
+          if (!d.err) {
+            commandStop(b64e, d.info.sub_id, after);
+          } else {
+            basicResp(b64e, PUB_WAGMAN_STOP, d.info.sub_id, 0);
+          }
         }
       } break;
       case REQ_WAGMAN_DEVICE_ENABLE: {
-        commandEnable(b64e, d.info.sub_id);
+        if (isadmin) {
+          commandEnable(b64e, d.info.sub_id);
+        }
       } break;
       case REQ_WAGMAN_DEVICE_STATE: {
         commandState(b64e, d.info.sub_id);
@@ -829,25 +835,33 @@ void processCommand(bufferT &buffer, writerT &wout) {
         commandGetMediaSelect(b64e, d.info.sub_id);
       } break;
       case REQ_WAGMAN_SET_MEDIA_SELECT: {
-        int media = d.decode_uint();
+        if (isadmin) {
+          int media = d.decode_uint();
 
-        if (!d.err) {
-          commandSetMediaSelect(b64e, d.info.sub_id, media);
-        } else {
-          basicResp(b64e, PUB_WAGMAN_SET_MEDIA_SELECT, d.info.sub_id, 0);
+          if (!d.err) {
+            commandSetMediaSelect(b64e, d.info.sub_id, media);
+          } else {
+            basicResp(b64e, PUB_WAGMAN_SET_MEDIA_SELECT, d.info.sub_id, 0);
+          }
         }
       } break;
       case REQ_WAGMAN_UPTIME: {
         commandUptime(b64e);
       } break;
       case REQ_WAGMAN_EERESET: {
-        commandResetEEPROM(b64e);
+        if (isadmin) {
+          commandResetEEPROM(b64e);
+        }
       } break;
       case REQ_WAGMAN_RESET: {
-        commandReset(b64e);
+        if (isadmin) {
+          commandReset(b64e);
+        }
       } break;
       case PUB_WAGMAN_PING: {
-        commandPing(b64e, d.info.sub_id);
+        if (isadmin || (port == (d.info.sub_id - 1))) {
+          commandPing(b64e, d.info.sub_id);
+        }
       } break;
     }
 
@@ -857,7 +871,7 @@ void processCommand(bufferT &buffer, writerT &wout) {
 }
 
 template <class streamT, class bufferT>
-void processCommands(streamT &stream, bufferT &buffer) {
+void processCommands(streamT &stream, bufferT &buffer, bool isadmin, int port) {
   int n = stream.available();
 
   for (int i = 0; i < n; i++) {
@@ -865,7 +879,7 @@ void processCommands(streamT &stream, bufferT &buffer) {
 
     if (c == '\n') {
       stream_writer<streamT> sw(stream);
-      processCommand(buffer, sw);
+      processCommand(buffer, sw, isadmin, port);
       buffer.reset();
     } else {
       buffer.writebyte(c);
@@ -1227,11 +1241,11 @@ void loop() {
     devices[i].update();
   }
 
-  processCommands(SerialUSB, msgbuf);
-  processCommands(Serial, msgbuf0);
-  processCommands(Serial1, msgbuf1);
-  processCommands(Serial2, msgbuf2);
-  processCommands(Serial3, msgbuf3);
+  processCommands(SerialUSB, msgbuf, true, 0);
+  processCommands(Serial, msgbuf0, true, 0);
+  processCommands(Serial1, msgbuf1, false, 1);
+  processCommands(Serial2, msgbuf2, false, 2);
+  processCommands(Serial3, msgbuf3, false, 3);
 
   if (shouldResetAll) {
     doResetAll();

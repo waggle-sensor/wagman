@@ -775,7 +775,10 @@ byte commandResetAll(byte argc, const char **argv) {
 }
 
 bytebuffer<128> msgbuf;
+bytebuffer<128> msgbuf0;
 bytebuffer<128> msgbuf1;
+bytebuffer<128> msgbuf2;
+bytebuffer<128> msgbuf3;
 
 template <class bufferT, class writerT>
 void processCommand(bufferT &buffer, writerT &wout) {
@@ -906,6 +909,9 @@ void setup() {
 
   SerialUSB.begin(115200);
   SerialUSB.setTimeout(100);
+
+  Serial.begin(115200);
+  Serial.setTimeout(100);
 
   Serial1.begin(115200);
   Serial1.setTimeout(100);
@@ -1222,7 +1228,10 @@ void loop() {
   }
 
   processCommands(SerialUSB, msgbuf);
+  processCommands(Serial, msgbuf0);
   processCommands(Serial1, msgbuf1);
+  processCommands(Serial2, msgbuf2);
+  processCommands(Serial3, msgbuf3);
 
   if (shouldResetAll) {
     doResetAll();

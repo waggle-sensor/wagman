@@ -348,10 +348,6 @@ void Device::setStartDelay(unsigned long t) { startDelay = t; }
 void Device::onHeartbeat() {
   heartbeatTimer.reset();
 
-  Logger::begin(name);
-  Logger::log("heartbeat");
-  Logger::end();
-
   switch (state) {
     case STATE_DISABLED:
       disable();  // repeat disable kill until no more heartbeat, just in

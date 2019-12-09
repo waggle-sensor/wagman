@@ -158,7 +158,10 @@ int commandPingMain(int device) {
   int ok = Wagman::validPort(device);
 
   if (ok) {
+    Wagman::setLED(device + 1, LOW);
     devices[device].sendExternalHeartbeat();
+    delay(50);
+    Wagman::setLED(device + 1, HIGH);
   }
 
   return ok;
@@ -879,28 +882,6 @@ void deviceKilled(Device &device) {
 
 volatile bool detectHB[5] = {false, false, false, false, false};
 
-void checkSerialHB() {
-  byte heartbeatBuffer[33];
-
-  if (Serial1.available() > 0) {
-    int n = Serial1.readBytesUntil('\n', heartbeatBuffer, 32);
-    heartbeatBuffer[n] = 0;
-
-    if (HasPrefix((const char *)heartbeatBuffer, "hello")) {
-      detectHB[0] = true;
-    }
-  }
-
-  if (Serial2.available() > 0) {
-    int n = Serial2.readBytesUntil('\n', heartbeatBuffer, 32);
-    heartbeatBuffer[n] = 0;
-
-    if (HasPrefix((const char *)heartbeatBuffer, "hello")) {
-      detectHB[1] = true;
-    }
-  }
-}
-
 volatile int lastHBPinState[5] = {LOW, LOW, LOW, LOW, LOW};
 
 const int CS_HB_PIN = 28;
@@ -914,7 +895,6 @@ void checkPinHB() {
   detectHB[4] = false;
 }
 
-// extern MockEEPROM<4096> EEPROM;
 extern ExternalEEPROM EEPROM;
 
 void setup() {
@@ -1259,7 +1239,6 @@ void loop() {
   }
 
   watchdogReset();
-  checkSerialHB();
   watchdogReset();
 
   bool devicePowered[5];

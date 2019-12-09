@@ -67,34 +67,24 @@ Device devices[DEVICE_COUNT];
 DurationTimer startTimer;
 static DurationTimer statusTimer;
 
-static char buffer[BUFFER_SIZE];
-static byte bufferSize = 0;
-
 static time_t setupTime;
 
-struct : public writer {
+template <class streamT>
+struct stream_writer : public writer {
+  streamT &stream;
+
+  stream_writer(streamT &stream) : stream(stream) {}
+
   int write(const byte *s, int n) {
-    int maxn = SerialUSB.availableForWrite();
+    int maxn = stream.availableForWrite();
 
     if (n > maxn) {
       n = maxn;
     }
 
-    return SerialUSB.write(s, n);
+    return stream.write(s, n);
   }
-} serial_writer;
-
-struct : public writer {
-  int write(const byte *s, int n) {
-    int maxn = SerialUSB.availableForWrite();
-
-    if (n > maxn) {
-      n = maxn;
-    }
-
-    return Serial.write(s, n);
-  }
-} serial1_writer;
+};
 
 #define REQ_WAGMAN_ID 0xc000
 #define REQ_WAGMAN_CU 0xc001
@@ -782,13 +772,15 @@ byte commandResetAll(byte argc, const char **argv) {
 }
 
 bytebuffer<128> msgbuf;
+bytebuffer<128> msgbuf1;
 
-void processCommand() {
-  base64_decoder b64d(msgbuf);
+template <class bufferT, class writerT>
+void processCommand(bufferT &buffer, writerT &wout) {
+  base64_decoder b64d(buffer);
   sensorgram_decoder<64> d(b64d);
 
   while (d.decode()) {
-    base64_encoder b64e(serial_writer);
+    base64_encoder b64e(wout);
 
     switch (d.info.id) {
       case REQ_WAGMAN_ID: {
@@ -854,21 +846,23 @@ void processCommand() {
     }
 
     b64e.close();
-    serial_writer.writebyte('\n');
+    wout.writebyte('\n');
   }
 }
 
-void processCommands() {
-  int n = SerialUSB.available();
+template <class streamT, class bufferT>
+void processCommands(streamT &stream, bufferT &buffer) {
+  int n = stream.available();
 
   for (int i = 0; i < n; i++) {
-    int c = SerialUSB.read();
+    int c = stream.read();
 
     if (c == '\n') {
-      processCommand();
-      msgbuf.reset();
+      stream_writer<streamT> sw(stream);
+      processCommand(buffer, sw);
+      buffer.reset();
     } else {
-      msgbuf.writebyte(c);
+      buffer.writebyte(c);
     }
   }
 }
@@ -968,7 +962,6 @@ void setup() {
   setupDevices();
   deviceWantsStart = 0;
 
-  bufferSize = 0;
   startTimer.reset();
   statusTimer.reset();
 
@@ -1248,7 +1241,8 @@ void loop() {
     devices[i].update();
   }
 
-  processCommands();
+  processCommands(SerialUSB, msgbuf);
+  processCommands(Serial1, msgbuf);
 
   if (shouldResetAll) {
     doResetAll();
@@ -1334,7 +1328,8 @@ void resetSystem() {
 
 void logStatus() {
   // send batched status sensorgrams
-  base64_encoder b64e(serial_writer);
+  stream_writer<typeof(SerialUSB)> w(SerialUSB);
+  base64_encoder b64e(w);
   commandID(b64e);
 
   for (int port = 1; port <= 6; port++) {
@@ -1354,5 +1349,5 @@ void logStatus() {
   }
 
   b64e.close();
-  serial_writer.writebyte('\n');
+  w.writebyte('\n');
 }

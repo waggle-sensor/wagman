@@ -78,10 +78,6 @@ void Device::setNextBootMedia(byte media) {
 
 byte Device::start() {
   if (state == STATE_STOPPING) {
-    Logger::begin(name);
-    Logger::log("will not start stopping device");
-    Logger::end();
-
     return ERROR_INVALID_ACTION;
   }
 
@@ -94,11 +90,6 @@ byte Device::start() {
   shouldForceBootMedia = false;
 
   Wagman::setBootMedia(bootSelector, bootMedia);
-
-  Logger::begin(name);
-  Logger::log("starting ");
-  Logger::log((bootMedia == primaryMedia) ? "primary" : "secondary");
-  Logger::end();
 
   Record::incrementBootAttempts(port);
 
@@ -131,15 +122,8 @@ byte Device::stop() {
   }
 
   if (state == STATE_STOPPING) {
-    Logger::begin(name);
-    Logger::log("already stopping");
-    Logger::end();
     return ERROR_INVALID_ACTION;
   }
-
-  Logger::begin(name);
-  Logger::log("stopping");
-  Logger::end();
 
   changeState(STATE_STOPPING);
 
@@ -150,10 +134,6 @@ byte Device::kill() {
   if (state == STATE_DISABLED) {
     return ERROR_INVALID_ACTION;
   }
-
-  Logger::begin(name);
-  Logger::log("killing");
-  Logger::end();
 
   Record::setRelayState(port, RELAY_TURNING_OFF);
   delay(10);
@@ -264,44 +244,17 @@ void Device::updateStarted() {
 
 void Device::updateStartedManaged() {
   if (watchHeartbeat && heartbeatTimer.exceeds(HEARTBEAT_TIMEOUT)) {
-    Logger::begin(name);
-    Logger::log("heartbeat timeout");
-    Logger::end();
-
     Record::incrementBootFailures(port);
     stop();
   }
 
   if (watchCurrent && currentLevelTimer.exceeds(10000)) {
-    Logger::begin(name);
-
-    switch (currentLevel) {
-      case CURRENT_NORMAL:
-        Logger::log("current normal");
-        break;
-      case CURRENT_LOW:
-        Logger::log("current low");
-        break;
-      case CURRENT_HIGH:
-        Logger::log("current high");
-        break;
-      case CURRENT_STRESSED:
-        Logger::log("current stressed");
-        break;
-    }
-
-    Logger::end();
-
     currentLevelTimer.reset();
   }
 }
 
 void Device::updateStartedUnmanaged() {
   if (stateTimer.exceeds(14400000L)) {
-    Logger::begin(name);
-    Logger::log("unmanaged switch");
-    Logger::end();
-
     setNextBootMedia((getNextBootMedia() == MEDIA_SD) ? MEDIA_EMMC : MEDIA_SD);
     stop();
   }
@@ -311,20 +264,11 @@ void Device::updateStopping() {
   // periodically send a stop message to the device.
   if (stopMessageTimer.exceeds(STOP_MESSAGE_TIMEOUT)) {
     stopMessageTimer.reset();
-
-    Logger::begin(name);
-    Logger::log("stopping");
-    Logger::end();
   }
 
   // device had sufficient time to shutdown, so kill it.
   if (stateTimer.exceeds(getStopTimeout())) {
     setStopTimeout(60000);  // hack for now...
-
-    Logger::begin(name);
-    Logger::log("stop timeout");
-    Logger::end();
-
     kill();
   }
 }

@@ -59,7 +59,7 @@ byte bootflags = 0;
 bool shouldResetSystem = false;
 unsigned long shouldResetTimeout = 0;
 DurationTimer shouldResetTimer;
-bool logging = true;
+bool logging = false;
 byte deviceWantsStart = 255;
 
 Device devices[DEVICE_COUNT];

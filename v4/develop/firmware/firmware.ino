@@ -2,7 +2,11 @@
 // LICENSE.waggle.txt for the legal details of the copyright and software
 // license.For more details on the Waggle project, visit:
 // http://www.wa8.gl
+#include <SD.h>
+#include <SPI.h>
+
 #include "Device.h"
+#include "DueTimer.h"
 #include "EEPROM.h"
 #include "Error.h"
 #include "Logger.h"
@@ -13,11 +17,6 @@
 #include "buildinfo.cpp"
 #include "commands.h"
 #include "verinfo.cpp"
-
-#include "DueTimer.h"
-
-#include <SD.h>
-#include <SPI.h>
 #include "waggle.h"
 #define SD_CS 42
 
@@ -984,23 +983,23 @@ void setupDevices() {
   devices[0].name = "nc";
   devices[0].port = 0;
   devices[0].bootSelector = 0;
-  devices[0].primaryMedia = MEDIA_SD;
-  devices[0].secondaryMedia = MEDIA_EMMC;
+  devices[0].primaryMedia = MEDIA_EMMC;
+  devices[0].secondaryMedia = MEDIA_SD;
   devices[0].watchHeartbeat = true;
   devices[0].watchCurrent = false;
 
   devices[1].name = "gn";
   devices[1].port = 1;
   devices[1].bootSelector = 1;
-  devices[1].primaryMedia = MEDIA_SD;
-  devices[1].secondaryMedia = MEDIA_EMMC;
+  devices[1].primaryMedia = MEDIA_EMMC;
+  devices[1].secondaryMedia = MEDIA_SD;
   devices[1].watchHeartbeat = true;
   devices[1].watchCurrent = false;
 
   devices[2].name = "cs";
   devices[2].port = 2;
-  devices[2].primaryMedia = MEDIA_SD;
-  devices[2].secondaryMedia = MEDIA_EMMC;
+  devices[2].primaryMedia = MEDIA_EMMC;
+  devices[2].secondaryMedia = MEDIA_SD;
   devices[2].watchHeartbeat = true;
   devices[2].watchCurrent = false;
 

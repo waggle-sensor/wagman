@@ -3,6 +3,7 @@
 // license.For more details on the Waggle project, visit:
 // http://www.wa8.gl
 #include "Device.h"
+
 #include "Error.h"
 #include "Logger.h"
 #include "Record.h"
@@ -12,7 +13,8 @@ const byte PORT_NC = 0;
 const byte PORT_GN = 1;
 const byte PORT_CORESENSE = 2;
 
-const unsigned long HEARTBEAT_TIMEOUT = 300000L;
+// const unsigned long HEARTBEAT_TIMEOUT = 300000L; // 5min
+const unsigned long HEARTBEAT_TIMEOUT = 3600000L;  // 1h
 const unsigned long FAULT_TIMEOUT = 10000L;
 const unsigned long DETECT_CURRENT_TIMEOUT = 10000L;
 const unsigned long STOP_MESSAGE_TIMEOUT = 10000L;

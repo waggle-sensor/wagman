@@ -85,6 +85,8 @@ struct stream_writer : public writer {
   }
 };
 
+#define SENSOR_ID_HTU21D 0x0002
+
 #define REQ_WAGMAN_ID 0xc000
 #define REQ_WAGMAN_CU 0xc001
 #define REQ_WAGMAN_HB 0xc002
@@ -100,6 +102,9 @@ struct stream_writer : public writer {
 #define REQ_WAGMAN_DEVICE_ENABLE 0xc00c
 #define REQ_WAGMAN_GET_MEDIA_SELECT 0xc00d
 #define REQ_WAGMAN_SET_MEDIA_SELECT 0xc00e
+#define REQ_WAGMAN_GET_DATETIME 0xc023
+#define REQ_WAGMAN_SET_DATETIME 0xc024
+#define REQ_WAGMAN_DEVICE_DISABLE 0xc025
 
 #define PUB_WAGMAN_ID 0xff1a
 #define PUB_WAGMAN_CU 0xff06
@@ -118,6 +123,9 @@ struct stream_writer : public writer {
 #define PUB_WAGMAN_DEVICE_ENABLE 0xff20
 #define PUB_WAGMAN_GET_MEDIA_SELECT 0xff21
 #define PUB_WAGMAN_SET_MEDIA_SELECT 0xff22
+#define PUB_WAGMAN_GET_DATETIME 0xff23
+#define PUB_WAGMAN_SET_DATETIME 0xff24
+#define PUB_WAGMAN_DEVICE_DISABLE 0xff25
 
 template <class T>
 void basicResp(writer &w, int id, int sub_id, T value) {
@@ -438,7 +446,8 @@ void commandEnvironment(writer &w) {
 
     if (ok) {
       sensorgram_encoder<64> e(w);
-      e.info.id = 31;
+      e.info.id = SENSOR_ID_HTU21D;
+      e.info.sub_id = 1;
       e.encode_uint(raw);
       e.encode();
     }
@@ -451,23 +460,24 @@ void commandEnvironment(writer &w) {
 
     if (ok) {
       sensorgram_encoder<64> e(w);
-      e.info.id = 32;
+      e.info.id = SENSOR_ID_HTU21D;
+      e.info.sub_id = 2;
       e.encode_uint(raw);
       e.encode();
     }
   }
 
-  {
-    unsigned int raw;
-    bool ok = Wagman::getLight(&raw);
+  // {
+  //   unsigned int raw;
+  //   bool ok = Wagman::getLight(&raw);
 
-    if (ok) {
-      sensorgram_encoder<64> e(w);
-      e.info.id = 33;
-      e.encode_uint(raw);
-      e.encode();
-    }
-  }
+  //   if (ok) {
+  //     sensorgram_encoder<64> e(w);
+  //     e.info.id = 33;
+  //     e.encode_uint(raw);
+  //     e.encode();
+  //   }
+  // }
 }
 
 /*
@@ -858,6 +868,7 @@ void processCommand(bufferT &buffer, writerT &wout, bool isadmin, int port) {
         }
       } break;
       case PUB_WAGMAN_PING: {
+        // if isadmin or ping is for incoming port
         if (isadmin || (port == (d.info.sub_id - 1))) {
           commandPing(b64e, d.info.sub_id);
         }
@@ -1348,6 +1359,8 @@ void logStatus() {
   for (int port = 1; port <= 5; port++) {
     commandThermistor(b64e, port);
   }
+
+  commandEnvironment(b64e);
 
   b64e.close();
   w.writebyte('\n');

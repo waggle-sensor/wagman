@@ -17,9 +17,12 @@ o o o o o o
 */
 
 #include "Wagman.h"
+
 #include <Arduino.h>
 #include <Wire.h>
+
 #include <array>
+
 #include "HTU21D.h"
 #include "MCP342X.h"
 #include "MCP79412RTC.h"

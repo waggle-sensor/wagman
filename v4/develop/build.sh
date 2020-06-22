@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-sig=$(find firmware -type f | xargs sha1sum | sha1sum | awk '{print $1}')
+sig=$(git ls-files -s firmware | git hash-object --stdin)
 
 docker run -it -v $PWD:/build firmware-builder bash -c "
     cd /build/firmware &&

@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-sig=$(git ls-files -s firmware | git hash-object --stdin)
+sig=$(git ls-files -s firmware | awk '/\.cpp|\.h/' | git hash-object --stdin)
 
 docker run -it -v $PWD:/build firmware-builder bash -c "
     cd /build/firmware &&

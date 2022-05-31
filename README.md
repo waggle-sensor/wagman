@@ -19,34 +19,4 @@ heartbeat is lost, WagMan can try to reboot the node.  After three failed attemp
 
 ## Firmware
 
-Wagman v5 does not incorporate any programmable components and does not hence have any firmware. For archival purposes, the firmware targetting v4 Wagman boards can be found [here](https://github.com/waggle-sensor/wagman/tree/master/v4/new/firmware) and the firmware for older v3 Wagman boards is kept [here](https://github.com/waggle-sensor/wagman/tree/master/v3/firmware).
-
-## Toolchain Setup
-
-The new Wagman requires a SAM board entry:
-
-```txt
-wagman_v2.name=Wagman v2
-wagman_v2.vid.0=0x2341
-wagman_v2.pid.0=0x003f
-wagman_v2.vid.1=0x2A03
-wagman_v2.pid.1=0x003f
-wagman_v2.upload.tool=bossac
-wagman_v2.upload.protocol=sam-ba
-wagman_v2.upload.maximum_size=524288
-wagman_v2.upload.use_1200bps_touch=true
-wagman_v2.upload.wait_for_upload_port=true
-wagman_v2.upload.native_usb=true
-wagman_v2.build.mcu=cortex-m3
-wagman_v2.build.f_cpu=84000000L
-wagman_v2.build.usb_manufacturer="Waggle Team"
-wagman_v2.build.usb_product="Wagman v2"
-wagman_v2.build.board=SAM_DUE
-wagman_v2.build.core=arduino
-wagman_v2.build.extra_flags=-D__SAM3X8E__ -mthumb {build.usb_flags}
-wagman_v2.build.ldscript=linker_scripts/gcc/flash.ld
-wagman_v2.build.variant=arduino_due_x
-wagman_v2.build.variant_system_lib=libsam_sam3x8e_gcc_rel.a
-wagman_v2.build.vid=0x2341
-wagman_v2.build.pid=0x003f
-```
+Wagman v5 does not incorporate any programmable components and does not hence have any firmware. For archival purposes, the firmware targetting v4 Wagman boards can be found [here](https://github.com/waggle-sensor/wagman/tree/master/boards/v4) and the firmware for older v3 Wagman boards is kept [here](https://github.com/waggle-sensor/wagman/tree/master/boards/v3).

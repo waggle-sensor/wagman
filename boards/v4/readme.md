@@ -2,13 +2,47 @@
 waggle_topic=/wagman/wagman_v4/introduction, Wagman V4.0 Features
 -->
 
-# Wagman V4.0 Features and Capabilities
+# Wagman V4.0
 
-## Features
+The Wagman V4 board is capable of managing up to 5 devices through power control, power monitoring, heart-beat monitoring and device temperature monitoring. Built around more capable Atmel SAM3X8E ARM Cortex-M3 CPU, the Wagman V4 version is a successor to the [Wagman V3](https://github.com/waggle-sensor/wagman/tree/master/boards/v3). It is designed to work with Odroid [C1+](https://www.hardkernel.com/shop/odroid-c1/) and [XU4](https://www.hardkernel.com/shop/odroid-xu4-special-price/) SBCs, providing special circuits for mnaging boot-media, and also powering devices across a wider power range. 
 
-The Wagman V4 board is capable of managing up to 5 devices through power control,
-power monitoring, heart-beat monitoring and device temperature monitoring. The
-Wagman V4 version is a successor to the [Wagman V3](https://github.com/waggle-sensor/wagman/tree/master/boards/v3) implemented in 2015-16 and was designed based on the features listed in the [RFC.](https://github.com/waggle-sensor/development/blob/master/WagMan_4.0_Discussion.md) Salient features of the new Wagman V4 include -
+
+## Design Decisions
+
+Implemented in 2015-16 and was designed to with the goal of incorporating features below divided into **H**)igh, **M**)edium, and **L**)ow.
+
+**H**) Countdown timer on NC, so it will turn on without further involvement of the WagMan unless it is STOPPED from turning on before the timer expires
+
+**H**) Replace all analog signaling that is subject to transients and slight voltage bias problems with reliable digital signaling (including SRE-Fix).  In some cases, signal could be serial line, in others two GPIO pins with appropriate logic/latch to trigger digital opto-isolators.
+
+**H**) Discuss with Intel and other circuit board designers how PCB layout could be modified to manage heavy current draws, for example, turning on 40W Edge Processor.  Is different wiring requires to avoid loads traveling on PCB traces?  
+
+**H**) Explore WagMan modifications to support 40W Intel NUC.  What are the tradeoffs to go even larger?  60W
+
+**H**) Understand if brownouts are caused by PCB routing or insufficiently large source PS capacitors. Work to stabilize power supply, or provide better isolation
+
+**H**) Bigger Flash memory / more powerful CPU (logs and program code)
+
+**H**) Remove Schottky Diode for reverse polarity protection, add polarized connectors for wiring harness and simplified assembly connection headers.
+
+**H**) Add support for 12V Edge Processor SBCs.  
+
+**H**) Redesign headers/connectors so manufacturing is easy, with single harness to connect.  
+
+**M**) Additional I/O pins that can be configured for out-of-band monitoring serial line, or connection to Particle.io Electron, etc.
+
+**M**) Explore temporary countdown latch for relays, so Wagman can reboot without needing to power down all devices
+
+**L**) Add 3 pushbuttons for GPIO pins. They can be used for testing, resetting to factory defaults, etc.  
+
+**L**) Do we ever have situations where WagMan must be removed from power to recover operation?  How will this be solved?  Do we need a failsafe?
+
+**L**) Add current and voltage diagnostic sensors to WagMan.
+
+**L**) Add LEDs. Decide what LEDs might be modified/changed for debugging/status.  Which LEDs will be programmable (can be turned on an off via firmware) and which are triggered directly by logic levels (flickering heartbeat, power, etc.)
+
+
+## Salient Features 
 
 * *Built around more capable Atmel SAM3X8E ARM Cortex-M3 CPU*
 * *On board 32K EEPROM*

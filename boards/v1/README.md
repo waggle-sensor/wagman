@@ -1,0 +1,3 @@
+# Wagman V1
+
+Wagman V1 ([v1.1](https://github.com/waggle-sensor/wagman/raw/master/boards/v1/resources/wagman_v1-1.jpg) and [v1.2](https://github.com/waggle-sensor/wagman/raw/master/boards/v1/resources/wagman_v1-2.jpg)) also called Sysmon (system monitor), is designed to utilize a [Arduino Micro](http://store.arduino.cc/products/arduino-micro) as the main processing brain. It provides 5 channel power control using relays, current measurement (ACS764), short circuit protection using resettable fuses, Temperature and Humidity sensor (HTU21D), RTC (DS1632), PCB protospace and outputs 5V on USB connectors. Wagman v1 is a prototype and system demonstrator. 

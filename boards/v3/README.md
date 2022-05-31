@@ -5,9 +5,7 @@ waggle_topic=wagman/wagman_v3,Wagman Version 3.0
 
 # Wagman v3.1
 
-The WagMan V3.1 board is capable of managing upto 5 devices through power control, power monitoring,
-heart-beat monitoring and device temperature monitoring. The figure below shows a WagMan with annotations
-pointing out the various capabilities, sensors and connectors on board.
+The WagMan V3.1 board is built around a [ATmega32U4](https://www.microchip.com/en-us/product/ATmega32U4). It provides 5 channel power control using relays, current measurement (ACS764), Temperature and Humidity sensor (HTU21D and HIH4030), RTC (MCP79412), light sensor and 5V outputs. It is built to work with Odroid [C1+](https://www.hardkernel.com/shop/odroid-c1/) and [XU4](https://www.hardkernel.com/shop/odroid-xu4-special-price/) SBCs, providing special circuits for mnaging boot-media. The figure below shows a WagMan with annotations pointing out the various capabilities, sensors and connectors on board.
 
 ## Getting Started
 

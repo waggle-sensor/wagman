@@ -34,11 +34,11 @@ bootloader and firmware files found in this repo, following the steps below -
 
   * Process:
     - Power on Wagman by connecting the 5V DC power as shown in figure below. Red is +5V and Black is ground. </br>
-      <img src="./qa_testing/design_dev_tests/Wagman_Initialization/resources/power_connect.jpg" width="220">
+      <img src="./manager/qa_testing/design_dev_tests/Wagman_Initialization/resources/power_connect.jpg" width="220">
     - The Yellow "ON" LED on the WagMan should light up. </br>
-      <img src="./qa_testing/design_dev_tests/Wagman_Initialization/resources/coin_cell_battery_debug_LED.jpg" width="220">
+      <img src="./manager/qa_testing/design_dev_tests/Wagman_Initialization/resources/coin_cell_battery_debug_LED.jpg" width="220">
     - Connect the Atmel AVRISP mkII to the Linux computer and connect it to J2 of Wagman as shown below. </br>
-      <img src="./qa_testing/design_dev_tests/Wagman_Initialization/resources/avrisp_connect.jpg" width="220">
+      <img src="./manager/qa_testing/design_dev_tests/Wagman_Initialization/resources/avrisp_connect.jpg" width="220">
     - Install the bootloader using the command installbl
       ```bash
       ./installbl
@@ -85,7 +85,7 @@ into the programming computer when installing the firmware. The WagMan firware i
 The WagMan V3.1 board is capable of managing upto 5 devices through power control, power monitoring, heart-beat monitoring and device temperature monitoring. The figure below shows a WagMan with annotations pointing out the various capabilities, sensors and connectors on board.
 
 
-<img src="./resources/WagmanAnnotated.jpg" width="800">
+<img src="./resources/wagman_v3-1_annotated.jpg" width="800">
 
 ## Onboard Sensors
 

@@ -4,7 +4,7 @@ waggle_topic=/wagman/wagman_v4/introduction, Wagman V4.0 Features
 
 # Wagman V4.0
 
-<img src="https://raw.githubusercontent.com/waggle-sensor/wagman/master/boards/v4/resources/Wagman-v4.jpg" width="450"></br>
+<img src="https://raw.githubusercontent.com/waggle-sensor/wagman/master/boards/v4/resources/Wagman-v4.jpg" width="600"></br>
 
 The Wagman [V4 board](https://raw.githubusercontent.com/waggle-sensor/wagman/master/boards/v4/resources/Wagman-v4.jpg) is capable of managing up to 5 devices through power control, power monitoring, heart-beat monitoring and device temperature monitoring. Built around more capable [SAM3X8E ARM Cortex-M3 CPU](https://www.microchip.com/en-us/product/ATSAM3X8E), the Wagman V4 version is a successor to the [Wagman V3](https://github.com/waggle-sensor/wagman/tree/master/boards/v3). It is designed to work with Odroid [C1+](https://www.hardkernel.com/shop/odroid-c1/) and [XU4](https://www.hardkernel.com/shop/odroid-xu4-special-price/) SBCs, providing special circuits for mnaging boot-media, and also powering devices across a wider power range. The board is built with a deadman trigger and MOSFET/Relay based power control. 
 

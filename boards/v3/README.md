@@ -2,6 +2,8 @@
 waggle_topic=wagman/wagman_v3,Wagman Version 3.0
 -->
 
+<img src="https://github.com/waggle-sensor/wagman/raw/master/boards/v3/resources/wagman_v3-1_annotated.png" width="900"></br>
+
 
 # Wagman v3.1
 
